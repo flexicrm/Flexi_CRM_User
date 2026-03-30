@@ -10,7 +10,6 @@ const App = () => {
   const { token } = useSelector((state: any) => state.auth);
 
   useEffect(() => {
-    // Resume token refresh on app load if user is logged in
     if (token) {
       resumeTokenRefresh(dispatch);
     }
