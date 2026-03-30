@@ -17,7 +17,8 @@ interface FollowUpTypeState {
   deleteError: string | null;
 }
 
-let slugname: string = "emayam-technology";
+let slugname: string = localStorage.getItem("subdomain") || "";
+
 
 export const createFollowUpType = createAsyncThunk<
   { message: string; data?: FollowUpType },
