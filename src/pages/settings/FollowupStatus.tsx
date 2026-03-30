@@ -14,6 +14,10 @@ import Reusable_Button from "../../component/button/Reusable_Button";
 import { Check, Plus, X } from "lucide-react";
 import Reusable_Fields from "../../component/Fields/Reusable_Fiealds";
 import Table from "../../component/table/Table";
+import {
+  errorAlert,
+  successAlert,
+} from "../../component/Notification/statusHandler";
 
 interface FollowUpStatus {
   _id: string;
@@ -131,6 +135,7 @@ const FollowupStatus = () => {
 
   useEffect(() => {
     if (message) {
+      successAlert(message);
       setStatusName("");
       setColor("#0000FF");
       setShowCreate(false);
@@ -139,18 +144,21 @@ const FollowupStatus = () => {
       dispatch(clearStatusMessage());
     }
     if (error) {
+      errorAlert(error);
       dispatch(clearStatusError());
     }
   }, [message]);
 
   useEffect(() => {
     if (deleteMessage) {
+      successAlert(deleteMessage);
       dispatch(getFollowUpStatus());
       dispatch(clearStatusMessage());
       setIsModalOpen(false);
       setSelectedId(null);
     }
     if (deleteError) {
+      errorAlert(deleteError);
       dispatch(clearStatusError());
     }
   }, [deleteMessage, deleteError]);

@@ -14,6 +14,10 @@ import Reusable_Button from "../../component/button/Reusable_Button";
 import { Check, Plus, X } from "lucide-react";
 import Reusable_Fields from "../../component/Fields/Reusable_Fiealds";
 import Table from "../../component/table/Table";
+import {
+  errorAlert,
+  successAlert,
+} from "../../component/Notification/statusHandler";
 
 interface LeadStatus {
   _id: string;
@@ -129,6 +133,7 @@ const LeadStatus = () => {
 
   useEffect(() => {
     if (message) {
+      successAlert(message);
       setStatusName("");
       setColor("#0000FF");
       setShowCreate(false);
@@ -137,18 +142,21 @@ const LeadStatus = () => {
       dispatch(clearLeadStatusMessage());
     }
     if (error) {
+      errorAlert(error);
       dispatch(clearLeadStatusError());
     }
   }, [message]);
 
   useEffect(() => {
     if (deleteMessage) {
+      successAlert(deleteMessage);
       dispatch(getLeadStatus());
       dispatch(clearLeadStatusMessage());
       setIsModalOpen(false);
       setSelectedId(null);
     }
     if (deleteError) {
+      errorAlert(deleteError);
       dispatch(clearLeadStatusError());
     }
   }, [deleteMessage, deleteError]);
