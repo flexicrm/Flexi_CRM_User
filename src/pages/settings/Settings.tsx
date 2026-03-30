@@ -32,7 +32,7 @@ const Settings = () => {
           </button>
         ))}
       </div>
-      <div className="mt-6">
+      <div className="mt-5">
         {activeTab === "Follow-up Type" && (
           <div>
             <FollowupType />

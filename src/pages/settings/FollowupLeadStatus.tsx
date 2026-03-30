@@ -44,7 +44,6 @@ const LeadStatus = () => {
   const [color, setColor] = useState("#0000FF");
   const [isEditMode, setIsEditMode] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(5);
 
@@ -54,14 +53,14 @@ const LeadStatus = () => {
 
   const tableData =
     status?.map((item: LeadStatus) => ({
-      _id: item._id,
-      statusName: item.statusName,
-      color: item.color,
+      _id: item?._id,
+      statusName: item?.statusName,
+      color: item?.color,
     })) || [];
 
   const pagination = {
     currentPage: page,
-    totalItems: tableData.length,
+    totalItems: tableData?.length,
     itemsPerPage: limit,
     onPageChange: (p: number) => setPage(p),
     onItemsPerPageChange: (l: number) => setLimit(l),
@@ -116,13 +115,13 @@ const LeadStatus = () => {
   const handleEditClick = (record: any) => {
     setShowCreate(true);
     setIsEditMode(true);
-    setEditId(record._id);
-    setStatusName(record.statusName);
-    setColor(record.color);
+    setEditId(record?._id);
+    setStatusName(record?.statusName);
+    setColor(record?.color);
   };
 
   const handleDeleteClick = (record: any) => {
-    setSelectedId(record._id);
+    setSelectedId(record?._id);
     setIsModalOpen(true);
   };
 
