@@ -14,6 +14,10 @@ import ConfirmDeleteModal from "../../component/CommonDeleteModel/CommonDeleteMo
 import Reusable_Button from "../../component/button/Reusable_Button";
 import { Check, Plus, X } from "lucide-react";
 import Reusable_Fields from "../../component/Fields/Reusable_Fiealds";
+import {
+  errorAlert,
+  successAlert,
+} from "../../component/Notification/statusHandler";
 
 interface LeadSource {
   _id: string;
@@ -98,6 +102,7 @@ const LeadSource = () => {
 
   useEffect(() => {
     if (message) {
+      successAlert(message);
       setSourceName("");
       setShowCreate(false);
       setIsEditMode(false);
@@ -108,12 +113,14 @@ const LeadSource = () => {
     }
 
     if (error) {
+      errorAlert(error);
       dispatch(clearSourceError());
     }
   }, [message]);
 
   useEffect(() => {
     if (deleteMessage) {
+      successAlert(deleteMessage);
       dispatch(getLeadSource());
       dispatch(clearSourceMessage());
       setIsModalOpen(false);
@@ -121,6 +128,7 @@ const LeadSource = () => {
     }
 
     if (deleteError) {
+      errorAlert(deleteError);
       dispatch(clearSourceError());
     }
   }, [deleteMessage, deleteError]);
