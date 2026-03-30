@@ -1,7 +1,8 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
-import Select, { StylesConfig } from 'react-select';
+import Select from "react-select";
+import type { StylesConfig } from "react-select";
 
 // --- Types ---
 export interface SelectOption {
