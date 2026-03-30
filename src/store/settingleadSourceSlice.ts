@@ -17,7 +17,7 @@ interface LeadSourceState {
   deleteError: string | null;
 }
 
-let slugname: string = "emayam-technology";
+let slugname: string = localStorage.getItem("subdomain") || "";
 
 export const createLeadSource = createAsyncThunk<
   { message: string; data?: LeadSource },

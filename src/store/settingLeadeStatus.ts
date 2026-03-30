@@ -18,7 +18,8 @@ interface LeadStatusState {
   deleteError: string | null;
 }
 
-let slugname: string = "emayam-technology";
+let slugname: string = localStorage.getItem("subdomain") || "";
+
 
 export const createLeadStatus = createAsyncThunk<
   { message: string; data?: LeadStatus },
