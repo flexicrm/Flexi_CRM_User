@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import Reusable_Button from "../button/Reusable_Button";
+import type { Variants } from "framer-motion";
 
 interface ConfirmDeleteModalProps {
   isOpen: boolean;
@@ -9,19 +10,30 @@ interface ConfirmDeleteModalProps {
   loading?: boolean;
 }
 
-const backdropVariants = {
+const backdropVariants: Variants = {
   hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { duration: 0.2 } },
+  visible: {
+    opacity: 1,
+    transition: { duration: 0.2 },
+  },
 };
 
-const modalVariants = {
+const modalVariants: Variants = {
   hidden: { y: "-100vh", opacity: 0 },
   visible: {
     y: 0,
     opacity: 1,
-    transition: { type: "spring", stiffness: 120, damping: 15 },
+    transition: {
+      type: "spring",
+      stiffness: 120,
+      damping: 15,
+    },
   },
-  exit: { y: "100vh", opacity: 0, transition: { duration: 0.3 } },
+  exit: {
+    y: "100vh",
+    opacity: 0,
+    transition: { duration: 0.3 },
+  },
 };
 
 const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
@@ -49,6 +61,7 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
             exit="exit"
           >
             <p className="text-lg font-semibold">{title || "Are you sure?"}</p>
+
             <div className="flex justify-center space-x-4">
               <Reusable_Button
                 text="Delete"
