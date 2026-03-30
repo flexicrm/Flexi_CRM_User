@@ -70,7 +70,6 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
                 isLoading={loading}
                 size="px-4 py-2"
               />
-
               <Reusable_Button
                 text="Cancel"
                 variant="outline"
