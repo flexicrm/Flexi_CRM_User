@@ -89,7 +89,7 @@ export const deleteLeadSource = createAsyncThunk<
       method: "DELETE",
     });
 
-    return response;
+    return response?.data;
   } catch (err: any) {
     return thunkAPI.rejectWithValue(err.message || "Delete failed");
   }

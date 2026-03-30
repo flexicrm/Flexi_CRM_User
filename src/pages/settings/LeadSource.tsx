@@ -36,7 +36,6 @@ const LeadSource = () => {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
-
   const [sourceName, setSourceName] = useState("");
   const [isEditMode, setIsEditMode] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -117,7 +116,6 @@ const LeadSource = () => {
     if (deleteMessage) {
       dispatch(getLeadSource());
       dispatch(clearSourceMessage());
-
       setIsModalOpen(false);
       setSelectedId(null);
     }

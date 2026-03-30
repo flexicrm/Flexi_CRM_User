@@ -11,7 +11,7 @@ interface AxiosApiProps {
 export const fetch = async ({
   endpoint,
   method = "GET",
-  body = null,
+  body = {},
   params = null,
 }: AxiosApiProps) => {
   try {
