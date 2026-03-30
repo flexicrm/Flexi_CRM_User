@@ -55,9 +55,9 @@ const FollowupStatus = () => {
 
   const tableData =
     status?.map((item: FollowUpStatus) => ({
-      _id: item._id,
-      statusName: item.StatusName,
-      color: item.color,
+      _id: item?._id,
+      statusName: item?.StatusName,
+      color: item?.color,
     })) || [];
 
   const pagination = {
@@ -96,7 +96,6 @@ const FollowupStatus = () => {
 
   const handleSubmit = async () => {
     if (!statusName.trim()) return;
-
     if (isEditMode && editId) {
       await dispatch(
         updateFollowUpStatus({

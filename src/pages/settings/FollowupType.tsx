@@ -48,8 +48,8 @@ const FollowupType = () => {
 
   const tableData: FollowUpType[] =
     types?.map((item: any) => ({
-      _id: item._id,
-      typeName: item.typeName,
+      _id: item?._id,
+      typeName: item?.typeName,
     })) || [];
 
   const columns = [
@@ -65,7 +65,7 @@ const FollowupType = () => {
 
   const pagination = {
     currentPage: page,
-    totalItems: tableData.length,
+    totalItems: tableData?.length,
     itemsPerPage: limit,
     onPageChange: (p: number) => setPage(p),
     onItemsPerPageChange: (l: number) => setLimit(l),
@@ -84,12 +84,12 @@ const FollowupType = () => {
   const handleEditClick = (record: FollowUpType) => {
     setShowCreate(true);
     setIsEditMode(true);
-    setEditId(record._id);
-    setTypeName(record.typeName);
+    setEditId(record?._id);
+    setTypeName(record?.typeName);
   };
 
   const handleDeleteClick = (record: FollowUpType) => {
-    setSelectedId(record._id);
+    setSelectedId(record?._id);
     setIsModalOpen(true);
   };
 
