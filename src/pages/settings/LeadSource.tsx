@@ -50,8 +50,8 @@ const LeadSource = () => {
 
   const tableData: LeadSource[] =
     sources?.map((item: any) => ({
-      _id: item._id,
-      sourceName: item.sourceName,
+      _id: item?._id,
+      sourceName: item?.sourceName,
     })) || [];
 
   const columns = [
@@ -67,7 +67,7 @@ const LeadSource = () => {
 
   const pagination = {
     currentPage: page,
-    totalItems: tableData.length,
+    totalItems: tableData?.length,
     itemsPerPage: limit,
     onPageChange: (p: number) => setPage(p),
     onItemsPerPageChange: (l: number) => setLimit(l),
@@ -86,12 +86,12 @@ const LeadSource = () => {
   const handleEditClick = (record: LeadSource) => {
     setShowCreate(true);
     setIsEditMode(true);
-    setEditId(record._id);
-    setSourceName(record.sourceName);
+    setEditId(record?._id);
+    setSourceName(record?.sourceName);
   };
 
   const handleDeleteClick = (record: LeadSource) => {
-    setSelectedId(record._id);
+    setSelectedId(record?._id);
     setIsModalOpen(true);
   };
 
