@@ -1,15 +1,22 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import type { DropResult } from "@hello-pangea/dnd";
-
 import { DraggableItem } from "./DraggableItem";
 import { GlassCard } from "./GlassCard";
 import Reusable_Button from "../../component/button/Reusable_Button";
-import { useDispatch } from "react-redux";
-import { createIntegration } from "../../store/integrationSlice";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  clearIntegrationError,
+  clearIntegrationMessage,
+  createIntegration,
+} from "../../store/integrationSlice";
 import type { AppDispatch } from "../../store/Store";
+import {
+  errorAlert,
+  successAlert,
+} from "../../component/Notification/statusHandler";
 
 interface FieldItem {
   id: string;
@@ -20,6 +27,7 @@ interface FieldItem {
 
 const Utilities = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const { message, error } = useSelector((state: any) => state.generatedCode);
   const [formName, setFormName] = useState("Contact Us");
   const [availableFields, setAvailableFields] = useState<FieldItem[]>([
     { id: "1", name: "name", label: "Full Name", type: "text" },
@@ -70,7 +78,6 @@ const Utilities = () => {
       platform,
       integrationType,
     };
-    console.log("Payload 👉", payload);
     dispatch(
       createIntegration({
         formName,
@@ -89,6 +96,17 @@ const Utilities = () => {
     navigator.clipboard.writeText(generatedCode);
     alert("Copied!");
   };
+
+  useEffect(() => {
+    if (message) {
+      successAlert(message);
+      dispatch(clearIntegrationMessage());
+    }
+    if (error) {
+      errorAlert(error);
+      dispatch(clearIntegrationError());
+    }
+  }, [message, error]);
 
   return (
     <div className="h-[calc(100vh-100px)] overflow-auto p-4">

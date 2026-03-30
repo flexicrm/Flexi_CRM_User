@@ -7,6 +7,7 @@ import followUpTypeReducer from "./settingFollowtypeSlice";
 import followUpStatusReducer from "./settingFollowStatus";
 import leadeStatusReducer from "./settingLeadeStatus";
 import leadeSourceReducer from "./settingleadSourceSlice";
+import generatedCodeReducer from "./integrationSlice";
 export const store = configureStore({
   reducer: {
     auth: authReducer,
@@ -17,6 +18,7 @@ export const store = configureStore({
     followStatus: followUpStatusReducer,
     leadeStatus: leadeStatusReducer,
     leadSource: leadeSourceReducer,
+    generatedCode: generatedCodeReducer,
   },
 });
 

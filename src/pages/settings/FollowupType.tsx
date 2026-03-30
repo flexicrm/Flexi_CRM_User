@@ -14,6 +14,10 @@ import ConfirmDeleteModal from "../../component/CommonDeleteModel/CommonDeleteMo
 import Reusable_Button from "../../component/button/Reusable_Button";
 import { Check, Plus, X } from "lucide-react";
 import Reusable_Fields from "../../component/Fields/Reusable_Fiealds";
+import {
+  errorAlert,
+  successAlert,
+} from "../../component/Notification/statusHandler";
 
 interface FollowUpType {
   _id: string;
@@ -96,24 +100,28 @@ const FollowupType = () => {
 
   useEffect(() => {
     if (message) {
+      successAlert(message);
       setTypeName("");
       setShowCreate(false);
       dispatch(getFollowUpTypes());
       dispatch(clearFollowUpMessage());
     }
     if (error) {
+      errorAlert(error);
       dispatch(clearFollowUpError());
     }
   }, [message]);
 
   useEffect(() => {
     if (deleteMessage) {
+      successAlert(deleteMessage);
       dispatch(getFollowUpTypes());
       dispatch(clearFollowUpMessage());
       setIsModalOpen(false);
       setSelectedId(null);
     }
     if (deleteError) {
+      errorAlert(deleteError);
       dispatch(clearFollowUpError());
     }
   }, [deleteError, deleteMessage]);
