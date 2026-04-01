@@ -4,16 +4,67 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Reusable_Button from '../../component/button/Reusable_Button';
 import Reusable_Fields from '../../component/Fields/Reusable_Fiealds';
+import { errorAlert, successAlert } from '../../component/Notification/statusHandler';
 import { createLead, fetchSources, fetchStatuses, fetchUsers, updateLead } from '../../store/homepage_slice/Leads_slice';
+
+// Helper function to extract error message from API response
+const extractErrorMessage = (error: any): string => {
+  let errorMessage = "Failed to process request. Please try again.";
+  
+  // Check if error has response data
+  if (error?.response?.data) {
+    const responseData = error.response.data;
+    
+    // Check for errors field (string or object)
+    if (responseData.errors) {
+      if (typeof responseData.errors === 'string') {
+        errorMessage = responseData.errors;
+      } else if (typeof responseData.errors === 'object') {
+        const firstErrorKey = Object.keys(responseData.errors)[0];
+        if (firstErrorKey && responseData.errors[firstErrorKey]) {
+          errorMessage = responseData.errors[firstErrorKey];
+        } else {
+          errorMessage = JSON.stringify(responseData.errors);
+        }
+      }
+    }
+    // Check for message field
+    else if (responseData.message) {
+      errorMessage = responseData.message;
+    }
+    // Check for error field
+    else if (responseData.error) {
+      errorMessage = responseData.error;
+    }
+  }
+  // Check for direct errors field
+  else if (error?.errors) {
+    if (typeof error.errors === 'string') {
+      errorMessage = error.errors;
+    } else if (typeof error.errors === 'object') {
+      const firstErrorKey = Object.keys(error.errors)[0];
+      if (firstErrorKey && error.errors[firstErrorKey]) {
+        errorMessage = error.errors[firstErrorKey];
+      } else {
+        errorMessage = JSON.stringify(error.errors);
+      }
+    }
+  }
+  // Check for message field
+  else if (error?.message) {
+    errorMessage = error.message;
+  }
+  
+  return errorMessage;
+};
 
 const Create_Leads = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const dispatch = useDispatch<any>();
     
-    // Detect if we are Editing
     const editData = location.state?.tableData;
-    const editId = location.state?.tableId; // e.g. FACEBOOK1936
+    const editId = location.state?.tableId;
 
     const { statusOptions, sourceOptions, userOptions, isCreating, isUpdating } = useSelector((state: any) => state.leads);
 
@@ -31,7 +82,6 @@ const Create_Leads = () => {
         notes: ''
     });
 
-    // 1. Fetch options and Check for Edit Data
     useEffect(() => {
         dispatch(fetchStatuses());
         dispatch(fetchSources());
@@ -76,14 +126,22 @@ const Create_Leads = () => {
             potentialValue: Number(formData.potentialValue)
         };
 
-        if (editData) {
-            // Logic for Update
-            const result = await dispatch(updateLead({ leadId: editId, formData: finalPayload }));
-            if (updateLead.fulfilled.match(result)) navigate(-1);
-        } else {
-            // Logic for Create
-            const result = await dispatch(createLead(finalPayload));
-            if (createLead.fulfilled.match(result)) navigate(-1);
+        try {
+            if (editData) {
+                const result = await dispatch(updateLead({ leadId: editId, formData: finalPayload })).unwrap();
+                const successMsg = result?.message || result?.data?.message || "Lead updated successfully!";
+                successAlert(successMsg, "Done");
+                navigate(-1);
+            } else {
+                const result = await dispatch(createLead(finalPayload)).unwrap();
+                const successMsg = result?.message || result?.data?.message || "Lead created successfully!";
+                successAlert(successMsg, "Done");
+                navigate(-1);
+            }
+        } catch (error: any) {
+            const errorMessage = extractErrorMessage(error);
+            errorAlert(errorMessage, "Retry");
+            console.error("Error:", error);
         }
     };
 

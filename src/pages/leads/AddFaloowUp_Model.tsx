@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useSearchParams } from 'react-router-dom';
 import Reusable_Button from '../../component/button/Reusable_Button';
 import Reusable_Fields from '../../component/Fields/Reusable_Fiealds';
+import { errorAlert, successAlert } from '../../component/Notification/statusHandler';
 import {
   addFollowUp_Assignto,
   addFollowUp_Leadstatus,
@@ -13,13 +14,60 @@ import {
   createFollowUp
 } from '../../store/homepage_slice/Leads_slice';
 
-// Changed tableId to activeId to match our previous safety fix
-const AddFollowUp_Model = ({tableId, selectedData} : { tableId: string | null; selectedData: any }) => {
+// Helper function to extract error message from API response
+const extractErrorMessage = (error: any): string => {
+  let errorMessage = "Failed to create follow-up. Please try again.";
+  
+  // Check if error has response data
+  if (error?.response?.data) {
+    const responseData = error.response.data;
+    
+    // Check for errors field (string or object)
+    if (responseData.errors) {
+      if (typeof responseData.errors === 'string') {
+        errorMessage = responseData.errors;
+      } else if (typeof responseData.errors === 'object') {
+        const firstErrorKey = Object.keys(responseData.errors)[0];
+        if (firstErrorKey && responseData.errors[firstErrorKey]) {
+          errorMessage = responseData.errors[firstErrorKey];
+        } else {
+          errorMessage = JSON.stringify(responseData.errors);
+        }
+      }
+    }
+    // Check for message field
+    else if (responseData.message) {
+      errorMessage = responseData.message;
+    }
+    // Check for error field
+    else if (responseData.error) {
+      errorMessage = responseData.error;
+    }
+  }
+  // Check for direct errors field
+  else if (error?.errors) {
+    if (typeof error.errors === 'string') {
+      errorMessage = error.errors;
+    } else if (typeof error.errors === 'object') {
+      const firstErrorKey = Object.keys(error.errors)[0];
+      if (firstErrorKey && error.errors[firstErrorKey]) {
+        errorMessage = error.errors[firstErrorKey];
+      } else {
+        errorMessage = JSON.stringify(error.errors);
+      }
+    }
+  }
+  // Check for message field
+  else if (error?.message) {
+    errorMessage = error.message;
+  }
+  
+  return errorMessage;
+};
+
+const AddFollowUp_Model = ({tableId} : { tableId: string | null; selectedData: any }) => {
   const dispatch = useDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
-  console.log("AddFollowUp_Model received tableId:", selectedData); // Debug log
-  
-  console.log("AddFollowUp_Model rendered with tableId:", tableId); // Debug log
   
   const isOpen = searchParams.get("modal") === "schedule-followup";
 
@@ -34,7 +82,7 @@ const AddFollowUp_Model = ({tableId, selectedData} : { tableId: string | null; s
   const [formData, setFormData] = useState({
     leadStatus: '',
     type: '',
-    priority: 'medium', // Set default to lowercase
+    priority: 'medium',
     status: '',
     assignTo: '',
     notes: '',
@@ -59,41 +107,50 @@ const AddFollowUp_Model = ({tableId, selectedData} : { tableId: string | null; s
   const closeModal = () => {
     const params = new URLSearchParams(searchParams);
     params.delete("modal");
-    
-    // Preserve the ID in the URL state when closing so it doesn't delete!
     setSearchParams(params, { state: { activeId: tableId } });
-    
-    // Reset Form
-    setFormData({ leadStatus: '', type: '', priority: 'medium', status: '', assignTo: '', notes: '', dueDate: '', setReminder: false });
+    setFormData({ 
+      leadStatus: '', 
+      type: '', 
+      priority: 'medium', 
+      status: '', 
+      assignTo: '', 
+      notes: '', 
+      dueDate: '', 
+      setReminder: false 
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!tableId) return alert("Lead ID missing!");
+    if (!tableId) {
+      errorAlert("Lead ID missing! Please try again.", "Retry");
+      return;
+    }
 
-    // ============================================
-    // EXACT PAYLOAD FORMAT REQUESTED
-    // ============================================
     const payload = {
       followUps: [
         {
           leadStatus: formData.leadStatus,
           type: formData.type,
           notes: formData.notes,
-          assignTo: formData.assignTo, // As a string, not an array
-          isSetTimer: formData.setReminder, // Mapped to isSetTimer
-          priority: formData.priority, // "medium", "high", "low"
+          assignTo: formData.assignTo,
+          isSetTimer: formData.setReminder,
+          priority: formData.priority,
           status: formData.status,
-          ...(formData.dueDate && { dueDate: formData.dueDate }) // Keep dueDate if user selected one
+          ...(formData.dueDate && { dueDate: formData.dueDate })
         }
       ]
     };
 
-    const resultAction = await dispatch(createFollowUp({ tableId: tableId, data: payload }) as any);
-    if (createFollowUp.fulfilled.match(resultAction)) {
+    try {
+      const resultAction = await dispatch(createFollowUp({ tableId: tableId, data: payload }) as any).unwrap();
+      const successMsg = resultAction?.message || resultAction?.data?.message || "Follow-up created successfully!";
+      successAlert(successMsg, "Done");
       closeModal();
-    } else {
-      alert(resultAction.payload || "Failed to create follow-up");
+    } catch (error: any) {
+      const errorMessage = extractErrorMessage(error);
+      errorAlert(errorMessage, "Retry");
+      console.error("Follow-up creation error:", error);
     }
   };
 
@@ -169,9 +226,9 @@ const AddFollowUp_Model = ({tableId, selectedData} : { tableId: string | null; s
                     onChange={handleChange}
                     className={fieldStyles}
                     options={[
-                      { label: "High", value: "high" }, // value changed to lowercase
-                      { label: "Medium", value: "medium" }, // value changed to lowercase
-                      { label: "Low", value: "low" } // value changed to lowercase
+                      { label: "High", value: "high" },
+                      { label: "Medium", value: "medium" },
+                      { label: "Low", value: "low" }
                     ]}
                   />
                   <Reusable_Fields

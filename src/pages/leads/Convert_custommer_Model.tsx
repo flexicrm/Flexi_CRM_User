@@ -3,14 +3,69 @@ import { Loader2, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useLocation, useSearchParams } from 'react-router-dom';
+import { errorAlert, successAlert } from '../../component/Notification/statusHandler';
 import { createCustomer } from '../../store/homepage_slice/Leads_slice';
+
+// Helper function to extract error message from API response
+const extractErrorMessage = (error: any): string => {
+  let errorMessage = "Failed to convert customer. Please try again.";
+  
+  // Check if error has response data
+  if (error?.response?.data) {
+    const responseData = error.response.data;
+    
+    // Check for errors field (string or object)
+    if (responseData.errors) {
+      if (typeof responseData.errors === 'string') {
+        errorMessage = responseData.errors;
+      } else if (typeof responseData.errors === 'object') {
+        const firstErrorKey = Object.keys(responseData.errors)[0];
+        if (firstErrorKey && responseData.errors[firstErrorKey]) {
+          errorMessage = responseData.errors[firstErrorKey];
+        } else {
+          errorMessage = JSON.stringify(responseData.errors);
+        }
+      }
+    }
+    // Check for message field
+    else if (responseData.message) {
+      errorMessage = responseData.message;
+    }
+    // Check for error field
+    else if (responseData.error) {
+      errorMessage = responseData.error;
+    }
+  }
+  // Check for direct errors field
+  else if (error?.errors) {
+    if (typeof error.errors === 'string') {
+      errorMessage = error.errors;
+    } else if (typeof error.errors === 'object') {
+      const firstErrorKey = Object.keys(error.errors)[0];
+      if (firstErrorKey && error.errors[firstErrorKey]) {
+        errorMessage = error.errors[firstErrorKey];
+      } else {
+        errorMessage = JSON.stringify(error.errors);
+      }
+    }
+  }
+  // Check for message field
+  else if (error?.message) {
+    errorMessage = error.message;
+  }
+  // Check for error field
+  else if (error?.error) {
+    errorMessage = error.error;
+  }
+  
+  return errorMessage;
+};
 
 const Convert_custommer_Model = ({ data }: { data?: any[] }) => {
   const dispatch = useDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   
-  // GET LeadId FROM URL
   const leadId = searchParams.get("LeadId");
   const isOpen = searchParams.get("modal") === "convert-customer";
   
@@ -23,12 +78,9 @@ const Convert_custommer_Model = ({ data }: { data?: any[] }) => {
     phone: ''
   });
 
-  // Find the lead from the data array when modal opens or leadId changes
   useEffect(() => {
     if (isOpen && leadId && data && data.length > 0) {
-      // Find the lead with matching LeadId
       const foundLead = data.find(lead => lead.LeadId === leadId);
-      console.log("Found lead for conversion:", foundLead); // Debug log
       setCurrentLead(foundLead);
       
       if (foundLead?.manualData) {
@@ -51,7 +103,6 @@ const Convert_custommer_Model = ({ data }: { data?: any[] }) => {
     params.delete("modal");
     params.delete("LeadId");
     setSearchParams(params, { state: location.state });
-    // Reset form data
     setFormData({
       Companyname: '',
       email: '',
@@ -65,29 +116,27 @@ const Convert_custommer_Model = ({ data }: { data?: any[] }) => {
     setIsSubmitting(true);
 
     try {
-      // Send ONLY the form data with Companyname, email, and phone
       const payload = {
         Companyname: formData.Companyname,
         email: formData.email,
         phone: formData.phone
       };
 
-      console.log("Sending payload:", payload); // Debug log
-
       const res = await dispatch(createCustomer(payload) as any).unwrap();
-      console.log("Customer created successfully:", res);
-      
+      const successMsg = res?.message || res?.data?.message || "Customer converted successfully!";
+      successAlert(successMsg, "Done");
       closeModal();
-      
-    } catch (error) {
-      console.error("Failed to convert customer:", error);
+    } catch (error: any) {
+      const errorMessage = extractErrorMessage(error);
+      errorAlert(errorMessage, "Retry");
+      console.error("Customer conversion error:", error);
+    } finally {
       setIsSubmitting(false);
     }
   };
 
   if (!isOpen) return null;
 
-  // Show loading state if we're still trying to find the lead
   if (isOpen && leadId && (!data || data.length === 0)) {
     return (
       <AnimatePresence>
@@ -145,7 +194,6 @@ const Convert_custommer_Model = ({ data }: { data?: any[] }) => {
               </button>
             </div>
 
-            {/* Display lead info if available */}
             {currentLead && (
               <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
                 <p className="text-sm text-slate-600 mb-1">

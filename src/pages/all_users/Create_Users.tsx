@@ -14,6 +14,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 
 import Reusable_Button from '../../component/button/Reusable_Button';
 import Reusable_Fields from '../../component/Fields/Reusable_Fiealds';
+import { errorAlert, successAlert } from '../../component/Notification/statusHandler';
 import Overall_Permissions from '../../component/permissions/Overall_Permissions';
 
 import {
@@ -79,6 +80,59 @@ interface EditData {
     country?: string;
   };
 }
+
+// Helper function to extract error message from API response
+const extractErrorMessage = (error: any): string => {
+  // Default error message
+  let errorMessage = "Error occurred while saving user. Please try again.";
+  
+  // Check if error has response data
+  if (error?.response?.data) {
+    const responseData = error.response.data;
+    
+    // Check for errors field (string or object)
+    if (responseData.errors) {
+      if (typeof responseData.errors === 'string') {
+        errorMessage = responseData.errors;
+      } else if (typeof responseData.errors === 'object') {
+        // If errors is an object, try to get the first error message
+        const firstErrorKey = Object.keys(responseData.errors)[0];
+        if (firstErrorKey && responseData.errors[firstErrorKey]) {
+          errorMessage = responseData.errors[firstErrorKey];
+        } else {
+          errorMessage = JSON.stringify(responseData.errors);
+        }
+      }
+    }
+    // Check for message field
+    else if (responseData.message) {
+      errorMessage = responseData.message;
+    }
+    // Check for error field
+    else if (responseData.error) {
+      errorMessage = responseData.error;
+    }
+  }
+  // Check for direct errors field
+  else if (error?.errors) {
+    if (typeof error.errors === 'string') {
+      errorMessage = error.errors;
+    } else if (typeof error.errors === 'object') {
+      const firstErrorKey = Object.keys(error.errors)[0];
+      if (firstErrorKey && error.errors[firstErrorKey]) {
+        errorMessage = error.errors[firstErrorKey];
+      } else {
+        errorMessage = JSON.stringify(error.errors);
+      }
+    }
+  }
+  // Check for message field
+  else if (error?.message) {
+    errorMessage = error.message;
+  }
+  
+  return errorMessage;
+};
 
 const Create_Users: React.FC = () => {
   const navigate = useNavigate();
@@ -149,8 +203,10 @@ const Create_Users: React.FC = () => {
       try {
         const res = await Permissions_getall_User();
         setRoles(res?.data?.data || []);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching roles:", error);
+        const errorMessage = extractErrorMessage(error);
+        errorAlert(errorMessage, "Retry");
       }
     };
     fetchRoles();
@@ -217,7 +273,7 @@ const Create_Users: React.FC = () => {
     const selectedRole = roles.find(r => r.userRole === formData.userRole);
 
     if (!selectedRole) {
-      alert("Please select a role first");
+      errorAlert("Please select a role first before editing permissions.", "Okay");
       return;
     }
 
@@ -273,9 +329,53 @@ const Create_Users: React.FC = () => {
     deleted: false,
   });
 
+  // 🔹 VALIDATE FORM BEFORE SUBMIT
+  const validateForm = () => {
+    if (!formData.firstName.trim()) {
+      errorAlert("First name is required", "Okay");
+      return false;
+    }
+    if (!formData.lastName.trim()) {
+      errorAlert("Last name is required", "Okay");
+      return false;
+    }
+    if (!formData.email.trim()) {
+      errorAlert("Email is required", "Okay");
+      return false;
+    }
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (formData.email && !emailRegex.test(formData.email)) {
+      errorAlert("Please enter a valid email address", "Okay");
+      return false;
+    }
+    if (!formData.mobile.trim()) {
+      errorAlert("Mobile number is required", "Okay");
+      return false;
+    }
+    if (!formData.userRole) {
+      errorAlert("Please select a user role", "Okay");
+      return false;
+    }
+    if (!edit && !formData.password.trim()) {
+      errorAlert("Password is required for new users", "Okay");
+      return false;
+    }
+    if (formData.password && formData.password.length < 6) {
+      errorAlert("Password must be at least 6 characters long", "Okay");
+      return false;
+    }
+    return true;
+  };
+
   // 🔹 SUBMIT
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    // Validate form
+    if (!validateForm()) {
+      return;
+    }
 
     try {
       setLoading(true);
@@ -283,17 +383,23 @@ const Create_Users: React.FC = () => {
       const payload = buildFinalPayload();
 
       if (edit && userId) {
-        await Edit_User(userId, payload);
-        alert("User Updated Successfully");
+        const response = await Edit_User(userId, payload);
+        // Extract success message from API response
+        const successMsg = response?.data?.message || "User updated successfully!";
+        successAlert(successMsg, "Done");
       } else {
-        await create_User(payload);
-        alert("User Created Successfully");
+        const response = await create_User(payload);
+        // Extract success message from API response
+        const successMsg = response?.data?.message || "User created successfully!";
+        successAlert(successMsg, "Done");
       }
 
       navigate(-1);
     } catch (err: any) {
-      console.error(err);
-      alert(err?.message || "Error occurred while saving user");
+      console.error("Error saving user:", err);
+      // Use the helper function to extract the error message
+      const errorMessage = extractErrorMessage(err);
+      errorAlert(errorMessage, "Retry");
     } finally {
       setLoading(false);
     }
@@ -314,27 +420,32 @@ const Create_Users: React.FC = () => {
               name="firstName" 
               value={formData.firstName} 
               onChange={handleChange} 
-              icon={<User size={18} />} 
+              icon={<User size={18} />}
+              required
             />
             <Reusable_Fields 
               label="Last Name" 
               name="lastName" 
               value={formData.lastName} 
-              onChange={handleChange} 
+              onChange={handleChange}
+              required
             />
             <Reusable_Fields 
               label="Mobile" 
               name="mobile" 
               value={formData.mobile} 
               onChange={handleChange} 
-              icon={<Phone size={18} />} 
+              icon={<Phone size={18} />}
+              required
             />
             <Reusable_Fields 
               label="Email" 
               name="email" 
+              type="email"
               value={formData.email} 
               onChange={handleChange} 
-              icon={<Mail size={18} />} 
+              icon={<Mail size={18} />}
+              required
             />
             {!edit && (
               <Reusable_Fields 
@@ -343,7 +454,8 @@ const Create_Users: React.FC = () => {
                 type="password" 
                 value={formData.password} 
                 onChange={handleChange} 
-                icon={<Lock size={18} />} 
+                icon={<Lock size={18} />}
+                required
               />
             )}
           </div>
@@ -363,6 +475,7 @@ const Create_Users: React.FC = () => {
               value={formData.userRole}
               onChange={handleChange}
               icon={<Briefcase size={18} />}
+              required
             />
 
             <Reusable_Fields 
@@ -370,14 +483,16 @@ const Create_Users: React.FC = () => {
               name="companyId" 
               value={formData.companyId} 
               onChange={handleChange} 
-              icon={<Building2 size={18} />} 
+              icon={<Building2 size={18} />}
+              placeholder="self"
             />
             <Reusable_Fields 
               label="Salary" 
               name="salary" 
+              type="number"
               value={formData.salary} 
               onChange={handleChange} 
-              icon={<IndianRupee size={18} />} 
+              icon={<IndianRupee size={18} />}
             />
           </div>
         </section>
@@ -441,6 +556,7 @@ const Create_Users: React.FC = () => {
             text={loading ? "Saving..." : edit ? "Update User" : "Create User"}
             type="submit"
             size='px-3 py-2.5'
+            disabled={loading}
           />
         </div>
       </form>
