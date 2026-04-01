@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { RegisterUser, fetchCategories } from "../../store/Login_Slice";
+import type { AppDispatch } from "../../store/Store";
 import Auth_Slider from "./Auth_Slider";
 
 interface FormData {
@@ -19,9 +20,8 @@ interface FormData {
 
 const Register = () => {
   const navigate = useNavigate();
-  const dispatch = useDispatch();
-
-  const { isLoading, error, categories, categoriesLoading } = useSelector((state) => state.auth);
+const dispatch = useDispatch<AppDispatch>();
+  const { isLoading, error, categories, categoriesLoading } = useSelector((state : { auth: any }) => state.auth);
 
   const categoryList = Array.isArray(categories) ? categories : [];
 
@@ -42,16 +42,22 @@ const Register = () => {
   const [localError, setLocalError] = useState("");
 
   useEffect(() => {
-    dispatch(fetchCategories());
+    dispatch(fetchCategories() as any);
   }, [dispatch]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type, checked } = e.target;
-    setFormData({
-      ...formData,
-      [name]: type === "checkbox" ? checked : value,
-    });
-  };
+ const handleChange = (
+  e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+) => {
+  const target = e.target;
+
+  setFormData({
+    ...formData,
+    [target.name]:
+      target instanceof HTMLInputElement && target.type === "checkbox"
+        ? target.checked
+        : target.value,
+  });
+};
 
   const validateForm = () => {
     if (!formData.companyName.trim()) {
@@ -125,16 +131,17 @@ const Register = () => {
     };
 
     try {
-      const result = await dispatch(RegisterUser(registerData));
-      if (RegisterUser.fulfilled.match(result)) {
-        localStorage.setItem("mobile", formData.mobile);
-        navigate("/login", { state: { mobile: formData.mobile } });
-      } else {
-        setLocalError(result.payload?.message || "Registration failed");
-      }
-    } catch {
-      setLocalError("An error occurred. Please try again.");
-    }
+  const result = await dispatch(RegisterUser(registerData));
+
+  if (RegisterUser.fulfilled.match(result)) {
+    localStorage.setItem("mobile", formData.mobile);
+    navigate("/login", { state: { mobile: formData.mobile } });
+  } else {
+    setLocalError( "Registration failed");
+  }
+} catch {
+  setLocalError("An error occurred. Please try again.");
+}
   };
 
   return (

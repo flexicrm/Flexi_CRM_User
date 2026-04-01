@@ -10,7 +10,7 @@ import type { AppDispatch, RootState } from "../../store/Store";
 
 const High_Leads = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { highValueLeads, isLoading, error } = useSelector(
+  const { highValueLeads, isLoading } = useSelector(
     (state: RootState) => state.dashboard
   );
 

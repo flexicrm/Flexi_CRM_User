@@ -1,6 +1,6 @@
 import { AlertCircle, CheckCircle2, FileType, Loader2, UploadCloud, X } from 'lucide-react';
 import React, { useCallback, useRef, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import * as XLSX from 'xlsx';
 import Reusable_Button from '../../component/button/Reusable_Button';
 import { ImportLead, fetchLeads } from '../../store/homepage_slice/Leads_slice';
@@ -23,8 +23,6 @@ interface BulkUploadProps {
 
 const Bulk_Upload: React.FC<BulkUploadProps> = ({ onClose, onSuccess }) => {
   const dispatch = useDispatch();
-  const { isCreating } = useSelector((state: any) => state.leads);
-
   const [files, setFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadedData, setUploadedData] = useState<UploadedData[]>([]);
@@ -33,6 +31,9 @@ const Bulk_Upload: React.FC<BulkUploadProps> = ({ onClose, onSuccess }) => {
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // FIX: Remove unused isCreating variable
+  // const { isCreating } = useSelector((state: any) => state.leads);
 
   const acceptedFileTypes = [
     'application/vnd.ms-excel',
@@ -325,14 +326,14 @@ const Bulk_Upload: React.FC<BulkUploadProps> = ({ onClose, onSuccess }) => {
       // Update progress to show uploading started
       setUploadProgress(0);
 
-      // Dispatch bulk upload action with the correct payload structure
-      await dispatch(ImportLead(payload)).unwrap();
+      // FIX: Cast the thunk to any to avoid TypeScript errors
+      await dispatch(ImportLead(payload) as any).unwrap();
       
       setUploadProgress(100);
       setSuccess(`Successfully uploaded ${leadsArray.length} lead(s).`);
       
-      // Refresh leads list
-      dispatch(fetchLeads());
+      // FIX: Cast fetchLeads to any
+      dispatch(fetchLeads() as any);
       
       // Clear data after successful upload
       setTimeout(() => {

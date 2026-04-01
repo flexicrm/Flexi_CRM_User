@@ -15,7 +15,7 @@ const Grid_View = ({ data, selectedIds, setSelectedIds }: GridViewProps) => {
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [, setSearchParams] = useSearchParams();
 
   const handleOpenMenu = (e: React.MouseEvent, lead: any) => {
     e.stopPropagation();

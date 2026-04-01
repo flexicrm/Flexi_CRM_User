@@ -9,9 +9,13 @@ interface TableViewProps {
   setSelectedIds: (ids: string[]) => void;
 }
 
-const Table_View = ({ data, selectedIds, setSelectedIds }: TableViewProps) => {
+const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  // Find the selected lead data based on LeadId
+  const selectedLeadId = searchParams.get("LeadId");
+  const selectedLeadData = data.find(lead => lead.LeadId === selectedLeadId);
 
   const columns: Column[] = [
     {
@@ -109,12 +113,9 @@ const Table_View = ({ data, selectedIds, setSelectedIds }: TableViewProps) => {
         columns={columns}
         data={data}
         showSelection={true}
-        // IMPORTANT: Assuming your custom Table component exposes onRowSelectionChange or similar
-        // Adjust this prop to match whatever your `<Table>` component uses to return selected array
         onSelectionChange={(selectedRows) => {
-            // Check if selectedRows is array of objects or IDs. Assuming objects here.
-            const ids = selectedRows.map((r: any) => r.LeadId);
-            setSelectedIds(ids);
+          const ids = selectedRows.map((r: any) => r.LeadId);
+          setSelectedIds(ids);
         }}
         pagination={{
           currentPage: 1,
@@ -156,8 +157,18 @@ const Table_View = ({ data, selectedIds, setSelectedIds }: TableViewProps) => {
       />
 
       {/* MODALS */}
-      <AddFollowUp_Model tableId={searchParams.get("LeadId")} />
-      <Convert_custommer_Model tableId={searchParams.get("LeadId")} data={data}/>
+      {searchParams.get("modal") === "schedule-followup" && (
+        <AddFollowUp_Model 
+          tableId={selectedLeadId} 
+          selectedData={selectedLeadData}
+        />
+      )}
+      
+      {searchParams.get("modal") === "convert-customer" && (
+        <Convert_custommer_Model 
+          data={data}
+        />
+      )}
     </div>
   );
 };

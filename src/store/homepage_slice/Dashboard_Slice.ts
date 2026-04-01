@@ -85,22 +85,23 @@ export const fetchLeadAcquisition = createAsyncThunk(
   }
 );
 
-/**
- * THUNK 3: Save Draggable Layout
- * Payload must match: { sections: [{id, size, sections}] }
- */
 export const saveDashboardLayout = createAsyncThunk(
   "dashboard/saveLayout",
   async (newSections: DashboardSection[], { rejectWithValue }) => {
     const subdomain = getSubdomain();
     try {
-      const response = await Reusable_Service().put(`/dashboard/${subdomain}/section`, {
-        sections: newSections // Sent as object with sections array per backend requirements
-      });
-      return newSections; 
+      await Reusable_Service().put(
+        `/dashboard/${subdomain}/section`,
+        {
+          sections: newSections
+        }
+      );
+
+      return newSections;
     } catch (error: any) {
-      // Return the error from API (like the 400 error you received)
-      return rejectWithValue(error?.response?.data?.errors || "Failed to save layout");
+      return rejectWithValue(
+        error?.response?.data?.errors || "Failed to save layout"
+      );
     }
   }
 );

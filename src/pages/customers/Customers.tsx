@@ -17,7 +17,7 @@ const Customers: React.FC = () => {
   );
 
   useEffect(() => {
-    dispatch(fetchCustomerTableData());
+    dispatch(fetchCustomerTableData() as any);
   }, [dispatch]);
 
   //  SAFE DATA TRANSFORMATION

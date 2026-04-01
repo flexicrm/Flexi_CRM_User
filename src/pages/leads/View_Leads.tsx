@@ -347,7 +347,7 @@ const ActivityTab = ({ activities }: any) => {
 const View_Leads = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState("Overview");
 
   const location = useLocation();
@@ -477,7 +477,10 @@ const View_Leads = () => {
         </div>
       </div>
 
-      <AddFollowUp_Modal tableId={tableId} />
+      <AddFollowUp_Modal 
+  tableId={tableId} 
+  selectedData={lead} 
+/>
     </div>
   );
 };

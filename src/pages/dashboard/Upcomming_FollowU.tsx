@@ -12,7 +12,7 @@ import { fetchDashboardData } from "../../store/homepage_slice/Dashboard_Slice";
 
 const Upcomming_FollowU = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { upcomingFollowUps, isLoading, error } = useSelector(
+  const { upcomingFollowUps, isLoading } = useSelector(
     (state: RootState) => state.dashboard
   );
 

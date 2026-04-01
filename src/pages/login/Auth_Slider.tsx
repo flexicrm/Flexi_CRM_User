@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, type PanInfo } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
 import Group from "../../assets/Group.png";
@@ -28,7 +28,7 @@ const slides = [
 
 // Variants for the "Side Swiper" effect
 const slideVariants = {
-    enter: (direction) => ({
+    enter: (direction: number) => ({
         x: direction > 0 ? 300 : -300,
         opacity: 0,
         scale: 0.9
@@ -39,7 +39,7 @@ const slideVariants = {
         opacity: 1,
         scale: 1
     },
-    exit: (direction) => ({
+    exit: (direction: number) => ({
         zIndex: 0,
         x: direction < 0 ? 300 : -300,
         opacity: 0,
@@ -52,7 +52,7 @@ export default function Auth_Slider() {
 
     const imageIndex = Math.abs(page % slides.length);
 
-    const paginate = (newDirection) => {
+    const paginate = (newDirection: number) => {
         setPage([page + newDirection, newDirection]);
     };
 
@@ -61,6 +61,14 @@ export default function Auth_Slider() {
         const timer = setInterval(() => paginate(1), 5000);
         return () => clearInterval(timer);
     }, [page]);
+
+    // Handle drag end
+    const handleDragEnd = ( _: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+        const swipe = Math.abs(info.offset.x) > 50;
+        if (swipe) {
+            paginate(info.offset.x > 0 ? -1 : 1);
+        }
+    };
 
     return (
         <div className="slider-wrapper">
@@ -83,12 +91,7 @@ export default function Auth_Slider() {
                         drag="x"
                         dragConstraints={{ left: 0, right: 0 }}
                         dragElastic={1}
-                        onDragEnd={(e, { offset, velocity }) => {
-                            const swipe = Math.abs(offset.x) > 50;
-                            if (swipe) {
-                                paginate(offset.x > 0 ? -1 : 1);
-                            }
-                        }}
+                        onDragEnd={handleDragEnd}
                         className="slide-inner"
                     >
                         {/* Mockup Image - Scaled down for "smaller" look */}

@@ -66,34 +66,48 @@ const Roles_And_Permissions: React.FC = () => {
 
   // DELETE FUNCTION
   const handleDelete = async () => {
-    if (!getPermission?._id) {
-      alert("No permission ID found");
-      return;
-    }
+  //  Ensure ID exists
+  if (!getPermission?._id) {
+    alert("No permission ID found");
+    return;
+  }
 
-    const confirmDelete = window.confirm("Are you sure you want to delete this role?");
+  const confirmDelete = window.confirm(
+    "Are you sure you want to delete this role?"
+  );
 
-    if (!confirmDelete) return;
+  if (!confirmDelete) return;
 
-    try {
-      setLoading(true);
-      await Create_Permissions_Delete(getPermission._id);
+  try {
+    setLoading(true);
 
-      alert("Role deleted successfully");
+    //  Store ID in variable (fixes TS undefined issue)
+    const id: string = getPermission._id;
 
-      // Clear UI after delete
-      setPermissions([]);
-      setGetPermission(null);
+    await Create_Permissions_Delete(id);
 
-      // OR re-fetch
-      // fetchPermissions();
-    } catch (error) {
-      console.error("Delete error:", error);
+    alert("Role deleted successfully");
+
+    // ✅ Clear UI after delete
+    setPermissions([]);
+    setGetPermission(null);
+
+    // 👉 Optional: re-fetch instead of clearing
+    // await fetchPermissions();
+
+  } catch (error: unknown) {
+    console.error("Delete error:", error);
+
+    // ✅ Safe error handling
+    if (error instanceof Error) {
+      alert(error.message);
+    } else {
       alert("Failed to delete role");
-    } finally {
-      setLoading(false);
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
 
   // EDIT FUNCTION
   const handleEdit = () => {
@@ -144,11 +158,12 @@ const Roles_And_Permissions: React.FC = () => {
       <div className="mt-6">
         {permissions.length > 0 ? (
           <Overall_Permissions
-            permissions={permissions}
-            customizeButtom={true}
-            editOnclick={handleEdit}
-            deleteOnclick={handleDelete}
-          />
+  permissions={permissions}
+  setPermissions={setPermissions}   
+  customizeButtom={true}
+  editOnclick={handleEdit}
+  deleteOnclick={handleDelete}
+/>
         ) : (
           <div className="text-center py-8 text-gray-500">
             No permissions found. Click "Create Role" to get started.

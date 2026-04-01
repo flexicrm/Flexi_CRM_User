@@ -12,7 +12,7 @@ import { fetchDashboardData } from "../../store/homepage_slice/Dashboard_Slice";
 
 const Recent_Leads = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { recentLeads, isLoading, error } = useSelector(
+  const { recentLeads, isLoading } = useSelector(
     (state: RootState) => state.dashboard
   );
 

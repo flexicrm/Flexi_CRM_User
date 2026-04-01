@@ -10,7 +10,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { meAPI } from "../../store/Login_Slice";
 
 interface MenuItem {
@@ -35,7 +35,7 @@ const Sidebar = () => {
   const [meData, setMeData] = useState<PermissionsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+  const navigate = useNavigate();
   const localstorageData = localStorage.getItem("subdomain") || "default";
 
   useEffect(() => {

@@ -36,10 +36,10 @@ const priorityOptions = [
 const Kanban_View = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [, setSearchParams] = useSearchParams();
 
   // Redux State
-  const { leadsData, statusOptions, loading, followUpStatuses } = useSelector(
+  const { leadsData, statusOptions, loading } = useSelector(
     (state: any) => state.leads
   );
 

@@ -130,16 +130,17 @@
 // };
 
 // export default Reusable_Button;
-
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, type HTMLMotionProps } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import React from "react";
 
 type ButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "danger";
 type ButtonSize = "sm" | "md" | "lg" | string;
 
-interface ReusableButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  text?: string; // <-- Made optional to clear TypeScript errors for icon-only buttons
+
+
+interface ReusableButtonProps extends HTMLMotionProps<"button"> {
+  text?: string;
   variant?: ButtonVariant;
   size?: ButtonSize;
   isLoading?: boolean;

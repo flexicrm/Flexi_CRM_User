@@ -37,7 +37,6 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [notificationCount, setNotificationCount] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
   const notificationRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -77,7 +76,6 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
         
         if (data) {
           setNotifications(data.activities || []);
-          setNotificationCount(data.count || 0);
           
           // Calculate unread count
           const unread = (data.activities || []).filter(
@@ -101,7 +99,6 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
     // Today - show time with AM/PM
@@ -162,7 +159,6 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
   // Get user info from localStorage
   const userFirstname = localStorage.getItem("userFirstname") || "User";
   const userLastname = localStorage.getItem("userLastname") || "";
-  const userEmail = localStorage.getItem("userEmail") || "";
   const userInitial = userFirstname.charAt(0).toUpperCase();
 
   return (
@@ -188,7 +184,7 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
 
         {/* RIGHT */}
         <div className="flex items-center gap-3">
-          {/* 🔔 NOTIFICATIONS */}
+          {/*  NOTIFICATIONS */}
           <div className="relative" ref={notificationRef}>
             <button
               onClick={() => setShowNotifications(!showNotifications)}

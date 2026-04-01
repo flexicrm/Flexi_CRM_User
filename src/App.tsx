@@ -4,13 +4,13 @@ import { Outlet } from "react-router-dom";
 import Navbar from "./component/common/Navbar";
 import Sidebar from "./component/common/Sidebar";
 import { resumeTokenRefresh } from "./utils/SetupRefreshToken";
+import GlobalStatus from "./component/Notification/GlobalStatus";
 
 const App = () => {
   const dispatch = useDispatch();
   const { token } = useSelector((state: any) => state.auth);
 
   useEffect(() => {
-    // Resume token refresh on app load if user is logged in
     if (token) {
       resumeTokenRefresh(dispatch);
     }
@@ -21,10 +21,11 @@ const App = () => {
       <Navbar />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto p-6 bg-blue-100">
+        <main className="flex-1 overflow-y-auto p-6 bg-blue-100 font_primary">
           <Outlet />
         </main>
       </div>
+      <GlobalStatus />
     </div>
   );
 };

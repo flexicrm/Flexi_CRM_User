@@ -7,7 +7,7 @@ export const  Permissions_getall = async () => {
 export const  Create_Permissions_Edit = async (id : number, payload: any) => {
     return Reusable_Service().put(`/roleandpermission/${localStorage.getItem("subdomain")}/${id}`, payload)
 }
-export const  Create_Permissions_Delete = async (id : number) => {
+export const  Create_Permissions_Delete = async (id : string) => {
     return Reusable_Service().delete(`/roleandpermission/${localStorage.getItem("subdomain")}/${id}/`)
 }
 

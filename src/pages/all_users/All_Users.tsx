@@ -54,7 +54,7 @@ const All_Users: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [itemsPerPage, setItemsPerPage] = useState<number>(10);
   const [selectedRows, setSelectedRows] = useState<TableDataItem[]>([]);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [, setDeletingId] = useState<string | null>(null);
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -87,7 +87,7 @@ const All_Users: React.FC = () => {
     }));
   }, [AllUsersTableData]);
 
-  // DELETE HANDLER
+  // DELETE HANDLER - FIX: Convert string ID to number if Delete_User expects number
   const handleDelete = async (record: TableDataItem) => {
     const confirmDelete = window.confirm(
       `Are you sure you want to delete ${record.fullName}?`
@@ -97,7 +97,9 @@ const All_Users: React.FC = () => {
 
     try {
       setDeletingId(record.id);
-      await Delete_User(record.id, {});
+      // Convert string to number if Delete_User expects number
+      const userId = parseInt(record.id, 10);
+      await Delete_User(userId, {});
       alert("User deleted successfully");
       dispatch(fetchAllUsersTableData() as any);
     } catch (error: any) {
@@ -122,7 +124,7 @@ const All_Users: React.FC = () => {
     );
   };
 
-  // COLUMNS (Manual 'Actions' column removed)
+  // COLUMNS
   const columns = useMemo(() => [
     {
       title: 'Profile',
@@ -211,7 +213,7 @@ const All_Users: React.FC = () => {
         />
       </div>
 
-      {/* TABLE */}
+      {/* TABLE - FIX: Remove deletingId prop */}
       <Table
         columns={columns}
         data={tableData}
@@ -219,13 +221,10 @@ const All_Users: React.FC = () => {
         onSelectionChange={setSelectedRows}
         enableSearch
         searchPlaceholder="Search Users..."
-        // Pass deletingId to Table so the internal menu can show the loader
-        deletingId={deletingId} 
         actionButtons={{
           showView: false,
           showEdit: true,
           showDelete: true,
-          // Since it's a lead table model, you can set these to false if not needed for Users
           showFollowUp: false,
           showConvert: false,
           onEdit: (record: TableDataItem) => handleEdit(record),

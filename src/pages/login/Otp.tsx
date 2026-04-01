@@ -2,6 +2,7 @@ import { type ChangeEvent, type ClipboardEvent, type KeyboardEvent, useEffect, u
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
 import { OtpUser } from "../../store/Login_Slice";
+import type { AppDispatch } from "../../store/Store";
 import Auth_Slider from "./Auth_Slider";
 
 // Types
@@ -28,7 +29,7 @@ interface AuthState {
 const Otp: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const dispatch = useDispatch();
+    const dispatch = useDispatch<AppDispatch>();
     const { isLoading, error } = useSelector((state: AuthState) => state.auth);
     const [mobile, setMobile] = useState<string>("");
     const [otpData, setOtpData] = useState<OtpData | null>(null);
@@ -282,7 +283,7 @@ const Otp: React.FC = () => {
                                         : ""
                                 }`}
                                 value={data}
-                                ref={(el) => (inputRefs.current[index] = el)}
+                                ref={(el) => {inputRefs.current[index] = el;}}
                                 onChange={(e: ChangeEvent<HTMLInputElement>) =>
                                     handleChange(e.target, index)
                                 }

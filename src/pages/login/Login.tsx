@@ -21,17 +21,17 @@ const Login = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setLoginData({
       ...loginData,
       [e.target.name]: e.target.value,
     });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // ✅ Basic validation
+    //  Basic validation
     if (!loginData.mobile) {
       setError("Mobile number is required");
       return;
@@ -42,24 +42,19 @@ const Login = () => {
       setError("");
 
       const res = await loginAPI(loginData);
-      // ✅ Store token and mobile number in localStorage
+      //  Store token and mobile number in localStorage
       if (res?.data?.token) {
         localStorage.setItem("token", res.data.token);
       }
       
-      // ✅ Store mobile number in localStorage for OTP page
+      //  Store mobile number in localStorage for OTP page
       localStorage.setItem("mobile", loginData.mobile);
 
-      // ✅ Navigate after success with mobile in state (as backup)
+      //  Navigate after success with mobile in state (as backup)
       navigate("/otp", { state: { mobile: loginData.mobile, otpData: res?.data?.data } });
 
     } catch (err) {
-      console.error("Login Failed", err.response?.data || err.message);
-
-      setError(
-        err.response?.data?.message ||
-        "Login failed. Please try again."
-      );
+      console.log( err);
     } finally {
       setLoading(false);
     }
@@ -128,7 +123,7 @@ const Login = () => {
             </button>
           </form>
 
-          {/* ✅ Error Message */}
+          {/*  Error Message */}
           {error && (
             <p style={{ color: "red", marginTop: "10px" }}>
               {error}
