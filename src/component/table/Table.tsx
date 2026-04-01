@@ -34,7 +34,7 @@ export interface Column {
   render?: (text: any, record: any, index: number) => React.ReactNode;
   filterable?: boolean;
   sortable?: boolean;
-  filterType?: 'text' | 'select' | 'date';
+  filterType?: 'text' | 'select' | 'date' | 'status';
   filterOptions?: Array<{ label: string; value: string }>;
 }
 
@@ -102,6 +102,127 @@ const LoadingDots = () => {
         />
       ))}
     </div>
+  );
+};
+
+// Status Filter Popup for Column Filter (Only for Status Column)
+const StatusColumnFilterPopup = ({
+  isOpen,
+  onClose,
+  onFilter,
+  currentFilter,
+  triggerRect
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  onFilter: (value: string) => void;
+  currentFilter?: string;
+  triggerRect?: DOMRect;
+}) => {
+  const [filterValue, setFilterValue] = useState(currentFilter || '');
+  const popupRef = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    if (isOpen && triggerRect) {
+      let top = triggerRect.bottom + window.scrollY + 8;
+      let left = triggerRect.left + window.scrollX;
+      
+      const popupHeight = 250;
+      const popupWidth = 250;
+      
+      if (top + popupHeight > window.innerHeight + window.scrollY) {
+        top = triggerRect.top + window.scrollY - popupHeight - 8;
+      }
+      
+      if (left + popupWidth > window.innerWidth + window.scrollX) {
+        left = window.innerWidth + window.scrollX - popupWidth - 16;
+      }
+      
+      setPosition({ top, left });
+    }
+  }, [isOpen, triggerRect]);
+
+  const handleApply = (value: string) => {
+    setFilterValue(value);
+    onFilter(value);
+    onClose();
+  };
+
+  const handleClear = () => {
+    setFilterValue('');
+    onFilter('');
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return createPortal(
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          ref={popupRef}
+          initial={{ opacity: 0, scale: 0.95, y: -10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: -10 }}
+          style={{ position: 'fixed', top: position.top, left: position.left, zIndex: 10001 }}
+          className="w-64 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden"
+        >
+          <div className="p-3 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100">
+            <span className="text-sm font-semibold text-slate-700">Filter by Status</span>
+          </div>
+          <div className="p-4">
+            <div className="space-y-2">
+              {/* Active Status Option */}
+              <button
+                onClick={() => handleApply('active')}
+                className={`w-full text-left px-3 py-3 rounded-lg text-sm transition-all flex items-center justify-between ${
+                  filterValue === 'active'
+                    ? 'bg-green-50 text-green-700 border border-green-200'
+                    : 'hover:bg-slate-50 text-slate-600'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Power size={16} className="text-green-600" />
+                  <span className="font-medium">Active</span>
+                </div>
+                {filterValue === 'active' && (
+                  <Check size={16} className="text-green-600" />
+                )}
+              </button>
+
+              {/* Inactive Status Option */}
+              <button
+                onClick={() => handleApply('inactive')}
+                className={`w-full text-left px-3 py-3 rounded-lg text-sm transition-all flex items-center justify-between ${
+                  filterValue === 'inactive'
+                    ? 'bg-red-50 text-red-700 border border-red-200'
+                    : 'hover:bg-slate-50 text-slate-600'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <PowerOff size={16} className="text-red-500" />
+                  <span className="font-medium">Inactive</span>
+                </div>
+                {filterValue === 'inactive' && (
+                  <Check size={16} className="text-red-500" />
+                )}
+              </button>
+            </div>
+            
+            <div className="flex gap-2 mt-4 pt-3 border-t border-slate-100">
+              <button
+                onClick={handleClear}
+                className="flex-1 px-3 py-2 bg-slate-100 text-slate-600 text-sm font-medium rounded-lg hover:bg-slate-200 transition-colors"
+              >
+                Clear Filter
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>,
+    document.body
   );
 };
 
@@ -192,7 +313,7 @@ const ManageColumnsModal = ({
   );
 };
 
-// Status Filter Modal with Active/Inactive Options
+// Status Filter Modal with Active/Inactive Options (Global Status Filter)
 const StatusFilterModal = ({
   isOpen,
   onClose,
@@ -742,17 +863,25 @@ const Table: React.FC<TableProps> = ({
       });
     }
 
-    // Column filters
+    // Column filters (only status column filter is used)
     columnFilters.forEach((filterValue, columnKey) => {
       if (filterValue) {
         filtered = filtered.filter(record => {
           const value = record[columnKey];
+          // For status filter, handle active/inactive specially
+          if (filterValue === 'active') {
+            const statusValue = String(value).toLowerCase();
+            return statusValue === 'active' || statusValue === '1' || statusValue === 'true';
+          } else if (filterValue === 'inactive') {
+            const statusValue = String(value).toLowerCase();
+            return statusValue === 'inactive' || statusValue === '0' || statusValue === 'false';
+          }
           return String(value).toLowerCase().includes(filterValue.toLowerCase());
         });
       }
     });
 
-    // Status filter (active/inactive)
+    // Status filter (active/inactive) - using the main filter
     if (activeStatus) {
       filtered = filtered.filter(record => {
         const status = record.leadstatus?.statusName || record.status;
@@ -838,10 +967,13 @@ const Table: React.FC<TableProps> = ({
     });
   };
 
-  const handleFilterClick = (e: React.MouseEvent, colKey: string) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    setActiveFilterRect(rect);
-    setActiveFilterColumn(activeFilterColumn === colKey ? null : colKey);
+  const handleFilterClick = (e: React.MouseEvent, colKey: string, column: Column) => {
+    // Only allow filter click for status columns
+    if (isStatusColumn(column)) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      setActiveFilterRect(rect);
+      setActiveFilterColumn(activeFilterColumn === colKey ? null : colKey);
+    }
   };
 
   // --- Menu Positioning Logic ---
@@ -871,6 +1003,16 @@ const Table: React.FC<TableProps> = ({
     <Power size={14} className="text-green-600" /> : 
     activeStatusType === 'inactive' ? 
     <PowerOff size={14} className="text-red-500" /> : null;
+
+  // Check if a column is a status column (with safe null checks)
+  const isStatusColumn = (column: Column): boolean => {
+    if (!column) return false;
+    const title = column.title ? column.title.toLowerCase() : '';
+    const dataIndex = column.dataIndex ? column.dataIndex.toLowerCase() : '';
+    return title === 'status' || 
+           dataIndex === 'status' ||
+           dataIndex.includes('status');
+  };
 
   return (
     <div className={`flex flex-col w-full bg-white rounded-[24px] border border-slate-100 shadow-sm overflow-hidden ${className}`}>
@@ -980,49 +1122,53 @@ const Table: React.FC<TableProps> = ({
                   </div>
                 </th>
               )}
-              {visibleColumnsList.map(col => (
-                <th 
-                  key={col.key} 
-                  className="p-4 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap"
-                  style={{ width: col.width, minWidth: col.minWidth }}
-                >
-                  <div className="flex items-center gap-2">
-                    <span>{col.title}</span>
-                    <div className="flex items-center gap-1">
-                      {col.sortable && (
-                        <button
-                          onClick={() => handleSort(col.dataIndex)}
-                          className="p-1 hover:bg-slate-200 rounded transition-colors"
-                        >
-                          {sortConfig?.key === col.dataIndex ? (
-                            <span className="text-indigo-600 text-xs">
-                              {sortConfig.direction === 'asc' ? '↑' : '↓'}
-                            </span>
-                          ) : (
-                            <ArrowUpDown size={12} className="text-slate-400" />
-                          )}
-                        </button>
-                      )}
-                      {enableColumnFilter && col.filterable && (
-                        <button
-                          onClick={(e) => handleFilterClick(e, col.key)}
-                          className={`p-1 hover:bg-slate-200 rounded transition-colors ${
-                            columnFilters.has(col.dataIndex) ? 'text-indigo-600' : 'text-slate-400'
-                          }`}
-                        >
-                          <Filter size={12} />
-                        </button>
-                      )}
+              {visibleColumnsList.map(col => {
+                const isStatus = isStatusColumn(col);
+                return (
+                  <th 
+                    key={col.key} 
+                    className="p-4 text-left text-[11px] font-bold text-slate-500 uppercase tracking-wider whitespace-nowrap"
+                    style={{ width: col.width, minWidth: col.minWidth }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>{col.title}</span>
+                      <div className="flex items-center gap-1">
+                        {col.sortable && (
+                          <button
+                            onClick={() => handleSort(col.dataIndex)}
+                            className="p-1 hover:bg-slate-200 rounded transition-colors"
+                          >
+                            {sortConfig?.key === col.dataIndex ? (
+                              <span className="text-indigo-600 text-xs">
+                                {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                              </span>
+                            ) : (
+                              <ArrowUpDown size={12} className="text-slate-400" />
+                            )}
+                          </button>
+                        )}
+                        {/* Only show filter icon for status columns */}
+                        {enableColumnFilter && isStatus && (
+                          <button
+                            onClick={(e) => handleFilterClick(e, col.key, col)}
+                            className={`p-1 hover:bg-slate-200 rounded transition-colors ${
+                              columnFilters.has(col.dataIndex) ? 'text-indigo-600' : 'text-slate-400'
+                            }`}
+                          >
+                            <Filter size={12} />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </th>
-              ))}
+                  </th>
+                );
+              })}
               {hasActions && (
                 <th className="p-4 text-center text-[11px] font-bold text-slate-500 uppercase tracking-wider sticky right-0 bg-slate-50/80 z-[12] shadow-[-5px_0_10px_-5px_rgba(0,0,0,0.05)]">
                   Actions
                 </th>
               )}
-            </tr>
+             </tr>
           </thead>
           
           <tbody>
@@ -1136,18 +1282,25 @@ const Table: React.FC<TableProps> = ({
         activeStatusType={activeStatusType}
       />
 
+      {/* Column Filter Popup - Only for Status Column */}
       {activeFilterColumn && (
-        <ColumnFilterPopup
-          isOpen={true}
-          onClose={() => {
-            setActiveFilterColumn(null);
-            setActiveFilterRect(null);
-          }}
-          column={columns.find(c => c.key === activeFilterColumn)!}
-          onFilter={(value) => handleFilter(columns.find(c => c.key === activeFilterColumn)!.dataIndex, value)}
-          currentFilter={columnFilters.get(columns.find(c => c.key === activeFilterColumn)?.dataIndex || '')}
-          triggerRect={activeFilterRect || undefined}
-        />
+        (() => {
+          const column = columns.find(c => c.key === activeFilterColumn);
+          if (!column || !isStatusColumn(column)) return null;
+          
+          return (
+            <StatusColumnFilterPopup
+              isOpen={true}
+              onClose={() => {
+                setActiveFilterColumn(null);
+                setActiveFilterRect(null);
+              }}
+              onFilter={(value) => handleFilter(column.dataIndex, value)}
+              currentFilter={columnFilters.get(column.dataIndex)}
+              triggerRect={activeFilterRect || undefined}
+            />
+          );
+        })()
       )}
 
       {/* Portal Menu for Actions */}

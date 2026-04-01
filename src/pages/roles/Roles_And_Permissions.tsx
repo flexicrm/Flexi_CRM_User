@@ -1,8 +1,18 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Reusable_Button from "../../component/button/Reusable_Button";
 import Overall_Permissions from "../../component/permissions/Overall_Permissions";
-import { Create_Permissions_Delete, Permissions_getall } from "../../store/homepage_slice/Permissions_Slice";
+import {
+  Create_Permissions_Delete,
+  Permissions_getall
+} from "../../store/homepage_slice/Permissions_Slice";
+
+// Import your custom notification handlers
+import {
+  confirmAlert,
+  errorAlert,
+  successAlert
+} from "../../component/Notification/statusHandler";
 
 type PermissionItem = {
   module: string;
@@ -32,6 +42,11 @@ const Roles_And_Permissions: React.FC = () => {
   const [permissions, setPermissions] = useState<PermissionItem[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
+  // Helper to extract error message
+  const getErrorMessage = (err: any) => {
+    return err?.response?.data?.message || err?.message || "Something went wrong";
+  };
+
   // Fetch Data
   const fetchPermissions = async () => {
     try {
@@ -55,6 +70,7 @@ const Roles_And_Permissions: React.FC = () => {
       setGetPermission(apiData);
     } catch (error) {
       console.error("Error fetching permissions:", error);
+      errorAlert("Failed to load permissions. Please refresh.");
     } finally {
       setLoading(false);
     }
@@ -64,53 +80,46 @@ const Roles_And_Permissions: React.FC = () => {
     fetchPermissions();
   }, []);
 
-  // DELETE FUNCTION
-  const handleDelete = async () => {
-  //  Ensure ID exists
-  if (!getPermission?._id) {
-    alert("No permission ID found");
-    return;
-  }
-
-  const confirmDelete = window.confirm(
-    "Are you sure you want to delete this role?"
-  );
-
-  if (!confirmDelete) return;
-
-  try {
-    setLoading(true);
-
-    //  Store ID in variable (fixes TS undefined issue)
-    const id: string = getPermission._id;
-
-    await Create_Permissions_Delete(id);
-
-    alert("Role deleted successfully");
-
-    // ✅ Clear UI after delete
-    setPermissions([]);
-    setGetPermission(null);
-
-    // 👉 Optional: re-fetch instead of clearing
-    // await fetchPermissions();
-
-  } catch (error: unknown) {
-    console.error("Delete error:", error);
-
-    // ✅ Safe error handling
-    if (error instanceof Error) {
-      alert(error.message);
-    } else {
-      alert("Failed to delete role");
+  // ✅ UPDATED DELETE FUNCTION
+  const handleDelete = () => {
+    if (!getPermission?._id) {
+      errorAlert("No permission ID found to delete.");
+      return;
     }
-  } finally {
-    setLoading(false);
-  }
-};
+
+    confirmAlert({
+      title: "Delete Role",
+      message: `Are you sure you want to delete the role "${getPermission.userRole}"? This action cannot be undone.`,
+      confirmText: "Delete Role",
+      onConfirm: async () => {
+        try {
+          setLoading(true);
+          const id: string = getPermission._id!;
+          
+          const response = await Create_Permissions_Delete(id);
+          
+          successAlert(response?.data?.message || "Role deleted successfully");
+
+          // Clear UI after delete
+          setPermissions([]);
+          setGetPermission(null);
+          
+          // Optional: Re-fetch if there are multiple roles
+          // await fetchPermissions();
+
+        } catch (error: any) {
+          console.error("Delete error:", error);
+          errorAlert(getErrorMessage(error));
+        } finally {
+          setLoading(false);
+        }
+      },
+    });
+  };
 
   // EDIT FUNCTION
   const handleEdit = () => {
+    if (!getPermission) return;
     navigate(
       `/${localStorage.getItem("subdomain")}/roles/create-role`,
       {
@@ -131,42 +140,51 @@ const Roles_And_Permissions: React.FC = () => {
   if (loading && !permissions.length) {
     return (
       <div className="flex justify-center items-center h-64">
-        <p>Loading...</p>
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-6 bg-slate-50 min-h-screen">
+      <div className="flex items-center justify-between mb-8 bg-white p-6 rounded-xl shadow-sm">
         <div>
-          <h2 className="text-2xl font-bold">Roles And Permissions</h2>
+          <h2 className="text-2xl font-bold text-slate-800">Roles And Permissions</h2>
           {getPermission?.userRole && (
-            <p className="mt-2 text-gray-600">
-              <strong>Current Role:</strong> {getPermission.userRole}
+            <p className="mt-1 text-slate-500">
+              <span className="font-medium text-indigo-600">Active Role:</span> {getPermission.userRole}
             </p>
           )}
         </div>
 
         <Reusable_Button
-          text="Create Role"
+          text="Create New Role"
           onClick={handleCreate}
-          size="px-4 py-2.5"
+          variant="primary"
+          size="px-6 py-2.5"
         />
       </div>
 
       <div className="mt-6">
         {permissions.length > 0 ? (
-          <Overall_Permissions
-  permissions={permissions}
-  setPermissions={setPermissions}   
-  customizeButtom={true}
-  editOnclick={handleEdit}
-  deleteOnclick={handleDelete}
-/>
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+             <Overall_Permissions
+                permissions={permissions}
+                setPermissions={setPermissions}   
+                customizeButtom={true}
+                editOnclick={handleEdit}
+                deleteOnclick={handleDelete}
+              />
+          </div>
         ) : (
-          <div className="text-center py-8 text-gray-500">
-            No permissions found. Click "Create Role" to get started.
+          <div className="text-center py-20 bg-white rounded-xl border-2 border-dashed border-slate-200">
+            <p className="text-slate-400 font-medium">No roles found.</p>
+            <button 
+              onClick={handleCreate}
+              className="mt-4 text-indigo-600 font-bold hover:underline"
+            >
+              Click here to create your first role
+            </button>
           </div>
         )}
       </div>

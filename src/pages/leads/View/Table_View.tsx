@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Table, { type Column } from "../../../component/table/Table";
 import AddFollowUp_Model from "../AddFaloowUp_Model";
@@ -13,6 +14,10 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  // --- PAGINATION STATE ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
   // Find the selected lead data based on LeadId
   const selectedLeadId = searchParams.get("LeadId");
   const selectedLeadData = data.find(lead => lead.LeadId === selectedLeadId);
@@ -23,38 +28,39 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
       dataIndex: "LeadId",
       key: "LeadId",
       width: "140px",
-      render: (val) => (
+      sortable: true,
+      render: (val: any) => (
         <span className="text-[12px] font-bold text-[#0d1954] uppercase tracking-wider">
           {val}
         </span>
       ),
     },
     {
-      title: "Name",
-      dataIndex: "manualData",
-      key: "name",
-      render: (manualData) => (
-        <span className="text-[13px] text-slate-700 font-semibold">
-          {manualData?.name || "-"}
-        </span>
-      ),
-    },
+  title: "Name",
+  dataIndex: "manualData",
+  key: "name",
+  render: (manualData: any) => (
+    <span className="text-[13px] text-slate-700 font-semibold">
+      {manualData?.name || "-"}
+    </span>
+  ),
+},
     {
       title: "Email",
       dataIndex: "manualData",
       key: "email",
-      render: (manualData) => (
+      render: (manualData: any) => (
         <span className="text-[13px] text-slate-500 lowercase">
           {manualData?.email || "-"}
         </span>
       ),
     },
     {
-      title: "Company Name",
+      title: "Company",
       dataIndex: "manualData",
       key: "company",
-      render: (manualData) => (
-        <span className="text-[13px] text-slate-500 lowercase">
+      render: (manualData: any) => (
+        <span className="text-[13px] text-slate-500">
           {manualData?.company || "-"}
         </span>
       ),
@@ -63,7 +69,7 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
       title: "Phone",
       dataIndex: "manualData",
       key: "mobileNo",
-      render: (manualData) => (
+      render: (manualData: any) => (
         <span className="text-[13px] text-slate-600 font-medium">
           {manualData?.mobileNo || "-"}
         </span>
@@ -74,13 +80,9 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
       dataIndex: "followUps",
       key: "followUps",
       width: "180px",
-      render: (followUps) => {
+      render: (followUps: any) => {
         if (!followUps || followUps.length === 0) {
-          return (
-            <span className="text-[11px] text-slate-400 italic">
-              No Follow-Ups
-            </span>
-          );
+          return <span className="text-[11px] text-slate-400 italic">No Follow-Ups</span>;
         }
         const lastFollowUp = followUps[followUps.length - 1];
         return (
@@ -99,7 +101,7 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
       title: "Source",
       dataIndex: "leadsource",
       key: "source",
-      render: (val) => (
+      render: (val: any) => (
         <span className="text-[12px] text-[#0d1954] font-bold bg-indigo-50 px-2 py-1 rounded-lg border border-indigo-100">
           {val || "N/A"}
         </span>
@@ -108,50 +110,52 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
   ];
 
   return (
-    <div className="w-full bg-white rounded-[24px] shadow-sm border border-slate-100 overflow-hidden mt-4">
+    <div className="w-full bg-white rounded-[32px] shadow-xl border border-slate-100 overflow-hidden mt-6">
       <Table
         columns={columns}
         data={data}
         showSelection={true}
-        onSelectionChange={(selectedRows) => {
+        onSelectionChange={(selectedRows: any[]) => {
           const ids = selectedRows.map((r: any) => r.LeadId);
           setSelectedIds(ids);
         }}
-        pagination={{
-          currentPage: 1,
-          totalItems: data.length,
-          itemsPerPage: 5,
-          onPageChange: (page) => console.log("Navigating to page:", page),
-        }}
+        enableSearch={true}
+        searchPlaceholder="Search Leads..."
         actionButtons={{
           showView: true,
           showEdit: true,
           showDelete: false,
           showFollowUp: true,
           showConvert: true,
-
-          onEdit: (record) =>
+          onEdit: (record: any) =>
             navigate(`/${localStorage.getItem("subdomain")}/leads/create-leads`, {
               state: { tableData: record, tableId: record.LeadId },
             }),
-
-          onView: (record) =>
+          onView: (record: any) =>
             navigate(`/${localStorage.getItem("subdomain")}/leads/view-leads`, {
               state: { tableId: record.LeadId },
             }),
-
-          onFollowUp: (record) => {
+          onFollowUp: (record: any) => {
             setSearchParams({
               modal: "schedule-followup",
               LeadId: record.LeadId,
             });
           },
-
-          onConvert: (record) => {
+          onConvert: (record: any) => {
             setSearchParams({
               modal: "convert-customer",
               LeadId: record.LeadId,
             });
+          },
+        }}
+        pagination={{
+          currentPage,
+          itemsPerPage,
+          totalItems: data.length,
+          onPageChange: setCurrentPage,
+          onItemsPerPageChange: (newSize: number) => {
+            setItemsPerPage(newSize);
+            setCurrentPage(1);
           },
         }}
       />

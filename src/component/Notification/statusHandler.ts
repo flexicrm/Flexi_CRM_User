@@ -1,10 +1,14 @@
-type StatusType = "success" | "error" | "warning";
+// Add 'export' before 'type'
+export type StatusType = "success" | "error" | "warning" | "confirm";
 
-type StatusState = {
+export type StatusState = {
   isOpen: boolean;
   type: StatusType;
   message: string;
+  title?: string;
   buttonText?: string;
+  cancelText?: string;
+  onConfirm?: () => void;
 };
 
 let setStatusGlobal: ((data: StatusState) => void) | null = null;
@@ -37,5 +41,29 @@ export const warningAlert = (message: string, buttonText = "Okay") => {
     type: "warning",
     message,
     buttonText,
+  });
+};
+
+export const confirmAlert = ({
+  title = "Are you sure?",
+  message,
+  confirmText = "Yes, Proceed",
+  cancelText = "Cancel",
+  onConfirm,
+}: {
+  title?: string;
+  message: string;
+  confirmText?: string;
+  cancelText?: string;
+  onConfirm: () => void;
+}) => {
+  setStatusGlobal?.({
+    isOpen: true,
+    type: "confirm",
+    title,
+    message,
+    buttonText: confirmText,
+    cancelText: cancelText,
+    onConfirm: onConfirm,
   });
 };

@@ -8,7 +8,7 @@ import Customer_Stats from './Customer_Stats';
 const Customers: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [selectedRows, setSelectedRows] = useState<any[]>([]);
+  const [, setSelectedRows] = useState<any[]>([]);
 
   const dispatch = useDispatch();
 
@@ -20,8 +20,7 @@ const Customers: React.FC = () => {
     dispatch(fetchCustomerTableData() as any);
   }, [dispatch]);
 
-  //  SAFE DATA TRANSFORMATION
-  // Use useMemo to prevent re-calculating on every render
+  // SAFE DATA TRANSFORMATION
   const tableData = useMemo(() => {
     return customerTableData?.customers?.map((item: any) => ({
       id: String(item?._id || ""),
@@ -31,12 +30,12 @@ const Customers: React.FC = () => {
       phone: String(item?.phone ?? ""),
       email: String(item?.email ?? ""),
       gst: "-",
-      status: String(item?.status ?? ""), // Convert to string for filter matching
+      status: String(item?.status ?? ""), 
       created: item?.createdAt || "",
     })) || [];
   }, [customerTableData]);
 
-  //  COLUMNS DEFINITION
+  // COLUMNS DEFINITION
   const columns: any = useMemo(() => [
     {
       title: 'Profile',
@@ -87,7 +86,6 @@ const Customers: React.FC = () => {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      //  Status Filter Configuration
       filterable: true,
       filterOptions: [
         { label: 'Active', value: '1' },
@@ -96,11 +94,7 @@ const Customers: React.FC = () => {
       render: (status: any) => {
         const isActive = String(status) === '1';
         return (
-          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-            isActive 
-              ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
-              : 'bg-rose-50 text-rose-600 border-rose-100'
-          }`}>
+          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${isActive ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
             {isActive ? 'Active' : 'Inactive'}
           </span>
         );
@@ -142,11 +136,17 @@ const Customers: React.FC = () => {
         <Table
           columns={columns}
           data={tableData}
-          showSelection
+          showSelection={true}
           onSelectionChange={setSelectedRows}
-          enableSearch
+          enableSearch={true}
           searchPlaceholder="Search customers..."
-          actionButtons={false}
+          actionButtons={{
+            showView: false,
+            showEdit: false,
+            showDelete: false,
+            showFollowUp: false,
+            showConvert: false,
+          }}
           pagination={{
             currentPage,
             itemsPerPage,
@@ -159,28 +159,6 @@ const Customers: React.FC = () => {
           }}
         />
       </div>
-
-      {/*  Selection UI Overlay */}
-      {selectedRows.length > 0 && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex gap-6 items-center z-[100] border border-slate-800 animate-in fade-in slide-in-from-bottom-4">
-          <div className="flex flex-col">
-            <span className="text-[10px] text-slate-400 uppercase font-black tracking-widest leading-none mb-1">Selected</span>
-            <span className="text-sm font-bold leading-none">{selectedRows.length} Customers</span>
-          </div>
-          <div className="h-8 w-[1px] bg-slate-700" />
-          <div className="flex gap-2">
-             <button className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl text-xs font-black transition-all active:scale-95 shadow-lg shadow-indigo-500/20">
-               Bulk Action
-             </button>
-             <button 
-              onClick={() => setSelectedRows([])}
-              className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl text-xs font-black transition-all"
-             >
-               Cancel
-             </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
