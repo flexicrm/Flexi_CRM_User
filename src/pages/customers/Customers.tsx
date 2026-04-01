@@ -20,7 +20,7 @@ const Customers: React.FC = () => {
     dispatch(fetchCustomerTableData());
   }, [dispatch]);
 
-  // ✅ SAFE DATA TRANSFORMATION
+  //  SAFE DATA TRANSFORMATION
   // Use useMemo to prevent re-calculating on every render
   const tableData = useMemo(() => {
     return customerTableData?.customers?.map((item: any) => ({
@@ -36,8 +36,8 @@ const Customers: React.FC = () => {
     })) || [];
   }, [customerTableData]);
 
-  // ✅ COLUMNS DEFINITION
-  const columns: Column[] = useMemo(() => [
+  //  COLUMNS DEFINITION
+  const columns: any = useMemo(() => [
     {
       title: 'Profile',
       dataIndex: 'profile',
@@ -87,7 +87,7 @@ const Customers: React.FC = () => {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      // ✅ Status Filter Configuration
+      //  Status Filter Configuration
       filterable: true,
       filterOptions: [
         { label: 'Active', value: '1' },
@@ -160,7 +160,7 @@ const Customers: React.FC = () => {
         />
       </div>
 
-      {/* ✅ Selection UI Overlay */}
+      {/*  Selection UI Overlay */}
       {selectedRows.length > 0 && (
         <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex gap-6 items-center z-[100] border border-slate-800 animate-in fade-in slide-in-from-bottom-4">
           <div className="flex flex-col">

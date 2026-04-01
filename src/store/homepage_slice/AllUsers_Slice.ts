@@ -15,6 +15,20 @@ const initialState: CustomerState = {
   error: null,
 };
 
+export const  Permissions_getall_User = async () => {
+    return Reusable_Service().get(`/roleandpermission/${localStorage.getItem("subdomain")}/all-roles-permissions`)
+}
+
+export const  create_User = async (payload : any) => {
+    return Reusable_Service().post(`/user/${localStorage.getItem("subdomain")}/adduser`, payload)
+}
+
+export const  Edit_User = async (id : number,payload : any) => {
+    return Reusable_Service().patch(`/user/${localStorage.getItem("subdomain")}/${id}`, payload)
+}
+export const  Delete_User = async (id : number,payload : any) => {
+    return Reusable_Service().delete(`/user/${localStorage.getItem("subdomain")}?userIds=${id}`, payload)
+}
 
 export const fetchAllUsersTableData = createAsyncThunk(
   "customer/fetchAllUsersTableData",

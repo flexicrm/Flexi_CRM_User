@@ -1,45 +1,129 @@
-import { Edit3, Loader2, Trash2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+
 import Reusable_Button from '../../component/button/Reusable_Button';
-import Table, { type Column } from '../../component/table/Table';
-import { fetchAllUsersTableData } from '../../store/homepage_slice/AllUsers_Slice';
+import Table from '../../component/table/Table';
 import AllUser_Stats from './AllUser_Stats';
 
-const All_Users: React.FC = () => {
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [selectedRows, setSelectedRows] = useState<any[]>([]);
+import {
+  Delete_User,
+  fetchAllUsersTableData
+} from '../../store/homepage_slice/AllUsers_Slice';
 
+// --- Types ---
+interface User {
+  _id?: string;
+  Profile?: string;
+  firstname?: string;
+  lastname?: string;
+  email?: string;
+  mobile?: string;
+  userRole?: string;
+  status?: string | number;
+  createdAt?: string;
+}
+
+interface TableDataItem {
+  id: string;
+  profile: string;
+  firstname: string;
+  lastname: string;
+  fullName: string;
+  email: string;
+  mobile: string;
+  role: string;
+  status: string;
+  created: string;
+  raw: User;
+}
+
+interface RootState {
+  allUsers: {
+    AllUsersTableData: {
+      data?: {
+        users?: User[];
+      };
+    };
+    loading: boolean;
+  };
+}
+
+const All_Users: React.FC = () => {
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
+  const [selectedRows, setSelectedRows] = useState<TableDataItem[]>([]);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const navigate = useNavigate();
   const dispatch = useDispatch();
 
   const { AllUsersTableData, loading } = useSelector(
-    (state: any) => state.allUsers
+    (state: RootState) => state.allUsers
   );
 
+  // FETCH USERS
   useEffect(() => {
-    dispatch(fetchAllUsersTableData());
+    dispatch(fetchAllUsersTableData() as any);
   }, [dispatch]);
 
-  // ✅ DATA TRANSFORMATION (Mapping based on your API structure)
-  const tableData = useMemo(() => {
-    // Note: AllUsersTableData?.data?.users matches your provided JSON structure
-    return AllUsersTableData?.data?.users?.map((item: any) => ({
+  // DATA MAP
+  const tableData: TableDataItem[] = useMemo(() => {
+    const users = AllUsersTableData?.data?.users || [];
+    
+    return users.map((item: User) => ({
       id: String(item?._id || ""),
-      profile: item?.Profile || "", // Note the capital 'P' from your JSON
+      profile: item?.Profile || "",
       firstname: item?.firstname || "",
       lastname: item?.lastname || "",
       fullName: `${item?.firstname || ''} ${item?.lastname || ''}`.trim(),
       email: item?.email || "N/A",
       mobile: item?.mobile || "N/A",
-      role: item?.userRole || "N/A", // API uses 'userRole'
+      role: item?.userRole || "N/A",
       status: String(item?.status ?? "0"),
       created: item?.createdAt || "",
-    })) || [];
+      raw: item 
+    }));
   }, [AllUsersTableData]);
 
-  // ✅ COLUMNS DEFINITION (Matching the image provided)
-  const columns: Column[] = useMemo(() => [
+  // DELETE HANDLER
+  const handleDelete = async (record: TableDataItem) => {
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete ${record.fullName}?`
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      setDeletingId(record.id);
+      await Delete_User(record.id, {});
+      alert("User deleted successfully");
+      dispatch(fetchAllUsersTableData() as any);
+    } catch (error: any) {
+      console.error(error);
+      alert(error?.response?.data?.message || "Delete failed");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  // EDIT HANDLER
+  const handleEdit = (record: TableDataItem) => {
+    navigate(
+      `/${localStorage.getItem("subdomain")}/all-users/alluser-create`,
+      {
+        state: {
+          edit: true,
+          editData: record.raw, 
+          userId: record?.raw?._id
+        },
+      }
+    );
+  };
+
+  // COLUMNS (Manual 'Actions' column removed)
+  const columns = useMemo(() => [
     {
       title: 'Profile',
       dataIndex: 'profile',
@@ -49,7 +133,7 @@ const All_Users: React.FC = () => {
         <img
           src={profile || "https://via.placeholder.com/40"}
           alt="profile"
-          className="w-9 h-9 rounded-full border border-slate-100 shadow-sm object-cover"
+          className="w-9 h-9 rounded-full border shadow-sm object-cover"
         />
       ),
     },
@@ -58,50 +142,33 @@ const All_Users: React.FC = () => {
       dataIndex: 'fullName',
       key: 'fullName',
       render: (name: string) => (
-        <span className="font-medium text-slate-700">{name || 'N/A'}</span>
+        <span className="font-medium text-slate-900">{name || 'N/A'}</span>
       ),
     },
     {
       title: 'Email',
       dataIndex: 'email',
       key: 'email',
-      render: (email: string) => (
-        <span className="text-slate-600 font-medium">{email}</span>
-      ),
     },
     {
       title: 'Contact',
       dataIndex: 'mobile',
       key: 'mobile',
-      render: (mobile: string) => (
-        <span className="text-slate-600 font-medium">{mobile}</span>
-      ),
     },
     {
       title: 'Role',
       dataIndex: 'role',
       key: 'role',
-      render: (role: string) => (
-        <span className="text-slate-600 font-medium">{role}</span>
-      ),
     },
-     {
+    {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      // ✅ Status Filter Configuration
-      filterable: true,
-      filterOptions: [
-        { label: 'Active', value: '1' },
-        { label: 'Inactive', value: '0' },
-      ],
-      render: (status: any) => {
+      render: (status: string) => {
         const isActive = String(status) === '1';
         return (
-          <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-            isActive 
-              ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
-              : 'bg-rose-50 text-rose-600 border-rose-100'
+          <span className={`px-3 py-1 rounded-full text-[11px] font-bold ${
+            isActive ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
           }`}>
             {isActive ? 'Active' : 'Inactive'}
           </span>
@@ -112,29 +179,12 @@ const All_Users: React.FC = () => {
       title: 'Created',
       dataIndex: 'created',
       key: 'created',
-      render: (date: string) => (
-        <span className="text-slate-600 font-medium">
-          {date ? new Date(date).toLocaleDateString() : '-'}
-        </span>
-      ),
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      align: 'center',
-      render: (_, record) => (
-        <div className="flex items-center justify-center gap-3">
-          <button className="text-slate-400 hover:text-indigo-600 transition-colors">
-            <Edit3 size={18} />
-          </button>
-          <button className="text-slate-400 hover:text-rose-500 transition-colors">
-            <Trash2 size={18} />
-          </button>
-        </div>
-      ),
+      render: (date: string) =>
+        date ? new Date(date).toLocaleDateString() : '-',
     },
   ], []);
 
+  // LOADING STATE
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -144,56 +194,71 @@ const All_Users: React.FC = () => {
   }
 
   return (
-    <div className="p-6 bg-slate-50/50 min-h-screen">
+    <div className="p-6 bg-slate-50 min-h-screen">
       <div className="mb-8">
         <AllUser_Stats />
       </div>
 
-      <div>
-        <Reusable_Button variant='primary' text='Add NewUser' size='px-4 py-2'/>
-      </div>
-
-      <div className="max-w-full mx-auto">
-        <Table
-          columns={columns}
-          data={tableData}
-          showSelection
-          onSelectionChange={setSelectedRows}
-          enableSearch
-          searchPlaceholder="Search Users..."
-          actionButtons={false} // Handled via custom 'Actions' column above to match image
-          pagination={{
-            currentPage,
-            itemsPerPage,
-            totalItems: tableData.length,
-            onPageChange: setCurrentPage,
-            onItemsPerPageChange: (size) => {
-              setItemsPerPage(size);
-              setCurrentPage(1);
-            },
-          }}
+      {/* ADD BUTTON */}
+      <div className="mb-6 flex justify-end">
+        <Reusable_Button
+          onClick={() =>
+            navigate(`/${localStorage.getItem("subdomain")}/all-users/alluser-create`)
+          }
+          variant='primary'
+          text='Add New User'
+          size='px-3 py-2.5'
         />
       </div>
 
-      {/* Selection Overlay */}
+      {/* TABLE */}
+      <Table
+        columns={columns}
+        data={tableData}
+        showSelection
+        onSelectionChange={setSelectedRows}
+        enableSearch
+        searchPlaceholder="Search Users..."
+        // Pass deletingId to Table so the internal menu can show the loader
+        deletingId={deletingId} 
+        actionButtons={{
+          showView: false,
+          showEdit: true,
+          showDelete: true,
+          // Since it's a lead table model, you can set these to false if not needed for Users
+          showFollowUp: false,
+          showConvert: false,
+          onEdit: (record: TableDataItem) => handleEdit(record),
+          onDelete: (record: TableDataItem) => handleDelete(record),
+        }}
+        pagination={{
+          currentPage,
+          itemsPerPage,
+          totalItems: tableData.length,
+          onPageChange: setCurrentPage,
+          onItemsPerPageChange: (size: number) => {
+            setItemsPerPage(size);
+            setCurrentPage(1);
+          },
+        }}
+      />
+
+      {/* BULK SELECTION UI */}
       {selectedRows.length > 0 && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex gap-6 items-center z-[100] border border-slate-800 animate-in fade-in slide-in-from-bottom-4">
-          <div className="flex flex-col">
-            <span className="text-[10px] text-slate-400 uppercase font-black tracking-widest leading-none mb-1">Selected</span>
-            <span className="text-sm font-bold leading-none">{selectedRows.length} Users</span>
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-[#0f172a] text-white px-6 py-4 rounded-2xl flex items-center gap-6 shadow-2xl z-[100] border border-slate-700">
+          <div className="flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-500 text-[12px] font-bold">
+                {selectedRows.length}
+            </span>
+            <span className="text-sm font-semibold">Users Selected</span>
           </div>
-          <div className="h-8 w-[1px] bg-slate-700" />
-          <div className="flex gap-2">
-             <button className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl text-xs font-black transition-all shadow-lg shadow-indigo-500/20">
-               Bulk Action
-             </button>
-             <button 
-              onClick={() => setSelectedRows([])}
-              className="bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 rounded-xl text-xs font-black transition-all"
-             >
-               Cancel
-             </button>
-          </div>
+          <div className="h-4 w-[1px] bg-slate-700" />
+          <button 
+            onClick={() => setSelectedRows([])}
+            className="text-sm font-bold text-slate-400 hover:text-white transition-colors"
+          >
+            Clear Selection
+          </button>
         </div>
       )}
     </div>
