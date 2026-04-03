@@ -526,135 +526,6 @@ const StatusFilterModal = ({
   );
 };
 
-// Column Filter Popup (Portal based for better positioning)
-const ColumnFilterPopup = ({
-  isOpen,
-  onClose,
-  column,
-  onFilter,
-  currentFilter,
-  triggerRect
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  column: Column;
-  onFilter: (value: string) => void;
-  currentFilter?: string;
-  triggerRect?: DOMRect;
-}) => {
-  const [filterValue, setFilterValue] = useState(currentFilter || '');
-  const popupRef = useRef<HTMLDivElement>(null);
-  const [position, setPosition] = useState({ top: 0, left: 0 });
-
-  useEffect(() => {
-    if (isOpen && triggerRect) {
-      let top = triggerRect.bottom + window.scrollY + 8;
-      let left = triggerRect.left + window.scrollX;
-      
-      const popupHeight = 300;
-      const popupWidth = 288;
-      
-      if (top + popupHeight > window.innerHeight + window.scrollY) {
-        top = triggerRect.top + window.scrollY - popupHeight - 8;
-      }
-      
-      if (left + popupWidth > window.innerWidth + window.scrollX) {
-        left = window.innerWidth + window.scrollX - popupWidth - 16;
-      }
-      
-      setPosition({ top, left });
-    }
-  }, [isOpen, triggerRect]);
-
-  const handleApply = () => {
-    onFilter(filterValue);
-    onClose();
-  };
-
-  const handleClear = () => {
-    setFilterValue('');
-    onFilter('');
-    onClose();
-  };
-
-  if (!isOpen) return null;
-
-  return createPortal(
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          ref={popupRef}
-          initial={{ opacity: 0, scale: 0.95, y: -10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.95, y: -10 }}
-          style={{ position: 'fixed', top: position.top, left: position.left, zIndex: 10001 }}
-          className="w-72 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden"
-        >
-          <div className="p-3 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100">
-            <span className="text-sm font-semibold text-slate-700">Filter by {column.title}</span>
-          </div>
-          <div className="p-4">
-            {column.filterType === 'select' && column.filterOptions ? (
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {column.filterOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => {
-                      setFilterValue(option.value);
-                      onFilter(option.value);
-                      onClose();
-                    }}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all ${
-                      filterValue === option.value
-                        ? 'bg-indigo-50 text-indigo-700 font-medium'
-                        : 'hover:bg-slate-50 text-slate-600'
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            ) : column.filterType === 'date' ? (
-              <input
-                type="date"
-                value={filterValue}
-                onChange={(e) => setFilterValue(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-              />
-            ) : (
-              <input
-                type="text"
-                value={filterValue}
-                onChange={(e) => setFilterValue(e.target.value)}
-                placeholder={`Search ${column.title.toLowerCase()}...`}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
-                onKeyPress={(e) => e.key === 'Enter' && handleApply()}
-                autoFocus
-              />
-            )}
-            
-            <div className="flex gap-2 mt-4">
-              <button
-                onClick={handleApply}
-                className="flex-1 px-3 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
-              >
-                Apply
-              </button>
-              <button
-                onClick={handleClear}
-                className="px-3 py-2 bg-slate-100 text-slate-600 text-sm font-medium rounded-lg hover:bg-slate-200 transition-colors"
-              >
-                Clear
-              </button>
-            </div>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>,
-    document.body
-  );
-};
-
 // Pagination Component
 const Pagination = ({
   currentPage,
@@ -1310,58 +1181,62 @@ const Table: React.FC<TableProps> = ({
             <>
               <div className="fixed inset-0 z-[9998]" onClick={() => setActiveMenuId(null)} />
               <motion.div
-                initial={{ opacity: 0, scale: 0.9, x: 20 }}
-                animate={{ opacity: 1, scale: 1, x: 0 }}
-                exit={{ opacity: 0, scale: 0.9, x: 20 }}
-                transition={{ type: "spring", damping: 20 }}
-                style={{ position: 'fixed', top: menuPosition.top, left: menuPosition.left, zIndex: 9999 }}
-                className="w-[230px] bg-white rounded-2xl shadow-xl border border-slate-100 p-2 py-3"
-              >
-                {actions?.showEdit && (
-                  <button 
-                    onClick={() => { actions.onEdit?.(activeRecord); setActiveMenuId(null); }} 
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-slate-700 hover:bg-slate-50 rounded-xl transition-colors text-[14px] font-medium text-left"
-                  >
-                    <Edit3 size={16} className="text-slate-400" /> Edit lead
-                  </button>
-                )}
-                {actions?.showFollowUp && (
-                  <button 
-                    onClick={() => { actions.onFollowUp?.(activeRecord); setActiveMenuId(null); }} 
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-slate-700 hover:bg-slate-50 rounded-xl transition-colors text-[14px] font-medium text-left"
-                  >
-                    <Calendar size={16} className="text-slate-400" /> Add Follow-Up
-                  </button>
-                )}
-                {actions?.showView && (
-                  <button 
-                    onClick={() => { actions.onView?.(activeRecord); setActiveMenuId(null); }} 
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-slate-700 hover:bg-slate-50 rounded-xl transition-colors text-[14px] font-medium text-left"
-                  >
-                    <Eye size={16} className="text-slate-400" /> View Lead
-                  </button>
-                )}
-                
-                {(actions.showConvert || actions.showDelete) && <div className="my-2 mx-2 border-t border-slate-100" />}
-                
-                {actions?.showConvert && (
-                  <button 
-                    onClick={() => { actions.onConvert?.(activeRecord); setActiveMenuId(null); }} 
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-slate-800 hover:bg-indigo-50 rounded-xl transition-colors text-[14px] font-semibold text-left"
-                  >
-                    <Users size={16} className="text-slate-400" /> Convert Customer
-                  </button>
-                )}
+  initial={{ opacity: 0, scale: 0.9, x: 20 }}
+  animate={{ opacity: 1, scale: 1, x: 0 }}
+  exit={{ opacity: 0, scale: 0.9, x: 20 }}
+  transition={{ type: "spring", damping: 20 }}
+  style={{ position: 'fixed', top: menuPosition.top, left: menuPosition.left, zIndex: 9999 }}
+  className="w-[230px] bg-white rounded-2xl shadow-xl border border-slate-100 p-2 py-3"
+>
+  {actions?.showEdit && (
+    <button 
+      onClick={() => { actions?.onEdit?.(activeRecord); setActiveMenuId(null); }} 
+      className="w-full flex items-center gap-3 px-4 py-2.5 text-slate-700 hover:bg-slate-50 rounded-xl transition-colors text-[14px] font-medium text-left"
+    >
+      <Edit3 size={16} className="text-slate-400" /> Edit lead
+    </button>
+  )}
 
-                {actions?.showDelete && (
-                  <button 
-                    onClick={() => { actions.onDelete?.(activeRecord); setActiveMenuId(null); }} 
-                    className="w-full flex items-center gap-3 px-4 py-2.5 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors text-[14px] font-medium text-left"
-                  >
-                    <Trash2 size={16} className="text-rose-400" /> Delete Lead
-                  </button>
-                )}
-              </motion.div>
+  {actions?.showFollowUp && (
+    <button 
+      onClick={() => { actions?.onFollowUp?.(activeRecord); setActiveMenuId(null); }} 
+      className="w-full flex items-center gap-3 px-4 py-2.5 text-slate-700 hover:bg-slate-50 rounded-xl transition-colors text-[14px] font-medium text-left"
+    >
+      <Calendar size={16} className="text-slate-400" /> Add Follow-Up
+    </button>
+  )}
+
+  {actions?.showView && (
+    <button 
+      onClick={() => { actions?.onView?.(activeRecord); setActiveMenuId(null); }} 
+      className="w-full flex items-center gap-3 px-4 py-2.5 text-slate-700 hover:bg-slate-50 rounded-xl transition-colors text-[14px] font-medium text-left"
+    >
+      <Eye size={16} className="text-slate-400" /> View Lead
+    </button>
+  )}
+
+  {(actions?.showConvert || actions?.showDelete) && (
+    <div className="my-2 mx-2 border-t border-slate-100" />
+  )}
+
+  {actions?.showConvert && (
+    <button 
+      onClick={() => { actions?.onConvert?.(activeRecord); setActiveMenuId(null); }} 
+      className="w-full flex items-center gap-3 px-4 py-2.5 text-slate-800 hover:bg-indigo-50 rounded-xl transition-colors text-[14px] font-semibold text-left"
+    >
+      <Users size={16} className="text-slate-400" /> Convert Customer
+    </button>
+  )}
+
+  {actions?.showDelete && (
+    <button 
+      onClick={() => { actions?.onDelete?.(activeRecord); setActiveMenuId(null); }} 
+      className="w-full flex items-center gap-3 px-4 py-2.5 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors text-[14px] font-medium text-left"
+    >
+      <Trash2 size={16} className="text-rose-400" /> Delete Lead
+    </button>
+  )}
+</motion.div>
             </>
           )}
         </AnimatePresence>,

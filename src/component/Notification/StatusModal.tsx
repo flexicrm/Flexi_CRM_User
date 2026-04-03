@@ -1,8 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
 import React from "react";
-import Reusable_Button from "../button/Reusable_Button";
-
-// Use 'import type' here to fix the SyntaxError
 import type { StatusType } from "./statusHandler";
 
 interface StatusModalProps {
@@ -16,23 +13,20 @@ interface StatusModalProps {
   onConfirm?: () => void;
 }
 
-// ... rest of the code remains the same as previous response ...
-// (The getConfig function, the motion variants, and the component return)
-
 const getConfig = (type: StatusType) => {
-    switch (type) {
-      case "success":
-        return { img: "/success.jpg", color: "text-green-500", defaultTitle: "Awesome!", btn: "Done" };
-      case "error":
-        return { img: "/error2.jpg", color: "text-pink-500", defaultTitle: "Oops...", btn: "Try Again" };
-      case "warning":
-        return { img: "/warning.png", color: "text-yellow-500", defaultTitle: "Warning!", btn: "Okay" };
-      case "confirm":
-        return { img: "/confirm.png", color: "text-blue-500", defaultTitle: "Confirm?", btn: "Confirm" };
-      default:
-        return { img: "", color: "text-gray-500", defaultTitle: "", btn: "Okay" };
-    }
-  };
+  switch (type) {
+    case "success":
+      return { img: "/success.jpg", color: "text-green-500", defaultTitle: "Success!", btn: "Done" };
+    case "error":
+      return { img: "/error2.jpg", color: "text-red-500", defaultTitle: "Error!", btn: "Try Again" };
+    case "warning":
+      return { img: "/warning.png", color: "text-yellow-500", defaultTitle: "Warning!", btn: "Okay" };
+    case "confirm":
+      return { img: "/confirm.png", color: "text-blue-500", defaultTitle: "Confirm?", btn: "Confirm" };
+    default:
+      return { img: "", color: "text-gray-500", defaultTitle: "", btn: "Okay" };
+  }
+};
 
 const StatusModal: React.FC<StatusModalProps> = ({
   isOpen,
@@ -47,11 +41,22 @@ const StatusModal: React.FC<StatusModalProps> = ({
   const config = getConfig(type);
   const isConfirmType = type === "confirm";
 
+  const handleButtonClick = () => {
+    console.log('Button clicked for type:', type);
+    if (isConfirmType && onConfirm) {
+      onConfirm();
+    } else {
+      onClose();
+    }
+  };
+
+  if (!isOpen) return null;
+
   return (
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -64,30 +69,50 @@ const StatusModal: React.FC<StatusModalProps> = ({
             exit={{ scale: 0.8, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
           >
-            {config.img && <img src={config.img} alt="status" className="w-40 mx-auto" />}
+            {config.img && (
+              <img 
+                src={config.img} 
+                alt="status" 
+                className="w-32 h-32 mx-auto object-contain"
+                onError={(e) => {
+                  console.error('Failed to load image:', config.img);
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            )}
             
-            <div className="space-y-1">
-              <h2 className={`text-2xl font-bold ${config.color}`}>{title || config.defaultTitle}</h2>
-              <p className="text-gray-600 font-medium">{message}</p>
+            <div className="space-y-2">
+              <h2 className={`text-2xl font-bold ${config.color}`}>
+                {title || config.defaultTitle}
+              </h2>
+              <p className="text-gray-600 font-medium break-words">
+                {message}
+              </p>
             </div>
 
             <div className={`flex items-center gap-3 ${isConfirmType ? "flex-row" : "justify-center"}`}>
               {isConfirmType && (
                 <button
                   onClick={onClose}
-                  className="flex-1 px-5 py-2.5 rounded-lg font-semibold text-gray-500 hover:bg-gray-100 transition-colors"
+                  className="flex-1 px-5 py-2.5 rounded-lg font-semibold text-gray-600 hover:bg-gray-100 transition-colors border border-gray-300"
                 >
                   {cancelText}
                 </button>
               )}
               
-              <div className={isConfirmType ? "flex-1" : "w-full flex justify-center"}>
-                <Reusable_Button
-                  text={buttonText || config.btn}
-                  onClick={isConfirmType ? onConfirm : onClose}
-                  variant="primary"
-                  size="w-full py-2.5"
-                />
+              <div className={isConfirmType ? "flex-1" : "w-full"}>
+                <button
+                  onClick={handleButtonClick}
+                  className={`w-full px-5 py-2.5 rounded-lg font-semibold text-white transition-all ${
+                    type === 'error' 
+                      ? 'bg-red-500 hover:bg-red-600' 
+                      : type === 'success'
+                      ? 'bg-green-500 hover:bg-green-600'
+                      : 'bg-gradient-to-r from-[#05264e] to-[#0a3a6e] hover:shadow-lg'
+                  }`}
+                >
+                  {buttonText || config.btn}
+                </button>
               </div>
             </div>
           </motion.div>

@@ -41,6 +41,8 @@ const FollowupType = () => {
   const [typeName, setTypeName] = useState("");
   const [isEditMode, setIsEditMode] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+    const {permissions} = useSelector((state : any) => state.auth)
+  const Roles = permissions[4]
 
   useEffect(() => {
     dispatch(getFollowUpTypes());
@@ -135,6 +137,7 @@ const FollowupType = () => {
             icon={<Plus size={16} />}
             onClick={() => setShowCreate(true)}
             size="px-4 py-2"
+            disabled={!Roles?.canCreate}
           />
         ) : (
           <div className="flex items-center gap-3 w-full">
@@ -177,8 +180,8 @@ const FollowupType = () => {
         actionButtons={{
           showEdit: true,
           showDelete: true,
-          onEdit: handleEditClick,
-          onDelete: handleDeleteClick,
+          onEdit:Roles?.canRead ? handleEditClick: undefined,
+          onDelete:Roles?.canDelete ? handleDeleteClick : undefined,
         }}
       />
 

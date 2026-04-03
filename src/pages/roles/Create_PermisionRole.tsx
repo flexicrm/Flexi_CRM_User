@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom"; // Added useNavigate
+import { useDispatch, useSelector } from "react-redux";
+import { useLocation, useNavigate } from "react-router-dom";
 import Reusable_Button from "../../component/button/Reusable_Button";
 import Overall_Permissions from "../../component/permissions/Overall_Permissions";
 import {
   Create_Permissions_Create,
   Create_Permissions_Edit,
 } from "../../store/homepage_slice/Permissions_Slice";
+import { fetchMeData } from "../../store/Login_Slice";
 
 // Import the status handlers
 import {
@@ -24,85 +26,163 @@ type PermissionItem = {
 
 type ApiPermission = {
   canCreate?: boolean;
-  canRead?: boolean;
-  canUpdate?: boolean;
+  canView?: boolean;
+  canEdit?: boolean;
   canDelete?: boolean;
 };
 
-const defaultPermissions: PermissionItem[] = [
-  { module: "Dashboard", create: false, view: false, edit: false, delete: false },
-  { module: "Estimates", create: false, view: false, edit: false, delete: false },
-  { module: "Expenses", create: false, view: false, edit: false, delete: false },
-  { module: "Invoice", create: false, view: false, edit: false, delete: false },
-  { module: "Leads", create: false, view: false, edit: false, delete: false },
-  { module: "Order", create: false, view: false, edit: false, delete: false },
-  { module: "Payments", create: false, view: false, edit: false, delete: false },
-  { module: "Profile", create: false, view: false, edit: false, delete: false },
-  { module: "Project", create: false, view: false, edit: false, delete: false },
-  { module: "Proposals", create: false, view: false, edit: false, delete: false },
-  { module: "Quotations", create: false, view: false, edit: false, delete: false },
-  { module: "Report", create: false, view: false, edit: false, delete: false },
-  { module: "RolesPermissions", create: false, view: false, edit: false, delete: false },
-  { module: "Sales", create: false, view: false, edit: false, delete: false },
-  { module: "Setup", create: false, view: false, edit: false, delete: false },
-  { module: "Task", create: false, view: false, edit: false, delete: false },
-  { module: "User", create: false, view: false, edit: false, delete: false },
-  { module: "Utilities", create: false, view: false, edit: false, delete: false },
-  { module: "setting", create: false, view: false, edit: false, delete: false },
-  { module: "subscriptions", create: false, view: false, edit: false, delete: false },
+// API Payload type
+type ApiPayload = {
+  userRole: string;
+  Group?: string;
+  permissions: ApiPermission[];
+};
+
+// Fallback modules if API fails
+const fallbackModules: string[] = [
+  "Dashboard",
+  "Leads",
+  "Customer",
+  "User",
+  "Utilities",
+  "Settings",
+  "RolesandPermissions",
+  "Integration"
 ];
 
 const Create_PermisionRole = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { edit, rolesData, permissionId } = location.state || {};
+  
+  // Get meData from Redux store
+  const { meData, meLoading } = useSelector((state: any) => state.auth);
 
-  const [permissions, setPermissions] = useState<PermissionItem[]>(defaultPermissions);
+  const [permissions, setPermissions] = useState<PermissionItem[]>([]);
   const [userRole, setUserRole] = useState("");
+  const [group, setGroup] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [availableModules, setAvailableModules] = useState<string[]>([]);
 
   // Helper to extract error message
   const getErrorMessage = (err: any) => {
     return err?.response?.data?.message || err?.message || "Something went wrong";
   };
 
-  // PREFILL EDIT
+  // Fetch module names from API (similar to sidebar)
   useEffect(() => {
-    if (edit && rolesData) {
-      setUserRole(rolesData.userRole || "");
-      const apiPermissions = rolesData.permissions || {};
+    const fetchModules = async () => {
+      try {
+        setLoading(true);
+        
+        // If meData is already in store, use it
+        if (meData?.permissions && Array.isArray(meData.permissions)) {
+          const modules = meData.permissions.map((p: any) => p.module);
+          console.log("Modules from meData:", modules);
+          setAvailableModules(modules);
+          
+          // Initialize permissions based on fetched modules
+          initializePermissions(modules);
+        } else {
+          // Fetch fresh data
+          const result = await dispatch(fetchMeData() as any);
+          if (result.payload?.permissions) {
+            const modules = result.payload.permissions.map((p: any) => p.module);
+            console.log("Modules from fresh API:", modules);
+            setAvailableModules(modules);
+            initializePermissions(modules);
+          } else {
+            // Use fallback modules if API fails
+            console.warn("Using fallback modules");
+            setAvailableModules(fallbackModules);
+            initializePermissions(fallbackModules);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching modules:", error);
+        setAvailableModules(fallbackModules);
+        initializePermissions(fallbackModules);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-      const merged = defaultPermissions.map((item) => {
+    fetchModules();
+  }, [dispatch, meData]);
+
+  // Initialize permissions array based on modules
+  const initializePermissions = (modules: string[]) => {
+    const initialPermissions: PermissionItem[] = modules.map((module) => ({
+      module: module,
+      create: false,
+      view: false,
+      edit: false,
+      delete: false,
+    }));
+    setPermissions(initialPermissions);
+  };
+
+  // PREFILL EDIT DATA
+  useEffect(() => {
+    if (edit && rolesData && permissions.length > 0) {
+      setUserRole(rolesData.userRole || "");
+      setGroup(rolesData.Group || "");
+      
+      // Handle both array and object format for permissions
+      let apiPermissions: any = {};
+      
+      if (Array.isArray(rolesData.permissions)) {
+        // Convert array format to object for easier lookup
+        rolesData.permissions.forEach((perm: any) => {
+          apiPermissions[perm.module] = perm;
+        });
+      } else {
+        apiPermissions = rolesData.permissions || {};
+      }
+
+      const merged = permissions.map((item) => {
         const apiPerm = apiPermissions[item.module];
-        return {
-          module: item.module,
-          create: !!apiPerm?.canCreate,
-          view: !!apiPerm?.canRead,
-          edit: !!apiPerm?.canUpdate,
-          delete: !!apiPerm?.canDelete,
-        };
+        if (apiPerm) {
+          return {
+            module: item.module,
+            create: apiPerm.canCreate || apiPerm.canCreate === true,
+            view: apiPerm.canRead || apiPerm.canRead || false,
+            edit: apiPerm.canEdit || apiPerm.canUpdate || false,
+            delete: apiPerm.canDelete || false,
+          };
+        }
+        return item;
       });
       setPermissions(merged);
     }
-  }, [edit, rolesData]);
+  }, [edit, rolesData, permissions.length]);
 
-  const buildPayload = () => {
-    const permissionsObj: Record<string, ApiPermission> = {};
-    permissions.forEach((item) => {
-      if (item.module === "Dashboard") {
-        permissionsObj[item.module] = { canRead: !!item.view };
-      } else {
-        permissionsObj[item.module] = {
-          canCreate: !!item.create,
-          canRead: !!item.view,
-          canUpdate: !!item.edit,
-          canDelete: !!item.delete,
-        };
-      }
-    });
-    return { userRole, permissions: permissionsObj };
+  // Build payload in the exact format specified
+  const buildPayload = (): ApiPayload => {
+    // Create permissions array in the format: [{ module: "Dashboard", canCreate: false, canView: true, ... }]
+    const permissionsArray = permissions.map((item) => ({
+      module: item.module,
+      canCreate: item.create,
+      canRead: item.view,
+      canEdit: item.edit,
+      canDelete: item.delete,
+    }));
+
+    const payload: ApiPayload = {
+      userRole: userRole,
+      permissions: permissionsArray,
+    };
+
+    // Add Group if provided
+    if (group && group.trim()) {
+      payload.Group = group;
+    }
+
+    return payload;
   };
 
-  // ✅ SUBMIT WITH CONFIRMATION & API STATUS
+  // Submit with confirmation
   const handleSubmit = () => {
     if (!userRole.trim()) {
       errorAlert("Please enter a role name", "Okay");
@@ -115,6 +195,8 @@ const Create_PermisionRole = () => {
       confirmText: edit ? "Update" : "Create",
       onConfirm: async () => {
         const payload = buildPayload();
+        console.log("Submitting payload:", JSON.stringify(payload, null, 2));
+        
         try {
           let response;
           if (edit) {
@@ -138,30 +220,71 @@ const Create_PermisionRole = () => {
     });
   };
 
+  // Loading state
+  if (loading || meLoading) {
+    return (
+      <div className="p-6 bg-white rounded-lg shadow-sm">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600">Loading modules from API...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-6 bg-white rounded-lg shadow-sm">
-      <h2 className="text-xl font-bold mb-6">{edit ? "Edit Role" : "Create Role"}</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-bold">{edit ? "Edit Role" : "Create Role"}</h2>
+        <div className="text-sm text-gray-500">
+          Total Modules: {availableModules.length}
+        </div>
+      </div>
 
       {/* Role Input */}
-      <div className="mb-6">
-        <label className="block text-sm font-semibold mb-2">Role Name</label>
+      <div className="mb-4">
+        <label className="block text-sm font-semibold mb-2">
+          Role Name <span className="text-red-500">*</span>
+        </label>
         <input
           type="text"
-          placeholder="e.g. Sales Manager"
+          placeholder="e.g. Sales Manager, Admin, Team Lead"
           value={userRole}
           onChange={(e) => setUserRole(e.target.value)}
           className="border border-gray-300 px-4 py-2.5 rounded-lg w-full focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
         />
       </div>
 
-      {/* Permissions Table Component */}
+      {/* Group Input (Optional) */}
+      <div className="mb-6">
+        <label className="block text-sm font-semibold mb-2">
+          Group (Optional)
+        </label>
+        <input
+          type="text"
+          placeholder="e.g. Sales Team, Admin Team"
+          value={group}
+          onChange={(e) => setGroup(e.target.value)}
+          className="border border-gray-300 px-4 py-2.5 rounded-lg w-full focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+        />
+      </div>
+
+      {/* Permissions Table Component - Now using dynamic modules from API */}
       <Overall_Permissions
-        permissions={permissions}
+        permissionss={permissions}
         setPermissions={setPermissions}
       />
 
       {/* Submit */}
-      <div className="mt-8 flex justify-end">
+      <div className="mt-8 flex justify-end gap-3">
+        <Reusable_Button
+          text="Cancel"
+          onClick={() => navigate(-1)}
+          variant="secondary"
+          size="px-6 py-3"
+        />
         <Reusable_Button
           text={edit ? "Update Role Permissions" : "Save Role Permissions"}
           onClick={handleSubmit}

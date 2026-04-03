@@ -1,23 +1,23 @@
-import { useEffect, useState } from "react";
-import Table from "../../component/table/Table";
-import { useDispatch, useSelector } from "react-redux";
-import {
-  getLeadSource,
-  deleteLeadSource,
-  clearSourceMessage,
-  clearSourceError,
-  createLeadSource,
-  updateLeadSource,
-} from "../../store/settingleadSourceSlice";
-import type { AppDispatch, RootState } from "../../store/Store";
-import ConfirmDeleteModal from "../../component/CommonDeleteModel/CommonDeleteModel";
-import Reusable_Button from "../../component/button/Reusable_Button";
 import { Check, Plus, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import Reusable_Button from "../../component/button/Reusable_Button";
+import ConfirmDeleteModal from "../../component/CommonDeleteModel/CommonDeleteModel";
 import Reusable_Fields from "../../component/Fields/Reusable_Fiealds";
 import {
   errorAlert,
   successAlert,
 } from "../../component/Notification/statusHandler";
+import Table from "../../component/table/Table";
+import {
+  clearSourceError,
+  clearSourceMessage,
+  createLeadSource,
+  deleteLeadSource,
+  getLeadSource,
+  updateLeadSource,
+} from "../../store/settingleadSourceSlice";
+import type { AppDispatch, RootState } from "../../store/Store";
 
 interface LeadSource {
   _id: string;
@@ -43,6 +43,8 @@ const LeadSource = () => {
   const [sourceName, setSourceName] = useState("");
   const [isEditMode, setIsEditMode] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+   const {permissions} = useSelector((state : any) => state.auth)
+  const Roles = permissions[4]
 
   useEffect(() => {
     dispatch(getLeadSource());
@@ -142,6 +144,7 @@ const LeadSource = () => {
             icon={<Plus size={16} />}
             onClick={() => setShowCreate(true)}
             size="px-4 py-2"
+            disabled={!Roles?.canCreate}
           />
         ) : (
           <div className="flex items-center gap-3 w-full">
@@ -187,8 +190,8 @@ const LeadSource = () => {
         actionButtons={{
           showEdit: true,
           showDelete: true,
-          onEdit: handleEditClick,
-          onDelete: handleDeleteClick,
+          onEdit:Roles?.canRead ? handleEditClick: undefined,
+          onDelete:Roles?.canDelete ? handleDeleteClick : undefined,
         }}
       />
 

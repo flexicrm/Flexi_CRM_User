@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSelector } from "react-redux";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Table, { type Column } from "../../../component/table/Table";
 import AddFollowUp_Model from "../AddFaloowUp_Model";
@@ -21,6 +22,8 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
   // Find the selected lead data based on LeadId
   const selectedLeadId = searchParams.get("LeadId");
   const selectedLeadData = data.find(lead => lead.LeadId === selectedLeadId);
+  const {permissions} = useSelector((state : any) => state.auth)
+  const Roles = permissions[1]
 
   const columns: Column[] = [
     {
@@ -109,6 +112,8 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
     },
   ];
 
+  
+
   return (
     <div className="w-full bg-white rounded-[32px] shadow-xl border border-slate-100 overflow-hidden mt-6">
       <Table
@@ -121,33 +126,44 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
         }}
         enableSearch={true}
         searchPlaceholder="Search Leads..."
-        actionButtons={{
-          showView: true,
-          showEdit: true,
-          showDelete: false,
-          showFollowUp: true,
-          showConvert: true,
-          onEdit: (record: any) =>
-            navigate(`/${localStorage.getItem("subdomain")}/leads/create-leads`, {
-              state: { tableData: record, tableId: record.LeadId },
-            }),
-          onView: (record: any) =>
-            navigate(`/${localStorage.getItem("subdomain")}/leads/view-leads`, {
-              state: { tableId: record.LeadId },
-            }),
-          onFollowUp: (record: any) => {
-            setSearchParams({
-              modal: "schedule-followup",
-              LeadId: record.LeadId,
-            });
-          },
-          onConvert: (record: any) => {
-            setSearchParams({
-              modal: "convert-customer",
-              LeadId: record.LeadId,
-            });
-          },
-        }}
+         actionButtons={{
+    showView: Roles?.canRead,
+    showEdit: Roles?.canEdit,
+    showFollowUp: Roles?.canCreate,   
+    showConvert: Roles?.canCreate,  
+
+    onEdit: Roles?.canEdit
+      ? (record: any) =>
+          navigate(`/${localStorage.getItem("subdomain")}/leads/create-leads`, {
+            state: { tableData: record, tableId: record.LeadId },
+          })
+      : undefined,
+
+    onView: Roles?.canRead
+      ? (record: any) =>
+          navigate(`/${localStorage.getItem("subdomain")}/leads/view-leads`, {
+            state: { tableId: record.LeadId },
+          })
+      : undefined,
+
+    onFollowUp: Roles?.canCreate
+      ? (record: any) => {
+          setSearchParams({
+            modal: "schedule-followup",
+            LeadId: record.LeadId,
+          });
+        }
+      : undefined,
+
+    onConvert: Roles?.canCreate
+      ? (record: any) => {
+          setSearchParams({
+            modal: "convert-customer",
+            LeadId: record.LeadId,
+          });
+        }
+      : undefined,
+  }}
         pagination={{
           currentPage,
           itemsPerPage,
@@ -169,10 +185,11 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
       )}
       
       {searchParams.get("modal") === "convert-customer" && (
-        <Convert_custommer_Model 
-          data={data}
-        />
-      )}
+  <Convert_custommer_Model 
+    tableId={selectedLeadId} 
+    selectedData={selectedLeadData}
+  />
+)}
     </div>
   );
 };

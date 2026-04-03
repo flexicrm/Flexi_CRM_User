@@ -5,13 +5,18 @@ import {
   Phone,
   User
 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import Table from "../../component/table/Table";
 import type { AppDispatch, RootState } from "../../store/Store";
 import { fetchDashboardData } from "../../store/homepage_slice/Dashboard_Slice";
 
 const Recent_Leads = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [activeStatus, setActiveStatus] = useState<string | null>(null);
+  const [activeStatusType, setActiveStatusType] = useState<'active' | 'inactive' | null>(null);
   const { recentLeads, isLoading } = useSelector(
     (state: RootState) => state.dashboard
   );
@@ -24,272 +29,196 @@ const Recent_Leads = () => {
     dispatch(fetchDashboardData());
   }, [dispatch]);
 
-  // Helper function to handle status colors safely
-  const getStatusStyles = (leadstatus: any) => {
-    const defaultColor = "#64748b"; // Default Gray
-    const apiColor = leadstatus?.color;
-    
-    // Check if color exists and is a valid hex (starts with #)
-    const finalColor = (apiColor && apiColor.startsWith('#')) ? apiColor : defaultColor;
-    
+  // Transform data for table
+  const tableData = useMemo(() => {
+    return leadsArray.map((lead: any) => ({
+      id: lead._id,
+      leadName: lead.manualData?.name || "N/A",
+      leadSubInfo: lead.manualData?.jobTitle || lead.manualData?.website || lead.LeadId || "N/A",
+      email: lead.manualData?.email || "N/A",
+      mobile: lead.manualData?.mobileNo || "N/A",
+      status: lead.leadstatus?.statusName || lead.leadstatus?.status || "New",
+      statusColor: lead.leadstatus?.color || "#64748b",
+      leadSource: lead.leadsource || "Offline",
+      raw: lead
+    }));
+  }, [leadsArray]);
+
+  // Helper function to get status styles
+  const getStatusStyles = (color: string) => {
+    const finalColor = (color && color.startsWith('#')) ? color : "#64748b";
     return {
-      backgroundColor: `${finalColor}15`, // 15 is 8% opacity in hex alpha
+      backgroundColor: `${finalColor}15`,
       color: finalColor,
-      border: `1px solid ${finalColor}40` // 40 is 25% opacity
+      border: `1px solid ${finalColor}40`
     };
   };
 
-  if (isLoading) return <div className="loading">Loading leads...</div>;
+  // Define columns for the Table component
+  const columns = useMemo(() => [
+    {
+      title: 'Lead',
+      dataIndex: 'leadName',
+      key: 'lead',
+      width: '250px',
+      filterable: true,
+      sortable: true,
+      render: (name: string, record: any) => (
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center">
+            <User size={16} className="text-slate-500" />
+          </div>
+          <div className="flex flex-col">
+            <span className="font-semibold text-slate-800 text-sm">{name}</span>
+            <div className="flex items-center gap-1 text-xs text-slate-400 mt-0.5">
+              <Building2 size={12} />
+              <span>{record.leadSubInfo}</span>
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: 'Contact',
+      dataIndex: 'email',
+      key: 'contact',
+      width: '250px',
+      filterable: true,
+      sortable: true,
+      render: (_: string, record: any) => (
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center gap-2 text-sm text-indigo-600">
+            <Mail size={14} className="text-slate-400" />
+            <span>{record.email}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm text-slate-600">
+            <Phone size={14} className="text-slate-400" />
+            <span>{record.mobile}</span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      width: '120px',
+      filterable: true,
+      sortable: true,
+      filterType: 'status' as const,
+      filterOptions: [
+        { label: 'New', value: 'New' },
+        { label: 'Contacted', value: 'Contacted' },
+        { label: 'Qualified', value: 'Qualified' },
+        { label: 'Proposal', value: 'Proposal' },
+        { label: 'Negotiation', value: 'Negotiation' },
+        { label: 'Won', value: 'Won' },
+        { label: 'Lost', value: 'Lost' },
+      ],
+      render: (status: string, record: any) => {
+        const styles = getStatusStyles(record.statusColor);
+        return (
+          <span 
+            className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold"
+            style={styles}
+          >
+            {status}
+          </span>
+        );
+      },
+    },
+    {
+      title: 'Lead Source',
+      dataIndex: 'leadSource',
+      key: 'leadSource',
+      width: '150px',
+      filterable: true,
+      sortable: true,
+      render: (source: string) => (
+        <span className="text-sm text-slate-700 font-medium">{source}</span>
+      ),
+    },
+  ], []);
+
+  // Prepare status options for the Table component
+  const statusOptions = useMemo(() => {
+    // Get unique statuses from the data
+    const uniqueStatuses = Array.from(new Set(tableData.map(item => item.status)));
+    return uniqueStatuses.map(status => ({
+      label: status,
+      value: status,
+      type: 'active' as const // You can adjust this logic based on your business rules
+    }));
+  }, [tableData]);
+
+  const handleStatusFilter = (status: string | null, type?: 'active' | 'inactive') => {
+    setActiveStatus(status);
+    setActiveStatusType(type || null);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-xl border border-slate-200 p-8">
+        <div className="flex items-center justify-center">
+          <div className="animate-pulse flex space-x-4">
+            <div className="flex-1 space-y-4 py-1">
+              <div className="h-4 bg-slate-200 rounded w-3/4"></div>
+              <div className="space-y-2">
+                <div className="h-4 bg-slate-200 rounded"></div>
+                <div className="h-4 bg-slate-200 rounded w-5/6"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="leads-card">
+    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
       {/* Card Header */}
-      <div className="card-header">
-        <div className="header-left">
-          <div className="grid-icon">
-            <LayoutGrid size={16} color="#94a3b8" strokeWidth={3} />
+      <div className="flex justify-between items-center p-5 border-b border-slate-100 bg-gradient-to-r from-white to-slate-50/30">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center">
+            <LayoutGrid size={16} className="text-indigo-600" strokeWidth={2.5} />
           </div>
-          <h2 className="header-title">Recent Leads</h2>
+          <div>
+            <h2 className="text-lg font-bold text-slate-800 tracking-tight">Recent Leads</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Latest prospects in your pipeline</p>
+          </div>
         </div>
-        <button className="view-all">View All</button>
+        <button 
+          onClick={() => window.location.href = `/${localStorage.getItem("subdomain")}/leads`}
+          className="text-sm font-semibold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition-all"
+        >
+          View All →
+        </button>
       </div>
 
-      {/* Table Container with Fixed Height & Scroll */}
-      <div className="table-responsive">
-        <table className="leads-table">
-          <thead>
-            <tr>
-              <th>Lead</th>
-              <th>Contact</th>
-              <th>Status</th>
-              <th>Lead Soruce</th>
-            </tr>
-          </thead>
-          <tbody>
-            {leadsArray.map((lead: any) => {
-              // Get safe styles for this specific row's status
-              const statusStyle = getStatusStyles(lead.leadstatus);
-              
-              return (
-                <tr key={lead._id}>
-                  {/* Lead Column */}
-                  <td>
-                    <div className="lead-cell">
-                      <div className="icon-bg">
-                        <User size={18} color="#64748b" />
-                      </div>
-                      <div className="lead-info">
-                        <span className="lead-name">{lead.manualData?.name || "N/A"}</span>
-                        <div className="lead-sub">
-                          <Building2 size={12} />
-                          <span>{lead.manualData?.jobTitle || lead.manualData?.website || lead.LeadId}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Contact Column */}
-                  <td>
-                    <div className="contact-cell">
-                      <div className="contact-item">
-                        <Mail size={14} color="#64748b" />
-                        <span>{lead.manualData?.email || "N/A"}</span>
-                      </div>
-                      <div className="contact-item">
-                        <Phone size={14} color="#64748b" />
-                        <span>{lead.manualData?.mobileNo || "N/A"}</span>
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Status Column - FIXED LOGIC */}
-                  <td>
-                    <span 
-                      className="status-badge"
-                      style={statusStyle}
-                    >
-                      {/* Displays statusName if exists, otherwise tries to find 'status' string, else defaults to 'New' */}
-                      {lead.leadstatus?.statusName || lead.leadstatus?.status || "New"}
-                    </span>
-                  </td>
-
-                  {/* Lead Source Column */}
-                  <td>
-                    <span className="source-text">{lead.leadsource || "Offline"}</span>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        {leadsArray.length === 0 && <div className="no-data">No recent leads found</div>}
-      </div>
-
-      <style>{`
-        .leads-card {
-          background: #ffffff;
-          border-radius: 12px;
-          border: 1px solid #e2e8f0;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-          width: 100%;
-          font-family: 'Poppins', sans-serif;
-          overflow: hidden;
-        }
-
-        .card-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 20px 24px;
-          background: #fff;
-          border-bottom: 1px solid #f1f5f9;
-        }
-
-        .header-left {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .grid-icon {
-          background: #f1f5f9;
-          padding: 6px;
-          border-radius: 50%;
-          display: flex;
-        }
-
-        .header-title {
-          font-size: 18px;
-          font-weight: 700;
-          color: #05264e;
-          margin: 0;
-        }
-
-        .view-all {
-          background: none;
-          border: none;
-          color: #05264e;
-          font-weight: 500;
-          font-size: 14px;
-          cursor: pointer;
-        }
-
-        .table-responsive {
-          width: 100%;
-          max-height: 450px;
-          overflow-y: auto;
-          overflow-x: hidden;
-        }
-
-        .table-responsive::-webkit-scrollbar {
-          width: 6px;
-        }
-        .table-responsive::-webkit-scrollbar-track {
-          background: #f1f5f9;
-        }
-        .table-responsive::-webkit-scrollbar-thumb {
-          background: #cbd5e1;
-          border-radius: 10px;
-        }
-
-        .leads-table {
-          width: 100%;
-          border-collapse: collapse;
-          text-align: left;
-        }
-
-        .leads-table thead th {
-          position: sticky;
-          top: 0;
-          z-index: 10;
-          padding: 12px 24px;
-          font-size: 13px;
-          font-weight: 500;
-          color: #475569;
-          border-bottom: 1px solid #f1f5f9;
-          background-color: #ffffff;
-        }
-
-        .leads-table td {
-          padding: 16px 24px;
-          border-bottom: 1px solid #f1f5f9;
-          vertical-align: middle;
-        }
-
-        .lead-cell {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .icon-bg {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          min-width: 32px;
-        }
-
-        .lead-info {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .lead-name {
-          color: #0056b3;
-          font-weight: 600;
-          font-size: 14px;
-        }
-
-        .lead-sub {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          color: #94a3b8;
-          font-size: 12px;
-          margin-top: 2px;
-        }
-
-        .contact-cell {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-
-        .contact-item {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 13px;
-          color: #0056b3;
-        }
-
-        .status-badge {
-          padding: 4px 12px;
-          border-radius: 6px;
-          font-size: 12px;
-          font-weight: 600;
-          display: inline-block;
-          min-width: 65px;
-          text-align: center;
-          text-transform: capitalize;
-        }
-
-        .source-text {
-          color: #05264e;
-          font-size: 14px;
-        }
-
-        .no-data {
-            padding: 30px;
-            text-align: center;
-            color: #94a3b8;
-        }
-
-        .loading {
-          padding: 40px;
-          text-align: center;
-        }
-      `}</style>
+      {/* Table Component */}
+      <Table
+        columns={columns}
+        data={tableData}
+        showSelection={false}
+        enableSearch={true}
+        searchPlaceholder="Search leads by name, email, or source..."
+        statusOptions={statusOptions}
+        onStatusFilter={handleStatusFilter}
+        activeStatus={activeStatus}
+        activeStatusType={activeStatusType}
+        pagination={{
+          currentPage,
+          itemsPerPage,
+          totalItems: tableData.length,
+          onPageChange: setCurrentPage,
+          onItemsPerPageChange: (size) => {
+            setItemsPerPage(size);
+            setCurrentPage(1);
+          },
+        }}
+        emptyMessage="No recent leads found"
+        className="border-0 rounded-none"
+      />
     </div>
   );
 };

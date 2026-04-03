@@ -17,8 +17,58 @@ interface Category {
   createdBy?: string;
 }
 
+interface Permission {
+  module: string;
+  canCreate: boolean;
+  canRead: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+}
+
+interface Company {
+  _id?: string;
+  companyName?: string;
+  industry?: string;
+  companySize?: string;
+  address?: string;
+  [key: string]: any;
+}
+
+interface UserData {
+  _id: string;
+  firstname: string;
+  lastname: string;
+  email: string;
+  mobile: string;
+  Profile?: string;
+  address?: string | null;
+  attendanceList?: any[];
+  averageResponseTime?: number;
+  company?: Company;
+  createdAt?: string;
+  createdBy?: string | null;
+  customFields?: any[];
+  dashboardSections?: any[];
+  deleted?: boolean;
+  firstLoginTime?: string;
+  isDashboardTourCompleted?: boolean;
+  isFirstLogin?: boolean;
+  isLeadTourCompleted?: boolean;
+  isPracticeDone?: boolean;
+  otp?: string | null;
+  otpExpires?: string | null;
+  otpVerified?: boolean;
+  permissions?: Permission[];
+  responseCount?: number;
+  status?: number;
+  totalResponseTime?: number;
+  updatedAt?: string;
+  userRole?: string;
+  [key: string]: any;
+}
+
 interface AuthState {
-  user: any | null;
+  user: UserData | null;
   token: string | null;
   mobile: string | null;
   isLoading: boolean;
@@ -26,6 +76,12 @@ interface AuthState {
   categories: Category[];
   categoriesLoading: boolean;
   categoriesError: any;
+  permissions: Permission[];
+  userRole: string | null;
+  isAuthenticated: boolean;
+  meData: UserData | null;
+  meLoading: boolean;
+  meError: any;
 }
 
 export const loginAPI = (data: { mobile: string }) =>
@@ -114,6 +170,38 @@ export const fetchCategories = createAsyncThunk<Category[]>(
   },
 );
 
+// New thunk to fetch meAPI data
+export const fetchMeData = createAsyncThunk(
+  "auth/fetchMeData",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await meAPI();
+      console.log("meAPI Response:", response);
+      
+      // Extract user data from response
+      const userData = response.data?.data || response.data;
+      
+      // Store permissions in localStorage for easy access
+      if (userData?.permissions) {
+        localStorage.setItem("userPermissions", JSON.stringify(userData.permissions));
+      }
+      
+      // Store user role
+      if (userData?.userRole) {
+        localStorage.setItem("userRole", userData.userRole);
+      }
+      
+      // Store full user data
+      localStorage.setItem("userData", JSON.stringify(userData));
+      
+      return userData;
+    } catch (error: any) {
+      console.error("Failed to fetch me data:", error);
+      return rejectWithValue(error.response?.data || error.message);
+    }
+  },
+);
+
 export const refreshToken = createAsyncThunk(
   "auth/refreshToken",
   async (_, { rejectWithValue, dispatch }) => {
@@ -148,6 +236,21 @@ export const refreshToken = createAsyncThunk(
   },
 );
 
+// Try to load initial state from localStorage
+const loadInitialState = (): Partial<AuthState> => {
+  const storedUserData = localStorage.getItem("userData");
+  const storedPermissions = localStorage.getItem("userPermissions");
+  const storedUserRole = localStorage.getItem("userRole");
+  
+  return {
+    user: storedUserData ? JSON.parse(storedUserData) : null,
+    permissions: storedPermissions ? JSON.parse(storedPermissions) : [],
+    userRole: storedUserRole || null,
+    token: localStorage.getItem("accessToken") || null,
+    mobile: localStorage.getItem("mobile") || null,
+  };
+};
+
 const initialState: AuthState = {
   user: null,
   token: localStorage.getItem("accessToken") || null,
@@ -157,6 +260,13 @@ const initialState: AuthState = {
   categories: [],
   categoriesLoading: false,
   categoriesError: null,
+  permissions: [],
+  userRole: null,
+  isAuthenticated: !!localStorage.getItem("accessToken"),
+  meData: null,
+  meLoading: false,
+  meError: null,
+  ...loadInitialState(),
 };
 
 const authSlice = createSlice({
@@ -168,8 +278,17 @@ const authSlice = createSlice({
       state.token = null;
       state.mobile = null;
       state.categories = [];
+      state.permissions = [];
+      state.userRole = null;
+      state.isAuthenticated = false;
+      state.meData = null;
+      state.meError = null;
       clearTokenRefresh();
       localStorage.clear();
+    },
+    clearError: (state) => {
+      state.error = null;
+      state.meError = null;
     },
   },
   extraReducers: (builder) => {
@@ -202,6 +321,18 @@ const authSlice = createSlice({
 
         state.user = user;
         state.token = accessToken;
+        state.isAuthenticated = true;
+        
+        // Store permissions if available
+        if (user?.permissions) {
+          state.permissions = user.permissions;
+        }
+        
+        // Store user role if available
+        if (user?.userRole) {
+          state.userRole = user.userRole;
+        }
+        
         localStorage.setItem("accessToken", accessToken);
         localStorage.setItem("refreshToken", newRefreshToken);
         const expiryTime = Date.now() + 60 * 60 * 1000;
@@ -238,6 +369,31 @@ const authSlice = createSlice({
         state.categoriesError = action.payload;
       })
 
+      // Handle fetchMeData
+      .addCase(fetchMeData.pending, (state) => {
+        state.meLoading = true;
+        state.meError = null;
+      })
+      .addCase(fetchMeData.fulfilled, (state, action) => {
+        state.meLoading = false;
+        state.meData = action.payload;
+        state.user = action.payload;
+        
+        // Update permissions and role
+        if (action.payload?.permissions) {
+          state.permissions = action.payload.permissions;
+        }
+        if (action.payload?.userRole) {
+          state.userRole = action.payload.userRole;
+        }
+        
+        state.isAuthenticated = true;
+      })
+      .addCase(fetchMeData.rejected, (state, action) => {
+        state.meLoading = false;
+        state.meError = action.payload;
+      })
+
       .addCase(refreshToken.pending, (state) => {
         state.isLoading = true;
       })
@@ -249,10 +405,13 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.user = null;
         state.token = null;
+        state.permissions = [];
+        state.userRole = null;
+        state.isAuthenticated = false;
         localStorage.clear();
       });
   },
 });
 
-export const { logout } = authSlice.actions;
+export const { logout, clearError } = authSlice.actions;
 export default authSlice.reducer;

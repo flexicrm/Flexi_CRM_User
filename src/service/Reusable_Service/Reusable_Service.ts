@@ -1,5 +1,6 @@
 import type { AxiosError, AxiosRequestConfig } from "axios";
 import axios from "axios";
+
 // Extend Axios config to include _retry
 interface CustomAxiosRequestConfig extends AxiosRequestConfig {
   _retry?: boolean;
@@ -14,7 +15,7 @@ type QueueItem = {
 let isRefreshing = false;
 let failedQueue: QueueItem[] = [];
 
-// 🔁 Handle queued requests
+//  Handle queued requests
 const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach((prom) => {
     if (error) {
@@ -42,10 +43,21 @@ export const Reusable_Service = () => {
   api.interceptors.request.use(
     (config) => {
       const token = localStorage.getItem("accessToken");
+      const deviceId =
+        localStorage.getItem("flexicrm-device-id") || "web";
 
-      if (token && config.headers) {
-        config.headers.Authorization = `Bearer ${token}`;
+      if (config.headers) {
+        //  Correct Authorization header
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+
+        //  Separate device id header
+        config.headers["x-device-id"] = deviceId;
       }
+
+      //  Debug (optional)
+      // console.log("Request Headers:", config.headers);
 
       return config;
     },
@@ -60,7 +72,7 @@ export const Reusable_Service = () => {
     async (error: AxiosError) => {
       const originalRequest = error.config as CustomAxiosRequestConfig;
 
-      // 🔥 Check 401
+      //  Handle 401 (token expired)
       if (error.response?.status === 401 && !originalRequest?._retry) {
         if (isRefreshing) {
           return new Promise<string>((resolve, reject) => {
@@ -69,6 +81,8 @@ export const Reusable_Service = () => {
             .then((token) => {
               if (originalRequest.headers) {
                 originalRequest.headers.Authorization = `Bearer ${token}`;
+                originalRequest.headers["x-device-id"] =
+                  localStorage.getItem("flexicrm-device-id") || "web";
               }
               return api(originalRequest);
             })
@@ -80,6 +94,7 @@ export const Reusable_Service = () => {
 
         const refreshToken = localStorage.getItem("refreshToken");
 
+        //  No refresh token → logout
         if (!refreshToken) {
           localStorage.clear();
           window.location.href = "/login";
@@ -102,7 +117,7 @@ export const Reusable_Service = () => {
             expiresIn: number;
           };
 
-          // ✅ Save tokens
+          //  Save new tokens
           localStorage.setItem("accessToken", accessToken);
           localStorage.setItem("refreshToken", newRefreshToken);
           localStorage.setItem(
@@ -110,10 +125,14 @@ export const Reusable_Service = () => {
             String(Date.now() + expiresIn)
           );
 
+          //  Process queued requests
           processQueue(null, accessToken);
 
+          //  Retry original request with new token + device id
           if (originalRequest.headers) {
             originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+            originalRequest.headers["x-device-id"] =
+              localStorage.getItem("flexicrm-device-id") || "web";
           }
 
           return api(originalRequest);

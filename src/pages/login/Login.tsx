@@ -1,8 +1,44 @@
+import { AnimatePresence, motion } from "framer-motion";
+import { Phone } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import flexiCRM from "../../assets/logo/flexiCRM.png";
+import Reusable_Fields from "../../component/Fields/Reusable_Fiealds";
+import GlobalStatus from "../../component/Notification/GlobalStatus";
+import { getDeviceId } from "../../component/UUID/getDeviceId";
 import { loginAPI } from "../../store/Login_Slice";
 import Auth_Slider from "./Auth_Slider";
+
+// IMPORTANT: Adjust this import path to point to where your alert utility is located
+import { errorAlert, successAlert } from "../../component/Notification/statusHandler";
+
+// Helper function to extract exact error message from API
+const extractErrorMessage = (error: any): string => {
+  let errorMessage = "Login failed. Please try again.";
+  
+  if (error?.response?.data) {
+    const responseData = error.response.data;
+    if (responseData.errors) {
+      if (typeof responseData.errors === 'string') errorMessage = responseData.errors;
+      else if (typeof responseData.errors === 'object') {
+        const firstErrorKey = Object.keys(responseData.errors)[0];
+        errorMessage = firstErrorKey && responseData.errors[firstErrorKey] ? responseData.errors[firstErrorKey] : JSON.stringify(responseData.errors);
+      }
+    }
+    else if (responseData.message) errorMessage = responseData.message;
+    else if (responseData.error) errorMessage = responseData.error;
+  }
+  else if (error?.errors) {
+    if (typeof error.errors === 'string') errorMessage = error.errors;
+    else if (typeof error.errors === 'object') {
+      const firstErrorKey = Object.keys(error.errors)[0];
+      errorMessage = firstErrorKey && error.errors[firstErrorKey] ? error.errors[firstErrorKey] : JSON.stringify(error.errors);
+    }
+  }
+  else if (error?.message) errorMessage = error.message;
+  
+  return errorMessage;
+};
 
 const Login = () => {
   const navigate = useNavigate();
@@ -12,212 +48,237 @@ const Login = () => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [isAnimating, setIsAnimating] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   useEffect(() => {
-    // Trigger animation on mount
-    setIsAnimating(true);
-    const timer = setTimeout(() => setIsAnimating(false), 1000);
-    return () => clearTimeout(timer);
+    // Check for remembered mobile number
+    const rememberedMobile = localStorage.getItem("rememberedMobile");
+    if (rememberedMobile) {
+      setLoginData({ mobile: rememberedMobile });
+      setRememberMe(true);
+    }
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setLoginData({
       ...loginData,
       [e.target.name]: e.target.value,
     });
+    if (error) setError("");
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    //  Basic validation
+    // Validation
     if (!loginData.mobile) {
       setError("Mobile number is required");
+      return;
+    }
+    if (!/^\d{10}$/.test(loginData.mobile)) {
+      setError("Please enter a valid 10-digit mobile number");
       return;
     }
 
     try {
       setLoading(true);
       setError("");
+      const deviceId = getDeviceId();
+      console.log("Device ID:", deviceId);
+
+      // Handle remember me
+      if (rememberMe) {
+        localStorage.setItem("rememberedMobile", loginData.mobile);
+      } else {
+        localStorage.removeItem("rememberedMobile");
+      }
 
       const res = await loginAPI(loginData);
-      //  Store token and mobile number in localStorage
+      
       if (res?.data?.token) {
         localStorage.setItem("token", res.data.token);
       }
       
-      //  Store mobile number in localStorage for OTP page
       localStorage.setItem("mobile", loginData.mobile);
 
-      //  Navigate after success with mobile in state (as backup)
+      // Extract success message from API and trigger Global Reusable Alert
+      const successMessage = res?.data?.message || res?.data?.data?.message || "OTP sent successfully";
+      
+      // Pass message as 1st arg, button text as 2nd arg
+      successAlert(successMessage, "Continue");
+
       navigate("/otp", { state: { mobile: loginData.mobile, otpData: res?.data?.data } });
 
-    } catch (err) {
-      console.log( err);
+    } catch (err: any) {
+      // Extract error message exactly like Create_User does
+      const errorMessage = extractErrorMessage(err);
+      
+      // Update inline error & trigger Global Reusable Error Alert
+      setError(errorMessage);
+      
+      // Pass message as 1st arg, button text as 2nd arg
+      errorAlert(errorMessage, "Retry");
+      
+      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="login-page">
-      
-      {/* Left Side */}
-      <div className="slider-half">
+    <>
+    <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Left Side - Slider */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-[#05264e] to-[#0a3a6e]">
         <Auth_Slider />
       </div>
 
-      {/* Right Side */}
-      <div className="form-half flex flex-col items-center justify-center">
-         {/* Logo Container with Animation */}
-          <div className="text-center mb-10">
+      {/* Right Side - Login Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="w-full max-w-md"
+        >
+          {/* Logo Section */}
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+            className="text-center mb-8"
+          >
             <div className="relative inline-block">
-              <img
-                className={`border-2 border-gray-300 rounded-full p-2 mb-4 transition-all duration-300 hover:scale-110 hover:rotate-6 hover:border-[#05264e] hover:shadow-xl
-                  ${isAnimating ? 'animate-[logoEntrance_0.8s_cubic-bezier(0.68,-0.55,0.265,1.55)]' : ''}
-                  animate-[pulse_2s_ease-in-out_infinite]`}
-                src={flexiCRM}
-                alt="FlexiCRM"
-                width={60}
-                height={60}
-              />
-              {/* Animated Ring Effect */}
-              <div className={`absolute inset-0 rounded-full border-2 border-[#05264e] opacity-0 ${isAnimating ? 'animate-[ringPulse_0.8s_ease-out]' : ''}`}></div>
-            </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-[#05264e] to-[#0a3a6e] bg-clip-text text-transparent mb-2">
-              FlexiCRM
-            </h1>
-            <p className="text-gray-500 text-sm">Your Business, Simplified</p>
-          </div>
-        <div className="login-box">
-         
-
-          <form onSubmit={handleSubmit}>
-            <div className="input-container">
-              <input
-                type="number"
-                name="mobile"
-                placeholder="Mobile"
-                className="main-input"
-                value={loginData.mobile}
-                onChange={handleChange}
-                required
+              <motion.div
+                whileHover={{ scale: 1.05, rotate: 5 }}
+                transition={{ type: "spring", stiffness: 400 }}
+              >
+                <img
+                  src={flexiCRM}
+                  alt="FlexiCRM"
+                  className="w-20 h-20 mx-auto rounded-full border-4 border-white shadow-lg"
+                />
+              </motion.div>
+              <motion.div
+                animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute inset-0 rounded-full border-2 border-[#05264e] opacity-50"
               />
             </div>
+            <motion.h1
+              initial={{ y: 10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="text-3xl font-bold text-gray-900 mt-4"
+            >
+              Welcome Back
+            </motion.h1>
+            <motion.p
+              initial={{ y: 10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="text-gray-500 text-sm mt-1"
+            >
+              Sign in to continue to FlexiCRM
+            </motion.p>
+          </motion.div>
 
-            <div className="options-row">
-              <label className="custom-checkbox">
-                <input type="checkbox" />
-                <span className="checkmark"></span>
-                Remember me
+          {/* Form */}
+          <motion.form
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            onSubmit={handleSubmit}
+            className="space-y-5"
+          >
+            <Reusable_Fields
+              type="number"
+              label="Mobile Number"
+              name="mobile"
+              value={loginData.mobile}
+              onChange={handleChange}
+              placeholder="Enter your mobile number"
+              required={true}
+              icon={<Phone className="w-5 h-5" />}
+              error={error}
+            />
+
+            {/* Remember Me */}
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
+                <span className="text-sm text-gray-600">Remember me</span>
               </label>
+              <a
+                href="#"
+                className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+              >
+                Forgot password?
+              </a>
             </div>
 
-            <button
+            {/* Submit Button */}
+            <motion.button
               type="submit"
-              className="submit-btn"
               disabled={loading}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className={`w-full py-3 px-4 rounded-xl font-semibold text-white transition-all duration-200 ${
+                loading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-gradient-to-r from-[#05264e] to-[#0a3a6e] hover:shadow-lg hover:from-[#0a3a6e] hover:to-[#0e4a7a]"
+              }`}
             >
-              {loading ? "Logging in..." : "Login"}
-            </button>
-          </form>
+              {loading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Logging in...</span>
+                </div>
+              ) : (
+                "Login →"
+              )}
+            </motion.button>
 
-          {/*  Error Message */}
-          {error && (
-            <p style={{ color: "red", marginTop: "10px" }}>
-              {error}
-            </p>
-          )}
+            {/* Inline Error Message */}
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="p-3 rounded-lg bg-red-50 border border-red-200"
+                >
+                  <p className="text-red-600 text-sm text-center">{error}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.form>
 
-          <p className="signup-link flex items-center gap-2">
-            Don't have an account ?
-            <span
-              className="text-blue-600 cursor-pointer"
+          {/* Sign Up Link */}
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6 }}
+            className="text-center text-sm text-gray-600 mt-6"
+          >
+            Don't have an account?{" "}
+            <button
               onClick={() => navigate("/register")}
+              className="text-indigo-600 hover:text-indigo-700 font-semibold"
             >
-              Register
-            </span>
-          </p>
-        </div>
+              Create Account
+            </button>
+          </motion.p>
+        </motion.div>
       </div>
-
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
-
-        .login-page {
-          display: flex;
-          min-height: 100vh;
-          font-family: 'Poppins', sans-serif;
-        }
-
-        .slider-half {
-          flex: 1;
-          background-color: #05264e;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          color: white;
-        }
-
-        .form-half {
-          flex: 1;
-          background: white;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 40px;
-        }
-
-        .login-box {
-          width: 100%;
-          max-width: 400px;
-        }
-
-        .company-title {
-          color: #05264e;
-          font-size: 32px;
-          font-weight: 700;
-          margin-bottom: 40px;
-          text-align: center;
-        }
-
-        .input-container {
-          margin-bottom: 20px;
-        }
-
-        .main-input {
-          width: 100%;
-          padding: 15px 20px;
-          border: 1px solid #ddd;
-          border-radius: 8px;
-          font-size: 16px;
-        }
-
-        .submit-btn {
-          width: 100%;
-          background: #05264e;
-          color: white;
-          border: none;
-          padding: 15px;
-          border-radius: 8px;
-          font-size: 16px;
-          font-weight: 600;
-          cursor: pointer;
-        }
-
-        .submit-btn:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        .signup-link {
-          text-align: center;
-          font-size: 14px;
-          margin-top: 20px;
-        }
-      `}</style>
     </div>
+      <GlobalStatus />
+    </>
   );
 };
 

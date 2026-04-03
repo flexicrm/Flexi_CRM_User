@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import StatusModal from "./StatusModal";
-import type { StatusState } from "./statusHandler"; // Import as type
+import type { StatusState } from "./statusHandler";
 import { registerStatus } from "./statusHandler";
 
 const GlobalStatus = () => {
@@ -14,21 +14,33 @@ const GlobalStatus = () => {
   });
 
   useEffect(() => {
-    registerStatus((data) => {
+    registerStatus((data: StatusState) => {
+      console.log('GlobalStatus received:', data);
       setState(data);
     });
   }, []);
 
-  const handleClose = () => setState((prev) => ({ ...prev, isOpen: false }));
+  const handleClose = () => {
+    console.log('Closing popup');
+    setState((prev) => ({ ...prev, isOpen: false }));
+  };
 
   const handleConfirm = () => {
-    if (state.onConfirm) state.onConfirm();
+    console.log('Confirm clicked');
+    if (state.onConfirm) {
+      state.onConfirm();
+    }
     handleClose();
   };
 
   return (
     <StatusModal
-      {...state}
+      isOpen={state.isOpen}
+      type={state.type}
+      title={state.title}
+      message={state.message}
+      buttonText={state.buttonText}
+      cancelText={state.cancelText}
       onClose={handleClose}
       onConfirm={handleConfirm}
     />

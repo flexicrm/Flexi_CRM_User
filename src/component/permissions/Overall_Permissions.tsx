@@ -1,6 +1,7 @@
 import { AnimatePresence, motion, type Variants } from "framer-motion";
 import { CheckSquare, ShieldCheck, Square } from "lucide-react";
 import React from "react";
+import { useSelector } from "react-redux";
 import Reusable_Button from "../button/Reusable_Button";
 
 //  Permission fields type
@@ -17,7 +18,7 @@ export interface Permission {
 
 //  Props type
 interface OverallPermissionsProps {
-  permissions: Permission[];
+  permissionss: Permission[];
   setPermissions: React.Dispatch<React.SetStateAction<Permission[]>>;
   customizeButtom?: boolean;
   deleteOnclick?: () => void;
@@ -26,7 +27,7 @@ interface OverallPermissionsProps {
 
 const Overall_Permissions: React.FC<OverallPermissionsProps> = ({
   customizeButtom,
-  permissions = [],
+  permissionss = [],
   setPermissions,
   deleteOnclick,
   editOnclick
@@ -39,6 +40,8 @@ const Overall_Permissions: React.FC<OverallPermissionsProps> = ({
       )
     );
   };
+     const {permissions} = useSelector((state : any) => state.auth)
+  const Roles = permissions[5]
 
   //  2. Toggle entire row
   const toggleRow = (index: number) => {
@@ -105,13 +108,13 @@ const Overall_Permissions: React.FC<OverallPermissionsProps> = ({
 
   //  Master checkbox state
   const isGloballyChecked =
-    permissions.length > 0 &&
-    permissions.every(
+    permissionss.length > 0 &&
+    permissionss.every(
       (item) => item.create && item.view && item.edit && item.delete
     );
 
   //  Empty state
-  if (!permissions.length) {
+  if (!permissionss.length) {
     return (
       <div className="p-10 text-center text-slate-400 italic bg-white rounded-2xl border border-dashed border-slate-200">
         No modules available to display.
@@ -148,6 +151,7 @@ const Overall_Permissions: React.FC<OverallPermissionsProps> = ({
         size="px-4 py-2.5"
         className="m-2"
         onClick={editOnclick}
+        disabled={!Roles?.canEdit}
       />
 
       <Reusable_Button
@@ -156,6 +160,7 @@ const Overall_Permissions: React.FC<OverallPermissionsProps> = ({
         size="px-4 py-2.5"
         className="m-2"
         onClick={deleteOnclick}
+        disabled={!Roles?.canDelete}
       />
       </motion.div>
      )}
@@ -192,7 +197,7 @@ const Overall_Permissions: React.FC<OverallPermissionsProps> = ({
 
             <tbody>
               <AnimatePresence>
-                {permissions.map((item, index) => {
+                {permissionss.map((item, index) => {
                   const isRowChecked =
                     item.create && item.view && item.edit && item.delete;
 

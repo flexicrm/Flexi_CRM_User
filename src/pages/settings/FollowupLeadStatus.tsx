@@ -1,23 +1,23 @@
+import { Check, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  getLeadStatus,
-  deleteLeadStatus,
-  clearLeadStatusMessage,
-  clearLeadStatusError,
-  createLeadStatus,
-  updateLeadStatus,
-} from "../../store/settingLeadeStatus";
-import type { AppDispatch, RootState } from "../../store/Store";
-import ConfirmDeleteModal from "../../component/CommonDeleteModel/CommonDeleteModel";
 import Reusable_Button from "../../component/button/Reusable_Button";
-import { Check, Plus, X } from "lucide-react";
+import ConfirmDeleteModal from "../../component/CommonDeleteModel/CommonDeleteModel";
 import Reusable_Fields from "../../component/Fields/Reusable_Fiealds";
-import Table from "../../component/table/Table";
 import {
   errorAlert,
   successAlert,
 } from "../../component/Notification/statusHandler";
+import Table from "../../component/table/Table";
+import {
+  clearLeadStatusError,
+  clearLeadStatusMessage,
+  createLeadStatus,
+  deleteLeadStatus,
+  getLeadStatus,
+  updateLeadStatus,
+} from "../../store/settingLeadeStatus";
+import type { AppDispatch, RootState } from "../../store/Store";
 
 interface LeadStatus {
   _id: string;
@@ -46,6 +46,8 @@ const LeadStatus = () => {
   const [editId, setEditId] = useState<string | null>(null);
   const [page, setPage] = useState<number>(1);
   const [limit, setLimit] = useState<number>(5);
+   const {permissions} = useSelector((state : any) => state.auth)
+  const Roles = permissions[4]
 
   useEffect(() => {
     dispatch(getLeadStatus());
@@ -168,6 +170,7 @@ const LeadStatus = () => {
             text="Status"
             icon={<Plus size={16} />}
             onClick={() => setShowCreate(true)}
+            disabled={!Roles?.canCreate}
           />
         ) : (
           <div className="flex items-center gap-3 w-full">
@@ -218,8 +221,8 @@ const LeadStatus = () => {
         actionButtons={{
           showEdit: true,
           showDelete: true,
-          onEdit: handleEditClick,
-          onDelete: handleDeleteClick,
+          onEdit:Roles?.canRead ? handleEditClick: undefined,
+          onDelete:Roles?.canDelete ? handleDeleteClick : undefined,
         }}
       />
 
