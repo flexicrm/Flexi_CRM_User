@@ -1,4 +1,5 @@
-import { Bell, ChevronRight, Clock, LogOut, Menu, UserCircle, X } from "lucide-react";
+import { motion } from "framer-motion";
+import { Bell, ChevronRight, Clock, LogOut, UserCircle, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -6,6 +7,7 @@ import { logout, notificationAPI } from "../../store/Login_Slice";
 
 interface NavbarProps {
   toggleMobileSidebar?: () => void;
+  isSidebarExpanded?: boolean; // Changed from isSidebarCollapsed
 }
 
 interface Notification {
@@ -30,7 +32,7 @@ interface NotificationResponse {
   activities: Notification[];
 }
 
-const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
+const Navbar = ({ toggleMobileSidebar, isSidebarExpanded = false }: NavbarProps) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -41,9 +43,11 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
   const notificationRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
-  // ----------------------
+  // Get company info from localStorage
+  const companyLogo = localStorage.getItem("companyLogo") || "/default-logo.png";
+  const companyName = localStorage.getItem("companyName") || "FlexiCRM";
+
   // 🔁 CLOSE DROPDOWNS
-  // ----------------------
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -65,9 +69,7 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // ----------------------
   // 🔔 FETCH NOTIFICATIONS
-  // ----------------------
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
@@ -77,7 +79,6 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
         if (data) {
           setNotifications(data.activities || []);
           
-          // Calculate unread count
           const unread = (data.activities || []).filter(
             (n) => !n.notificationRead
           ).length;
@@ -91,9 +92,7 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
     fetchNotifications();
   }, []);
 
-  // ----------------------
-  // 📅 FORMAT DATE & TIME (with AM/PM)
-  // ----------------------
+  // 📅 FORMAT DATE & TIME
   const formatDateTime = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
@@ -101,46 +100,36 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
     const diffMins = Math.floor(diffMs / 60000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    // Today - show time with AM/PM
     if (diffDays === 0) {
       if (diffMins < 1) return "Just now";
       if (diffMins < 60) return `${diffMins} min ago`;
       
-      // Format time with AM/PM
       let hours = date.getHours();
       const minutes = date.getMinutes();
       const ampm = hours >= 12 ? 'PM' : 'AM';
       hours = hours % 12;
-      hours = hours ? hours : 12; // Convert 0 to 12
+      hours = hours ? hours : 12;
       const minutesStr = minutes < 10 ? '0' + minutes : minutes;
       return `${hours}:${minutesStr} ${ampm}`;
     }
     
-    // Yesterday
     if (diffDays === 1) return "Yesterday";
-    
-    // Within 7 days - show day name
     if (diffDays < 7) {
       const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       return days[date.getDay()];
     }
     
-    // Older - show date
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  // ----------------------
   // 🚪 LOGOUT HANDLER
-  // ----------------------
   const handleLogout = () => {
     dispatch(logout());
     localStorage.clear();
     navigate("/login");
   };
 
-  // ----------------------
   // 🎨 GET ENTITY ICON & COLOR
-  // ----------------------
   const getEntityIcon = (entityType: string) => {
     switch (entityType?.toLowerCase()) {
       case 'lead':
@@ -164,27 +153,85 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
   return (
     <nav className="bg-gradient-to-r from-[#0d1954] to-[#1a2a6c] px-4 py-3 sticky top-0 z-30 shadow-lg">
       <div className="flex items-center justify-between">
-        {/* LEFT */}
-        <div className="flex items-center gap-4">
-          <button
-            onClick={toggleMobileSidebar}
-            className="lg:hidden text-gray-300 hover:text-white transition-colors duration-200"
-          >
-            <Menu size={20} />
-          </button>
-          <div>
-            <h1 className="text-xl text-white font-semibold tracking-tight">
-              Dashboard
-            </h1>
-            <p className="text-sm text-blue-200">
-              Welcome back, {localStorage.getItem("subdomain")} !
-            </p>
+        {/* LEFT SECTION - Logo with Animation based on Sidebar Hover State */}
+        <div className="flex items-center gap-3">
+          {/* Mobile menu button */}
+          {toggleMobileSidebar && (
+            <button
+              onClick={toggleMobileSidebar}
+              className="lg:hidden p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200"
+            >
+              <ChevronRight size={20} />
+            </button>
+          )}
+          
+          {/* Logo Section with Animation */}
+          <div className="flex items-center gap-3">
+            {/* Logo Icon - Always visible */}
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="relative cursor-pointer"
+              onClick={() => navigate("/dashboard")}
+            >
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
+                {companyLogo && companyLogo !== "/default-logo.png" ? (
+                  <img
+                    src={companyLogo}
+                    alt="Company Logo"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = "/default-logo.png";
+                    }}
+                  />
+                ) : (
+                  <span className="text-white font-bold text-lg">
+                    {companyName.charAt(0).toUpperCase()}
+                  </span>
+                )}
+              </div>
+              
+              {/* Pulse ring animation when sidebar is expanded */}
+              {isSidebarExpanded && (
+                <motion.div
+                  animate={{
+                    scale: [1, 1.2, 1],
+                    opacity: [0.5, 0, 0.5],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
+                  className="absolute inset-0 rounded-xl border-2 border-blue-400"
+                />
+              )}
+            </motion.div>
+
+            {/* Company Name - Shows only when sidebar is expanded (hovered) */}
+            <motion.div
+              initial={false}
+              animate={{
+                opacity: isSidebarExpanded ? 1 : 0,
+                width: isSidebarExpanded ? "auto" : 0,
+                marginLeft: isSidebarExpanded ? "0.5rem" : 0,
+              }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+              className="overflow-hidden whitespace-nowrap"
+            >
+              <div className="flex flex-col">
+                <h2 className="text-white font-semibold text-base leading-tight">
+                  {companyName}
+                </h2>
+                <p className="text-blue-200 text-xs">CRM Dashboard</p>
+              </div>
+            </motion.div>
           </div>
         </div>
 
-        {/* RIGHT */}
+        {/* RIGHT SECTION */}
         <div className="flex items-center gap-3">
-          {/*  NOTIFICATIONS */}
+          {/* NOTIFICATIONS */}
           <div className="relative" ref={notificationRef}>
             <button
               onClick={() => setShowNotifications(!showNotifications)}
@@ -192,7 +239,6 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
             >
               <Bell size={20} className="transition-transform group-hover:scale-110" />
               
-              {/* Red Dot for Unread Notifications */}
               {unreadCount > 0 && (
                 <span className="absolute top-0 right-0 flex h-3 w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -201,10 +247,9 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
               )}
             </button>
 
-            {/* Professional Notifications Dropdown */}
+            {/* Notifications Dropdown */}
             {showNotifications && (
               <div className="absolute right-0 mt-3 w-96 bg-white rounded-2xl shadow-2xl z-50 overflow-hidden animate-slideDown">
-                {/* Header with Close Button */}
                 <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-gray-50 to-white">
                   <div>
                     <h3 className="font-semibold text-gray-800 text-lg">Notifications</h3>
@@ -214,10 +259,7 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
                   </div>
                   <div className="flex items-center gap-2">
                     {unreadCount > 0 && (
-                      <button 
-                        onClick={() => {/* Mark all as read logic */}}
-                        className="text-xs text-blue-600 hover:text-blue-700 font-medium"
-                      >
+                      <button className="text-xs text-blue-600 hover:text-blue-700 font-medium">
                         Mark all read
                       </button>
                     )}
@@ -230,7 +272,6 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
                   </div>
                 </div>
 
-                {/* Notifications List */}
                 <div className="max-h-[480px] overflow-y-auto divide-y divide-gray-100">
                   {notifications.length === 0 ? (
                     <div className="p-8 text-center">
@@ -252,20 +293,17 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
                             !n.notificationRead ? 'bg-blue-50/30' : ''
                           }`}
                         >
-                          {/* Red dot indicator for unread */}
                           {!n.notificationRead && (
                             <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-1 h-8 bg-blue-600 rounded-r-full"></div>
                           )}
                           
                           <div className="flex items-start gap-3 ml-1">
-                            {/* Icon with gradient */}
                             <div className="flex-shrink-0">
                               <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center text-xl transition-transform group-hover:scale-105`}>
                                 <span className={iconColor}>{icon}</span>
                               </div>
                             </div>
                             
-                            {/* Content */}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between gap-2">
                                 <p className={`text-sm ${!n.notificationRead ? 'font-semibold text-gray-900' : 'text-gray-700'} leading-relaxed`}>
@@ -273,14 +311,12 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
                                 </p>
                               </div>
                               
-                              {/* Timestamp with Clock Icon */}
                               <div className="flex items-center gap-1.5 mt-1.5">
                                 <Clock size={12} className="text-gray-400" />
                                 <span className="text-xs text-gray-500">
                                   {formatDateTime(n.timestamp)}
                                 </span>
                                 
-                                {/* Action Type Badge */}
                                 {n.actionType && (
                                   <span className={`text-xs px-2 py-0.5 rounded-full ml-2 ${
                                     n.actionType === 'Create' ? 'bg-green-100 text-green-700' :
@@ -299,7 +335,6 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
                   )}
                 </div>
 
-                {/* Footer with View All */}
                 {notifications.length > 0 && (
                   <div className="p-3 border-t bg-gray-50">
                     <button 
@@ -315,7 +350,7 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
             )}
           </div>
 
-          {/* 👤 PROFILE */}
+          {/* PROFILE */}
           <div className="relative" ref={profileRef}>
             <div
               onClick={() => setShowProfileMenu(!showProfileMenu)}
@@ -327,9 +362,9 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
                     {userInitial}
                   </span>
                 </div>
-                {/* Online indicator */}
                 <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white ring-2 ring-green-400 ring-opacity-50"></div>
               </div>
+              
               <div className="hidden md:block text-left">
                 <p className="text-sm font-medium text-white">
                   {userFirstname} {userLastname}
@@ -343,7 +378,6 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
             {/* Profile Dropdown */}
             {showProfileMenu && (
               <div className="absolute right-0 mt-3 w-52 bg-white rounded-2xl shadow-2xl z-50 overflow-hidden animate-slideDown">
-                {/* Menu Items */}
                 <div className="py-2">
                   <button
                     onClick={() => {
@@ -367,7 +401,6 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
                   </button>
                 </div>
 
-                {/* Version Info */}
                 <div className="px-5 py-3 border-t bg-gray-50">
                   <p className="text-xs text-gray-400 text-center">
                     Version 2.0.0 • © 2024
@@ -379,7 +412,6 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
         </div>
       </div>
 
-      {/* Animation Styles */}
       <style>{`
         @keyframes slideDown {
           from {
@@ -396,7 +428,6 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
           animation: slideDown 0.2s ease-out;
         }
         
-        /* Custom scrollbar */
         .overflow-y-auto::-webkit-scrollbar {
           width: 6px;
         }

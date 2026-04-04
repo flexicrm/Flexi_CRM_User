@@ -20,53 +20,102 @@ import { useLocation, useNavigate } from 'react-router-dom';
 
 import Reusable_Button from '../../component/button/Reusable_Button';
 import Reusable_Fields from '../../component/Fields/Reusable_Fiealds';
-import { errorAlert, successAlert } from '../../component/Notification/statusHandler';
+import RippleLoader from '../../component/Loader/RippleLoader';
+import { errorAlert, successAlert, warningAlert } from '../../component/Notification/statusHandler';
 import { createLead, fetchSources, fetchStatuses, fetchUsers, updateLead } from '../../store/homepage_slice/Leads_slice';
+
+// Types
+interface ValidationErrors {
+    fullName?: string;
+    email?: string;
+    mobile?: string;
+    status?: string;
+    assignedTo?: string;
+}
 
 // Helper function to extract error message from API response
 const extractErrorMessage = (error: any): string => {
-  let errorMessage = "Error occurred while saving user. Please try again.";
-  
-  if (error?.response?.data) {
-    const responseData = error.response.data;
-    if (responseData.errors) {
-      if (typeof responseData.errors === 'string') errorMessage = responseData.errors;
-      else if (typeof responseData.errors === 'object') {
-        const firstErrorKey = Object.keys(responseData.errors)[0];
-        errorMessage = firstErrorKey && responseData.errors[firstErrorKey] ? responseData.errors[firstErrorKey] : JSON.stringify(responseData.errors);
-      }
+    let errorMessage = "Error occurred while saving lead. Please try again.";
+    
+    // Check if error has response data
+    if (error?.response?.data) {
+        const responseData = error.response.data;
+        
+        // Handle message field
+        if (responseData.message) {
+            errorMessage = responseData.message;
+        }
+        // Handle errors field (object or string)
+        else if (responseData.errors) {
+            if (typeof responseData.errors === 'string') {
+                errorMessage = responseData.errors;
+            } else if (typeof responseData.errors === 'object') {
+                const firstErrorKey = Object.keys(responseData.errors)[0];
+                if (firstErrorKey && responseData.errors[firstErrorKey]) {
+                    errorMessage = Array.isArray(responseData.errors[firstErrorKey]) 
+                        ? responseData.errors[firstErrorKey][0] 
+                        : responseData.errors[firstErrorKey];
+                } else {
+                    errorMessage = JSON.stringify(responseData.errors);
+                }
+            }
+        }
+        // Handle error field
+        else if (responseData.error) {
+            errorMessage = responseData.error;
+        }
     }
-    else if (responseData.message) errorMessage = responseData.message;
-    else if (responseData.error) errorMessage = responseData.error;
-  }
-  else if (error?.errors) {
-    if (typeof error.errors === 'string') errorMessage = error.errors;
-    else if (typeof error.errors === 'object') {
-      const firstErrorKey = Object.keys(error.errors)[0];
-      errorMessage = firstErrorKey && error.errors[firstErrorKey] ? error.errors[firstErrorKey] : JSON.stringify(error.errors);
+    // Handle error object directly
+    else if (error?.errors) {
+        if (typeof error.errors === 'string') {
+            errorMessage = error.errors;
+        } else if (typeof error.errors === 'object') {
+            const firstErrorKey = Object.keys(error.errors)[0];
+            if (firstErrorKey && error.errors[firstErrorKey]) {
+                errorMessage = Array.isArray(error.errors[firstErrorKey]) 
+                    ? error.errors[firstErrorKey][0] 
+                    : error.errors[firstErrorKey];
+            }
+        }
     }
-  }
-  else if (error?.message) errorMessage = error.message;
-  
-  return errorMessage;
+    // Handle simple message
+    else if (error?.message) {
+        errorMessage = error.message;
+    }
+    
+    // Clean up specific error messages
+    if (errorMessage.includes('Cast to [ObjectId] failed')) {
+        errorMessage = "Invalid user selection. Please choose a valid user from the dropdown list.";
+    }
+    if (errorMessage.includes('duplicate key') || errorMessage.includes('E11000')) {
+        errorMessage = "A lead with this information already exists. Please check and try again.";
+    }
+    if (errorMessage.toLowerCase().includes('validation')) {
+        errorMessage = "Please check all required fields and try again.";
+    }
+    if (errorMessage.toLowerCase().includes('network') || errorMessage.toLowerCase().includes('connection')) {
+        errorMessage = "Network error. Please check your internet connection and try again.";
+    }
+    
+    return errorMessage;
 };
 
-// --- Animation Variants (FIXED) ---
+// --- Animation Variants ---
 const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.12, delayChildren: 0.05 },
-  },
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: { staggerChildren: 0.12, delayChildren: 0.05 },
+    },
 };
 
 const itemVariants = {
-  hidden: { y: 15, opacity: 0 },
-  visible: {
-    y: 0,
-    opacity: 1,
-    transition: { type: "spring" as const, stiffness: 350, damping: 25 },
-  },
+    hidden: { y: 15, opacity: 0 },
+    visible: {
+        y: 0,
+        opacity: 1,
+        transition: { type: "spring" as const, stiffness: 350, damping: 25 },
+    },
 };
 
 const Create_Leads = () => {
@@ -77,7 +126,7 @@ const Create_Leads = () => {
     const editData = location.state?.tableData;
     const editId = location.state?.tableId;
 
-    const { statusOptions, sourceOptions, userOptions, isCreating, isUpdating } = useSelector((state: any) => state.leads);
+    const { statusOptions, sourceOptions, userOptions, isCreating, isUpdating, loading } = useSelector((state: any) => state.leads);
 
     const [formData, setFormData] = useState({
         fullName: '',
@@ -93,12 +142,19 @@ const Create_Leads = () => {
         notes: ''
     });
 
+    const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     useEffect(() => {
+        // Fetch dropdown data
         dispatch(fetchStatuses());
         dispatch(fetchSources());
         dispatch(fetchUsers());
 
+        // Populate form for edit mode
         if (editData) {
+            console.log("Edit Data Received:", editData);
+            
             setFormData({
                 fullName: editData.manualData?.name || '',
                 email: editData.manualData?.email || '',
@@ -115,22 +171,52 @@ const Create_Leads = () => {
         }
     }, [dispatch, editData]);
 
+    const validateForm = (): boolean => {
+        const errors: ValidationErrors = {};
+        
+        if (!formData.fullName.trim()) {
+            errors.fullName = "Full Name is required";
+        }
+        if (!formData.status) {
+            errors.status = "Lead Status is required";
+        }
+        if (!formData.assignedTo) {
+            errors.assignedTo = "Please select a user to assign this lead to";
+        }
+        if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+            errors.email = "Please enter a valid email address";
+        }
+        if (formData.mobile && !/^[0-9+\-\s()]{10,15}$/.test(formData.mobile)) {
+            errors.mobile = "Please enter a valid mobile number (10-15 digits)";
+        }
+        
+        setValidationErrors(errors);
+        
+        if (Object.keys(errors).length > 0) {
+            warningAlert("Please fill in all required fields correctly", "Got it");
+            return false;
+        }
+        return true;
+    };
+
     const handleChange = (e: any) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+        // Clear validation error for this field when user starts typing
+        if (validationErrors[name as keyof ValidationErrors]) {
+            setValidationErrors(prev => ({ ...prev, [name]: '' }));
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        // Basic Validation
-        if (!formData.fullName.trim()) return errorAlert("Full Name is required.", "Okay");
-        if (!formData.status) return errorAlert("Please select a Lead Status.", "Okay");
-        
-        // Additional validation for assignedTo
-        if (!formData.assignedTo) {
-            return errorAlert("Please select a user to assign this lead to.", "Okay");
+        // Validate form before submission
+        if (!validateForm()) {
+            return;
         }
+        
+        setIsSubmitting(true);
         
         const finalPayload = {
             leadsource: formData.source,
@@ -145,43 +231,64 @@ const Create_Leads = () => {
                 website: formData.website
             },
             notes: formData.notes,
-            potentialValue: Number(formData.potentialValue)
+            potentialValue: Number(formData.potentialValue) || 0
         };
+
+        console.log("Final Payload being sent:", finalPayload);
 
         try {
             if (editData) {
+                // Update existing lead
                 const result = await dispatch(updateLead({ leadId: editId, formData: finalPayload })).unwrap();
-                const successMsg = result?.message || result?.data?.message || "Lead updated successfully!";
-                successAlert(successMsg, "Done");
+                
+                // Extract success message from API response
+                const successMsg = result?.message || 
+                                 result?.data?.message || 
+                                 "Lead updated successfully!";
+                
+                successAlert(successMsg, "Done", "Success!");
                 navigate(-1);
             } else {
+                // Create new lead
                 const result = await dispatch(createLead(finalPayload)).unwrap();
-                const successMsg = result?.message || result?.data?.message || "Lead created successfully!";
-                successAlert(successMsg, "Done");
+                
+                // Extract success message from API response
+                const successMsg = result?.message || 
+                                 result?.data?.message || 
+                                 "Lead created successfully!";
+                
+                successAlert(successMsg, "Done", "Success!");
                 navigate(-1);
             }
         } catch (error: any) {
             // Extract error message using the improved function
-            let errorMessage = extractErrorMessage(error);
+            const errorMessage = extractErrorMessage(error);
             
-            // Additional fallback for the specific error format you showed
-            if (error && typeof error === 'object') {
-                // Check for the exact format: { success: false, errors: "...", statusCode: 500 }
-                if (error.success === false && error.errors) {
-                    errorMessage = error.errors;
-                    // Clean up the message
-                    if (errorMessage.includes('Cast to [ObjectId] failed')) {
-                        errorMessage = "Invalid user selection. Please choose a valid user from the dropdown list.";
-                    }
-                }
+            // Handle specific error cases with appropriate titles
+            if (errorMessage.toLowerCase().includes('duplicate') || errorMessage.toLowerCase().includes('already exists')) {
+                errorAlert(errorMessage, "Try Again", "Duplicate Entry");
+            } else if (errorMessage.toLowerCase().includes('validation')) {
+                errorAlert(errorMessage, "Fix Errors", "Validation Error");
+            } else if (errorMessage.toLowerCase().includes('network') || errorMessage.toLowerCase().includes('connection')) {
+                errorAlert("Network error. Please check your internet connection and try again.", "Retry", "Connection Error");
+            } else if (errorMessage.toLowerCase().includes('permission') || errorMessage.toLowerCase().includes('unauthorized')) {
+                errorAlert("You don't have permission to perform this action.", "Okay", "Access Denied");
+            } else {
+                errorAlert(errorMessage, "Try Again", "Submission Failed");
             }
             
-            errorAlert(errorMessage, "Retry");
             console.error("Error details:", error);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
-    const isProcessing = isCreating || isUpdating;
+    const isProcessing = isCreating || isUpdating || isSubmitting;
+
+    // Show loader while fetching dropdown data
+    if (loading && !statusOptions?.length && !userOptions?.length) {
+        return <RippleLoader />;
+    }
 
     return (
         <motion.div 
@@ -197,8 +304,9 @@ const Create_Leads = () => {
                     <div className="flex items-center gap-4">
                         <button 
                             onClick={() => navigate(-1)}
-                            className="p-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 hover:text-indigo-600 transition-colors shadow-sm"
+                            className="p-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 hover:text-indigo-600 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                             title="Go Back"
+                            disabled={isProcessing}
                         >
                             <ArrowLeft size={20} />
                         </button>
@@ -227,12 +335,68 @@ const Create_Leads = () => {
                                 <h3 className="text-lg font-semibold text-slate-800 tracking-tight">Contact Information</h3>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                <Reusable_Fields label="Full Name" name="fullName" value={formData.fullName} onChange={handleChange} icon={<User size={18}/>} required />
-                                <Reusable_Fields label="Email Address" name="email" type="email" value={formData.email} onChange={handleChange} icon={<Mail size={18}/>} />
-                                <Reusable_Fields label="Mobile Number" name="mobile" value={formData.mobile} onChange={handleChange} icon={<Phone size={18}/>} />
-                                <Reusable_Fields label="Company Name" name="companyName" value={formData.companyName} onChange={handleChange} icon={<Building2 size={18}/>} />
-                                <Reusable_Fields label="Job Title" name="jobTitle" value={formData.jobTitle} onChange={handleChange} icon={<Briefcase size={18}/>} />
-                                <Reusable_Fields label="Website" name="website" value={formData.website} onChange={handleChange} icon={<Globe size={18}/>} />
+                                <div>
+                                    <Reusable_Fields 
+                                        label="Full Name" 
+                                        name="fullName" 
+                                        value={formData.fullName} 
+                                        onChange={handleChange} 
+                                        icon={<User size={18}/>} 
+                                        required 
+                                        error={validationErrors.fullName}
+                                        disabled={isProcessing}
+                                    />
+                                </div>
+                                <div>
+                                    <Reusable_Fields 
+                                        label="Email Address" 
+                                        name="email" 
+                                        type="email" 
+                                        value={formData.email} 
+                                        onChange={handleChange} 
+                                        icon={<Mail size={18}/>} 
+                                        error={validationErrors.email}
+                                        disabled={isProcessing}
+                                        placeholder="example@company.com"
+                                    />
+                                </div>
+                                <div>
+                                    <Reusable_Fields 
+                                        label="Mobile Number" 
+                                        name="mobile" 
+                                        value={formData.mobile} 
+                                        onChange={handleChange} 
+                                        icon={<Phone size={18}/>} 
+                                        error={validationErrors.mobile}
+                                        disabled={isProcessing}
+                                        placeholder="+1 234 567 8900"
+                                    />
+                                </div>
+                                <Reusable_Fields 
+                                    label="Company Name" 
+                                    name="companyName" 
+                                    value={formData.companyName} 
+                                    onChange={handleChange} 
+                                    icon={<Building2 size={18}/>} 
+                                    disabled={isProcessing}
+                                />
+                                <Reusable_Fields 
+                                    label="Job Title" 
+                                    name="jobTitle" 
+                                    value={formData.jobTitle} 
+                                    onChange={handleChange} 
+                                    icon={<Briefcase size={18}/>} 
+                                    disabled={isProcessing}
+                                />
+                                <Reusable_Fields 
+                                    label="Website" 
+                                    name="website" 
+                                    value={formData.website} 
+                                    onChange={handleChange} 
+                                    icon={<Globe size={18}/>} 
+                                    disabled={isProcessing}
+                                    placeholder="https://example.com"
+                                />
                             </div>
                         </section>
 
@@ -243,32 +407,44 @@ const Create_Leads = () => {
                                 <h3 className="text-lg font-semibold text-slate-800 tracking-tight">Pipeline Details</h3>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <Reusable_Fields 
-                                    type="select" 
-                                    label="Lead Status" 
-                                    name="status" 
-                                    options={statusOptions?.map((s:any)=>({label: s.statusName, value: s._id}))} 
-                                    value={formData.status} 
-                                    onChange={handleChange} 
-                                    required
-                                />
+                                <div>
+                                    <Reusable_Fields 
+                                        type="select" 
+                                        label="Lead Status" 
+                                        name="status" 
+                                        options={statusOptions?.map((s: any) => ({ label: s.statusName, value: s._id }))} 
+                                        value={formData.status} 
+                                        onChange={handleChange} 
+                                        required
+                                        error={validationErrors.status}
+                                        disabled={isProcessing}
+                                    />
+                                </div>
                                 <Reusable_Fields 
                                     type="select" 
                                     label="Lead Source" 
                                     name="source" 
-                                    options={sourceOptions?.map((s:any)=>({label: s.sourceName, value: s.sourceName}))} 
+                                    options={sourceOptions?.map((s: any) => ({ label: s.sourceName, value: s.sourceName }))} 
                                     value={formData.source} 
                                     onChange={handleChange} 
+                                    disabled={isProcessing}
                                 />
-                                <Reusable_Fields 
-                                    type="select" 
-                                    label="Assign To User" 
-                                    name="assignedTo" 
-                                    options={userOptions?.map((u:any)=>({label: u.firstname, value: u._id}))} 
-                                    value={formData.assignedTo} 
-                                    onChange={handleChange} 
-                                    required
-                                />
+                                <div>
+                                    <Reusable_Fields 
+                                        type="select" 
+                                        label="Assign To User" 
+                                        name="assignedTo" 
+                                        options={userOptions?.map((u: any) => ({ 
+                                            label: `${u.firstname || ''} ${u.lastname || ''}`.trim() || u.name || u.email, 
+                                            value: u._id 
+                                        }))} 
+                                        value={formData.assignedTo} 
+                                        onChange={handleChange} 
+                                        required
+                                        error={validationErrors.assignedTo}
+                                        disabled={isProcessing}
+                                    />
+                                </div>
                                 <Reusable_Fields 
                                     label="Potential Value" 
                                     name="potentialValue" 
@@ -276,6 +452,8 @@ const Create_Leads = () => {
                                     value={formData.potentialValue} 
                                     onChange={handleChange} 
                                     icon={<Landmark size={18} />} 
+                                    disabled={isProcessing}
+                                    placeholder="0.00"
                                 />
                             </div>
                         </section>
@@ -293,6 +471,9 @@ const Create_Leads = () => {
                                     label="Background info, requirements, or follow-up details..." 
                                     value={formData.notes} 
                                     onChange={handleChange} 
+                                    rows={4}
+                                    disabled={isProcessing}
+                                    placeholder="Add any relevant information about this lead..."
                                 />
                             </div>
                         </section>
@@ -320,6 +501,9 @@ const Create_Leads = () => {
                     </form>
                 </motion.main>
             </div>
+
+            {/* Global loader overlay for async operations */}
+            {(isProcessing || loading) && <RippleLoader />}
         </motion.div>
     );
 };

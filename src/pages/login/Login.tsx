@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Phone } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import flexiCRM from "../../assets/logo/flexiCRM.png";
+import Flexi_CRM_Logo from "../../assets/logo/Flexi_CRM_Logo.svg";
 import Reusable_Fields from "../../component/Fields/Reusable_Fiealds";
 import GlobalStatus from "../../component/Notification/GlobalStatus";
 import { getDeviceId } from "../../component/UUID/getDeviceId";
@@ -149,22 +149,18 @@ const Login = () => {
             className="text-center mb-8"
           >
             <div className="relative inline-block">
-              <motion.div
-                whileHover={{ scale: 1.05, rotate: 5 }}
-                transition={{ type: "spring", stiffness: 400 }}
-              >
-                <img
-                  src={flexiCRM}
-                  alt="FlexiCRM"
-                  className="w-20 h-20 mx-auto rounded-full border-4 border-white shadow-lg"
-                />
-              </motion.div>
-              <motion.div
-                animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
-                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute inset-0 rounded-full border-2 border-[#05264e] opacity-50"
-              />
-            </div>
+  <motion.div
+    whileHover={{ scale: 1.05, rotate: 5 }}
+    transition={{ type: "spring", stiffness: 400 }}
+  >
+    <img
+      src={Flexi_CRM_Logo}
+      alt="FlexiCRM"
+      className="w-20 h-20 mx-auto rounded-full"
+    />
+  </motion.div>
+
+</div>
             <motion.h1
               initial={{ y: 10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -202,25 +198,6 @@ const Login = () => {
               icon={<Phone className="w-5 h-5" />}
               error={error}
             />
-
-            {/* Remember Me */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
-                />
-                <span className="text-sm text-gray-600">Remember me</span>
-              </label>
-              <a
-                href="#"
-                className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
-              >
-                Forgot password?
-              </a>
-            </div>
 
             {/* Submit Button */}
             <motion.button
@@ -269,7 +246,7 @@ const Login = () => {
             Don't have an account?{" "}
             <button
               onClick={() => navigate("/register")}
-              className="text-indigo-600 hover:text-indigo-700 font-semibold"
+              className="text-indigo-600 hover:text-indigo-700 font-semibold cursor-pointer"
             >
               Create Account
             </button>

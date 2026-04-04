@@ -1,4 +1,5 @@
 import { unwrapResult } from "@reduxjs/toolkit";
+import { motion } from "framer-motion";
 import { type ChangeEvent, type ClipboardEvent, type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -45,6 +46,8 @@ const Otp: React.FC = () => {
     
     const [mobile, setMobile] = useState<string>("");
     const [otpData, setOtpData] = useState<OtpData | null>(null);
+    localStorage.setItem("companyLogo", otpData?.companyLogo || "");
+localStorage.setItem("companyName", otpData?.companyName || "");
     const [, setDeviceIdData] = useState<DeviceIdData | null>(null);
     const [otp, setOtp] = useState<string[]>(new Array(6).fill(""));
     const [timer, setTimer] = useState<number>(27);
@@ -57,7 +60,7 @@ const Otp: React.FC = () => {
     });
 
     const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-    const [isAnimating, setIsAnimating] = useState<boolean>(false);
+    const [, setIsAnimating] = useState<boolean>(false);
 
     const getDeviceId = (): string => {
         const appName = "flexicrm";
@@ -315,7 +318,11 @@ const Otp: React.FC = () => {
         }
     };
 
-    const displayError = localError || error;
+    const displayError =
+    localError ||
+    (typeof error === "string"
+        ? error
+        :  "");
 
     return (
         <>
@@ -327,18 +334,18 @@ const Otp: React.FC = () => {
                 <div className="form-half">
                     <div className="otp-card">
                         <div className="text-center">
-                            <div className="relative inline-block">
-                                <img
-                                    className={`border-2 border-gray-300 rounded-full p-2 mb-4 transition-all duration-300 hover:scale-110 hover:rotate-6 hover:border-[#05264e] hover:shadow-xl
-                                        ${isAnimating ? 'animate-[logoEntrance_0.8s_cubic-bezier(0.68,-0.55,0.265,1.55)]' : ''}
-                                        animate-[pulse_2s_ease-in-out_infinite]`}
-                                    src={otpData?.companyLogo || "/default-logo.png"}
-                                    alt="FlexiCRM"
-                                    width={60}
-                                    height={60}
-                                />
-                                <div className={`absolute inset-0 rounded-full border-2 border-[#05264e] opacity-0 ${isAnimating ? 'animate-[ringPulse_0.8s_ease-out]' : ''}`}></div>
-                            </div>
+                            <div className="relative inline-block mb-6">
+  <motion.div
+    whileHover={{ scale: 1.05, rotate: 5 }}
+    transition={{ type: "spring", stiffness: 400 }}
+  >
+   <img
+      src={otpData?.companyLogo || "/default-logo.png"}
+      alt="FlexiCRM"
+      className="w-20 h-20 mx-auto rounded-full"
+    />
+  </motion.div>
+</div>
                         </div>
                         <p className="text-2xl font-bold bg-gradient-to-r from-blue-900 to-purple-800 bg-clip-text text-transparent animate-slide-up">
                             {otpData?.companyName || "FlexiCRM"}

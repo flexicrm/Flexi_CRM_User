@@ -4,8 +4,6 @@ import {
   Bell,
   Box,
   Calendar,
-  ChevronLeft,
-  ChevronRight,
   Copy,
   DollarSign,
   FileText,
@@ -71,14 +69,15 @@ interface DynamicMenuItem {
   canDelete: boolean;
 }
 
-// Comprehensive icon mapping for all possible modules (NO DUPLICATES)
+interface SidebarProps {
+  onHoverChange?: (isHovered: boolean) => void;
+}
+
+// Comprehensive icon mapping for all possible modules
 const iconMap: Record<string, React.ElementType> = {
-  // Core CRM Modules
   Dashboard: LayoutDashboard,
   DashboardNew: LayoutDashboard,
   Home: Home,
-  
-  // Customer Related
   Customer: Users,
   Customers: Users,
   Client: Users,
@@ -87,16 +86,12 @@ const iconMap: Record<string, React.ElementType> = {
   Accounts: Users,
   Contact: User,
   Contacts: Users,
-  
-  // User Related
   User: UserRoundCog,
   Users: UserRoundCog,
   Employee: User,
   Employees: Users,
   Staff: Users,
   Team: Users,
-  
-  // Sales Related
   Leads: Star,
   Lead: Star,
   Opportunity: Target,
@@ -109,8 +104,6 @@ const iconMap: Record<string, React.ElementType> = {
   Orders: ShoppingCart,
   Invoice: DollarSign,
   Invoices: DollarSign,
-  
-  // Marketing
   Campaign: Send,
   Campaigns: Send,
   Marketing: TrendingUp,
@@ -119,16 +112,12 @@ const iconMap: Record<string, React.ElementType> = {
   SMS: MessageSquare,
   PushNotification: Bell,
   Newsletter: FileText,
-  
-  // Support
   Support: HelpCircle,
   Ticket: Tag,
   Tickets: Tag,
   Complaint: Flag,
   Feedback: ThumbsUp,
   Review: StarIcon,
-  
-  // Product/Inventory
   Product: Package,
   Products: Package,
   Inventory: Box,
@@ -136,8 +125,6 @@ const iconMap: Record<string, React.ElementType> = {
   Warehouse: Truck,
   Supplier: Truck,
   Vendors: Truck,
-  
-  // Finance
   Finance: DollarSign,
   Accounting: DollarSign,
   Payment: DollarSign,
@@ -145,11 +132,9 @@ const iconMap: Record<string, React.ElementType> = {
   Expense: DollarSign,
   Expenses: DollarSign,
   Budget: DollarSign,
-  Analytics: BarChart,  // Single definition
-  AnalyticsReport: BarChart, // Alternative name
-  ReportAnalytics: BarChart, // Alternative name
-  
-  // HR
+  Analytics: BarChart,
+  AnalyticsReport: BarChart,
+  ReportAnalytics: BarChart,
   HR: Users,
   HumanResources: Users,
   Attendance: Calendar,
@@ -158,16 +143,12 @@ const iconMap: Record<string, React.ElementType> = {
   Recruitment: UserPlus,
   Training: Monitor,
   Performance: TrendingUp,
-  
-  // Project Management
   Project: Folder,
   Projects: Folder,
   Task: TrendingUp,
   Tasks: TrendingUp,
   Milestone: Flag,
   Timeline: Calendar,
-  
-  // Settings & Admin
   Settings: Settings,
   Setup: Settings,
   Configuration: Sliders,
@@ -176,98 +157,66 @@ const iconMap: Record<string, React.ElementType> = {
   Roles: Shield,
   Permissions: Shield,
   Security: ShieldIcon,
-  
-  // Utilities
   Utilities: Wrench,
   Tools: TrendingUp,
   Integration: Link,
   API: Key,
   Webhook: Repeat,
-  
-  // Communication
   Communication: MessageSquare,
   Chat: MessageSquare,
   Message: Mail,
   Notification: Bell,
   Alert: Bell,
-  
-  // Documents
   Document: FileText,
   Documents: FileText,
   File: Paperclip,
   Files: Paperclip,
   Template: Copy,
-  
-  // Calendar/Schedule
   Calendar: Calendar,
   Schedule: Calendar,
   Event: Calendar,
   Meeting: Video,
-  
-  // Reports & Stats (combined, no duplicates)
   Reports: BarChart,
   Statistics: PieChart,
   Stats: BarChart,
   ReportData: BarChart,
   ReportSummary: BarChart,
-  
-  // System
   System: Monitor,
   Database: Grid,
   Backup: Save,
   Log: List,
   Audit: Search,
-  
-  // Default
   Default: Folder,
 };
 
-// Helper function to get icon for module
 const getIconForModule = (moduleName: string): React.ElementType => {
-  // Try exact match
-  if (iconMap[moduleName]) {
-    return iconMap[moduleName];
-  }
+  if (iconMap[moduleName]) return iconMap[moduleName];
   
-  // Try case-insensitive match
   const lowerModule = moduleName.toLowerCase();
   for (const [key, icon] of Object.entries(iconMap)) {
-    if (key.toLowerCase() === lowerModule) {
-      return icon;
-    }
+    if (key.toLowerCase() === lowerModule) return icon;
   }
-  
-  // Return default icon
   return Folder;
 };
 
-// Helper function to generate path from module name
 const generatePath = (moduleName: string, subdomain: string): string => {
-  // Convert CamelCase or PascalCase to kebab-case
   const pathName = moduleName
     .replace(/([A-Z])/g, '-$1')
     .toLowerCase()
     .replace(/^-/, '');
-  
   return `/${subdomain}/${pathName}`;
 };
 
-// Helper function to format label for display
 const formatLabel = (moduleName: string): string => {
-  // Add spaces before capital letters and handle special cases
   let formatted = moduleName
     .replace(/([A-Z])/g, ' $1')
     .replace(/^./, str => str.toUpperCase())
     .trim();
-  
-  // Handle special cases
   formatted = formatted.replace(/And/g, '&');
   formatted = formatted.replace(/Permissions/g, 'Permissions');
-  
   return formatted;
 };
 
-// Sort order for menu items
 const menuOrder = [
   'Dashboard',
   'Leads',
@@ -279,17 +228,23 @@ const menuOrder = [
   'Integration'
 ];
 
-const Sidebar = () => {
+const Sidebar = ({ onHoverChange }: SidebarProps) => {
   const [, setPermissions] = useState<Permission[]>([]);
   const [menuItems, setMenuItems] = useState<DynamicMenuItem[]>([]);
   const [bottomItems, setBottomItems] = useState<DynamicMenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isHovered, setIsHovered] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   
   const navigate = useNavigate();
   const subdomain = localStorage.getItem("subdomain") || "default";
+
+  useEffect(() => {
+    if (onHoverChange) {
+      onHoverChange(isHovered);
+    }
+  }, [isHovered, onHoverChange]);
 
   useEffect(() => {
     const fetchPermissions = async () => {
@@ -298,9 +253,6 @@ const Sidebar = () => {
         setError(null);
         
         const response = await meAPI();
-        console.log("API Response:", response);
-        
-        // Extract permissions array from response
         let permissionsArray: Permission[] = [];
         
         if (response.data?.data?.permissions && Array.isArray(response.data.data.permissions)) {
@@ -311,15 +263,12 @@ const Sidebar = () => {
           permissionsArray = response.data;
         }
         
-        console.log("Permissions Array:", permissionsArray);
         setPermissions(permissionsArray);
         
-        // Generate menu items dynamically from permissions
         const allMenuItems: DynamicMenuItem[] = [];
         const bottomMenuItems: DynamicMenuItem[] = [];
         
         permissionsArray.forEach((perm) => {
-          // Only show modules with canRead permission
           if (perm.canRead === true && perm.module) {
             const menuItem: DynamicMenuItem = {
               path: generatePath(perm.module, subdomain),
@@ -332,7 +281,6 @@ const Sidebar = () => {
               canDelete: perm.canDelete,
             };
             
-            // Separate Settings and Roles to bottom
             if (perm.module === 'Settings' || perm.module === 'RolesandPermissions') {
               bottomMenuItems.push(menuItem);
             } else {
@@ -341,32 +289,22 @@ const Sidebar = () => {
           }
         });
         
-        // Sort menu items based on predefined order
         const sortedMenuItems = [...allMenuItems].sort((a, b) => {
           const indexA = menuOrder.indexOf(a.module);
           const indexB = menuOrder.indexOf(b.module);
-          
-          if (indexA !== -1 && indexB !== -1) {
-            return indexA - indexB;
-          }
+          if (indexA !== -1 && indexB !== -1) return indexA - indexB;
           if (indexA !== -1) return -1;
           if (indexB !== -1) return 1;
           return a.label.localeCompare(b.label);
         });
         
-        // Sort bottom items
         const sortedBottomItems = [...bottomMenuItems].sort((a, b) => {
           const order = ['Settings', 'RolesandPermissions'];
-          const indexA = order.indexOf(a.module);
-          const indexB = order.indexOf(b.module);
-          return indexA - indexB;
+          return order.indexOf(a.module) - order.indexOf(b.module);
         });
         
         setMenuItems(sortedMenuItems);
         setBottomItems(sortedBottomItems);
-        
-        console.log("Generated Menu Items:", sortedMenuItems);
-        console.log("Generated Bottom Items:", sortedBottomItems);
         
       } catch (err) {
         console.error("Failed to fetch user data:", err);
@@ -380,25 +318,10 @@ const Sidebar = () => {
   }, [subdomain]);
 
   const handleLogout = () => {
-    // Clear all auth-related storage
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("tokenExpiry");
-    localStorage.removeItem("userData");
-    localStorage.removeItem("authResponse");
-    localStorage.removeItem("subdomain");
-    localStorage.removeItem("isFirstLogin");
-    localStorage.removeItem("mobile");
-    localStorage.removeItem("token");
-    
+    localStorage.clear();
     navigate("/login");
   };
 
-  const toggleSidebar = () => {
-    setIsCollapsed(!isCollapsed);
-  };
-
-  // Loading state with animation
   if (loading) {
     return (
       <aside className="bg-gradient-to-b from-[#0d1954] to-[#0a1240] text-gray-300 w-20 flex flex-col shadow-2xl">
@@ -413,12 +336,10 @@ const Sidebar = () => {
     );
   }
 
-  // Don't show sidebar if there's an error or no menu items
   if (error || (menuItems.length === 0 && bottomItems.length === 0)) {
     return null;
   }
 
-  // Animation variants
   const sidebarVariants = {
     expanded: { width: "16rem" },
     collapsed: { width: "5rem" },
@@ -437,47 +358,15 @@ const Sidebar = () => {
   return (
     <motion.aside
       initial="collapsed"
-      animate={isCollapsed ? "collapsed" : "expanded"}
+      animate={isHovered ? "expanded" : "collapsed"}
       variants={sidebarVariants}
       transition={{ duration: 0.3, ease: "easeInOut" }}
       className="relative bg-gradient-to-b from-[#0d1954] to-[#0a1240] text-gray-300 flex flex-col shadow-2xl z-20"
-      onMouseEnter={() => setIsCollapsed(false)}
-      onMouseLeave={() => setIsCollapsed(true)}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
-      {/* Toggle Button */}
-      <button
-        onClick={toggleSidebar}
-        className="absolute -right-3 top-20 bg-[#0d1954] rounded-full p-1 border border-gray-700 shadow-lg hover:bg-blue-600 transition-all duration-200 z-30"
-      >
-        {isCollapsed ? (
-          <ChevronRight className="w-4 h-4 text-white" />
-        ) : (
-          <ChevronLeft className="w-4 h-4 text-white" />
-        )}
-      </button>
-
-      {/* Logo Section */}
-      <div className="flex items-center justify-center py-6 border-b border-gray-700/50">
-        <motion.div whileHover={{ scale: 1.05 }} className="relative">
-          {!isCollapsed ? (
-            <motion.h1
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent"
-            >
-              FlexiCRM
-            </motion.h1>
-          ) : (
-            <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center"
-            >
-              <span className="text-white font-bold text-sm">F</span>
-            </motion.div>
-          )}
-        </motion.div>
-      </div>
+      {/* Spacer to account for navbar logo (no logo in sidebar anymore) */}
+      <div className="h-4"></div>
 
       {/* Main Navigation */}
       <nav className="flex-1 overflow-y-auto py-6">
@@ -505,7 +394,6 @@ const Sidebar = () => {
               >
                 {({ isActive }) => (
                   <>
-                    {/* Active Indicator */}
                     {isActive && (
                       <motion.div
                         layoutId="activeIndicator"
@@ -521,8 +409,8 @@ const Sidebar = () => {
                     <motion.span
                       className="whitespace-nowrap text-sm font-medium"
                       animate={{
-                        opacity: isCollapsed ? 0 : 1,
-                        display: isCollapsed ? "none" : "inline-block",
+                        opacity: isHovered ? 1 : 0,
+                        display: isHovered ? "inline-block" : "none",
                       }}
                       transition={{ duration: 0.2 }}
                     >
@@ -532,8 +420,7 @@ const Sidebar = () => {
                 )}
               </NavLink>
 
-              {/* Tooltip for collapsed mode */}
-              {isCollapsed && hoveredItem === item.label && (
+              {!isHovered && hoveredItem === item.label && (
                 <motion.div
                   variants={tooltipVariants}
                   initial="hidden"
@@ -593,8 +480,8 @@ const Sidebar = () => {
                       <motion.span
                         className="whitespace-nowrap text-sm font-medium"
                         animate={{
-                          opacity: isCollapsed ? 0 : 1,
-                          display: isCollapsed ? "none" : "inline-block",
+                          opacity: isHovered ? 1 : 0,
+                          display: isHovered ? "inline-block" : "none",
                         }}
                         transition={{ duration: 0.2 }}
                       >
@@ -604,8 +491,7 @@ const Sidebar = () => {
                   )}
                 </NavLink>
 
-                {/* Tooltip for collapsed mode */}
-                {isCollapsed && hoveredItem === item.label && (
+                {!isHovered && hoveredItem === item.label && (
                   <motion.div
                     variants={tooltipVariants}
                     initial="hidden"
@@ -640,8 +526,8 @@ const Sidebar = () => {
                 <motion.span
                   className="whitespace-nowrap text-sm font-medium"
                   animate={{
-                    opacity: isCollapsed ? 0 : 1,
-                    display: isCollapsed ? "none" : "inline-block",
+                    opacity: isHovered ? 1 : 0,
+                    display: isHovered ? "inline-block" : "none",
                   }}
                   transition={{ duration: 0.2 }}
                 >
@@ -649,8 +535,7 @@ const Sidebar = () => {
                 </motion.span>
               </button>
 
-              {/* Tooltip for collapsed mode */}
-              {isCollapsed && hoveredItem === "Logout" && (
+              {!isHovered && hoveredItem === "Logout" && (
                 <motion.div
                   variants={tooltipVariants}
                   initial="hidden"
@@ -671,10 +556,10 @@ const Sidebar = () => {
       {/* Version Info */}
       <motion.div
         className="text-center pb-4"
-        animate={{ opacity: isCollapsed ? 0 : 0.5 }}
+        animate={{ opacity: isHovered ? 0.5 : 0 }}
         transition={{ duration: 0.2 }}
       >
-        {!isCollapsed && (
+        {isHovered && (
           <p className="text-xs text-gray-500">Version 1.0.0</p>
         )}
       </motion.div>
