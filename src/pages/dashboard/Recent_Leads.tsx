@@ -63,7 +63,7 @@ const Recent_Leads = () => {
       width: '250px',
       filterable: true,
       sortable: true,
-      render: (name: string,record: any) => (
+      render: (name: string,) => (
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center">
             <User size={16} className="text-slate-500" />
@@ -81,7 +81,7 @@ const Recent_Leads = () => {
       width: '250px',
       filterable: true,
       sortable: true,
-      render: (name: string,record: any) => (
+      render: (record: any) => (
         <div className="flex items-center gap-3">
           <div className="flex flex-col">
             <div className="flex items-center gap-1 text-xs text-slate-400 mt-0.5">

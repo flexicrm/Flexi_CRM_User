@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Check, Loader2, Plus, X } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import Reusable_Button from '../../component/button/Reusable_Button';
 import Reusable_Fields, { type SelectOption } from '../../component/Fields/Reusable_Fiealds';
 import RippleLoader from '../../component/Loader/RippleLoader';
@@ -12,7 +12,8 @@ import {
   addFollowUp_Leadstatus,
   addFollowUp_status,
   addFollowUp_type,
-  createFollowUp
+  createFollowUp,
+  UpdateFollowUp
 } from '../../store/homepage_slice/Leads_slice';
 import { createFollowUpStatus } from '../../store/settingFollowStatus';
 import { createFollowUpType } from '../../store/settingFollowtypeSlice';
@@ -71,7 +72,7 @@ const LeadStatusSelect = ({ value, onChange, options, error, disabled, label, on
         <button
           type="button"
           onClick={() => !disabled && setIsOpen(!isOpen)}
-          className={`w-full px-4 py-3 text-left border rounded-xl  transition-all flex items-center justify-between ${
+          className={`w-full px-4 py-3 text-left border rounded-xl transition-all flex items-center justify-between ${
             error ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-white hover:border-slate-400'
           } ${disabled ? 'opacity-60 cursor-not-allowed bg-slate-50' : 'cursor-pointer'}`}
           disabled={disabled}
@@ -140,7 +141,7 @@ const LeadStatusSelect = ({ value, onChange, options, error, disabled, label, on
                   type="text"
                   value={newStatusName}
                   onChange={(e) => setNewStatusName(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg "
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
                   placeholder="e.g., Hot Lead, Cold Lead"
                 />
               </div>
@@ -157,7 +158,7 @@ const LeadStatusSelect = ({ value, onChange, options, error, disabled, label, on
                     type="text"
                     value={newStatusColor}
                     onChange={(e) => setNewStatusColor(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg "
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg"
                     placeholder="#6366F1"
                   />
                 </div>
@@ -299,7 +300,7 @@ const InteractionTypeSelect = ({ value, onChange, options, error, disabled, labe
                   type="text"
                   value={newTypeName}
                   onChange={(e) => setNewTypeName(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg "
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
                   placeholder="e.g., Call, Meeting, Email"
                 />
               </div>
@@ -448,7 +449,7 @@ const FollowUpStatusSelect = ({ value, onChange, options, error, disabled, label
                   type="text"
                   value={newStatusName}
                   onChange={(e) => setNewStatusName(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg "
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
                   placeholder="e.g., Pending, Completed, Overdue"
                 />
               </div>
@@ -465,7 +466,7 @@ const FollowUpStatusSelect = ({ value, onChange, options, error, disabled, label
                     type="text"
                     value={newStatusColor}
                     onChange={(e) => setNewStatusColor(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg "
+                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg"
                     placeholder="#6366F1"
                   />
                 </div>
@@ -493,11 +494,17 @@ const FollowUpStatusSelect = ({ value, onChange, options, error, disabled, label
   );
 };
 
-const AddFollowUp_Model = ({ tableId, selectedData }: { tableId: string | null; selectedData: any }) => {
+const AddFollowUp_Model = ({ tableId }: { tableId: string | null; selectedData: any }) => {
   const dispatch = useDispatch();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   
   const isOpen = searchParams.get("modal") === "schedule-followup";
+  
+  // Get edit data from location state
+  const editFollowUpData = location.state?.followUpData || null;
+  const editFollowUpId = location.state?.followUpId || null;
+  const isEditMode = !!editFollowUpData;
 
   const {
     followUpStatuses,
@@ -523,6 +530,31 @@ const AddFollowUp_Model = ({ tableId, selectedData }: { tableId: string | null; 
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
 
+  // Populate form data when editing
+  useEffect(() => {
+    if (isOpen && isEditMode && editFollowUpData) {
+      // Format date for datetime-local input
+      const formatDateForInput = (dateString: string) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toISOString().slice(0, 16);
+      };
+
+      setFormData({
+        leadStatus: editFollowUpData.leadStatus?._id || editFollowUpData.leadStatus || '',
+        type: editFollowUpData.type?._id || editFollowUpData.type || '',
+        priority: editFollowUpData.priority || 'medium',
+        status: editFollowUpData.status?._id || editFollowUpData.status || '',
+        assignTo: editFollowUpData.assignTo?.[0]?._id || editFollowUpData.assignTo?.[0] || '',
+        notes: editFollowUpData.notes || '',
+        dueDate: formatDateForInput(editFollowUpData.dateTime || editFollowUpData.dueDate),
+        setReminder: editFollowUpData.isSetTimer || editFollowUpData.setReminder || false,
+        reminderDateTime: formatDateForInput(editFollowUpData.reminderDateTime),
+        reminderType: editFollowUpData.reminderType || ''
+      });
+    }
+  }, [isOpen, isEditMode, editFollowUpData]);
+
   useEffect(() => {
     if (isOpen && tableId) {
       setIsLoading(true);
@@ -533,7 +565,15 @@ const AddFollowUp_Model = ({ tableId, selectedData }: { tableId: string | null; 
         dispatch(addFollowUp_type() as any)
       ]).finally(() => setIsLoading(false));
     }
-    return () => { if (!isOpen) resetForm(); };
+    return () => { 
+      if (!isOpen) {
+        resetForm();
+        // Clear location state when modal closes
+        if (location.state?.followUpData) {
+          window.history.replaceState({}, document.title);
+        }
+      }
+    };
   }, [isOpen, dispatch, tableId]);
 
   const resetForm = () => {
@@ -552,7 +592,7 @@ const AddFollowUp_Model = ({ tableId, selectedData }: { tableId: string | null; 
 
   const closeModal = () => {
     if (isSubmittingFollowUp) {
-      warningAlert("Please wait, follow-up is being created...", "Okay");
+      warningAlert("Please wait, follow-up is being processed...", "Okay");
       return;
     }
     const params = new URLSearchParams(searchParams);
@@ -616,12 +656,29 @@ const AddFollowUp_Model = ({ tableId, selectedData }: { tableId: string | null; 
     }
 
     try {
-      const resultAction = await dispatch(createFollowUp({ tableId: tableId, data: { followUps: [followUpData] } }) as any).unwrap();
-      successAlert(resultAction?.message || "Follow-up created successfully!", "Done", "Success!");
+      let resultAction;
+      
+      if (isEditMode && editFollowUpId) {
+        // Update existing follow-up
+        resultAction = await dispatch(UpdateFollowUp({ 
+          tableId: tableId, 
+          data: followUpData, 
+          followID: editFollowUpId 
+        }) as any).unwrap();
+        successAlert(resultAction?.message || "Follow-up updated successfully!", "Done", "Success!");
+      } else {
+        // Create new follow-up
+        resultAction = await dispatch(createFollowUp({ 
+          tableId: tableId, 
+          data: { followUps: [followUpData] } 
+        }) as any).unwrap();
+        successAlert(resultAction?.message || "Follow-up created successfully!", "Done", "Success!");
+      }
+      
       closeModal();
       setTimeout(() => window.location.reload(), 1500);
     } catch (error: any) {
-      errorAlert(error?.message || "Failed to create follow-up", "Try Again", "Error");
+      errorAlert(error?.message || `Failed to ${isEditMode ? 'update' : 'create'} follow-up`, "Try Again", "Error");
     }
   };
 
@@ -683,8 +740,12 @@ const AddFollowUp_Model = ({ tableId, selectedData }: { tableId: string | null; 
           <div className="p-8 md:p-12 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-10">
               <div>
-                <h2 className="text-2xl font-black text-[#0d1954] tracking-tight">Add New Follow-Up</h2>
-                <p className="text-sm text-slate-500 mt-1">Schedule and manage follow-up activities for this lead</p>
+                <h2 className="text-2xl font-black text-[#0d1954] tracking-tight">
+                  {isEditMode ? "Edit Follow-Up" : "Add New Follow-Up"}
+                </h2>
+                <p className="text-sm text-slate-500 mt-1">
+                  {isEditMode ? "Update follow-up details for this lead" : "Schedule and manage follow-up activities for this lead"}
+                </p>
               </div>
               <button onClick={closeModal} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500"><X size={24} /></button>
             </div>
@@ -776,14 +837,14 @@ const AddFollowUp_Model = ({ tableId, selectedData }: { tableId: string | null; 
                   name="setReminder" 
                   checked={formData.setReminder} 
                   onChange={(e) => setFormData(prev => ({...prev, setReminder: e.target.checked}))} 
-                  className="w-5 h-5 rounded border-slate-300 text-[#0d1954] " 
+                  className="w-5 h-5 rounded border-slate-300 text-[#0d1954]" 
                   disabled={isSubmittingFollowUp}
                 />
                 <label htmlFor="reminder" className="text-sm font-bold text-slate-700 cursor-pointer select-none">Set specific reminder alarm time</label>
               </div>
 
               {formData.setReminder && (
-                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="space-y-6 pl-6 ">
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="space-y-6 pl-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4">
                     <div>
                       <Reusable_Fields
@@ -834,7 +895,7 @@ const AddFollowUp_Model = ({ tableId, selectedData }: { tableId: string | null; 
                   disabled={isSubmittingFollowUp}
                 />
                 <Reusable_Button
-                  text={isSubmittingFollowUp ? "Creating..." : "Create Follow-Up"}
+                  text={isSubmittingFollowUp ? (isEditMode ? "Updating..." : "Creating...") : (isEditMode ? "Update Follow-Up" : "Create Follow-Up")}
                   type="submit"
                   variant="primary"
                   icon={isSubmittingFollowUp ? <Loader2 size={18} className="animate-spin" /> : undefined}

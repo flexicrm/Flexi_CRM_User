@@ -1,5 +1,5 @@
 // pages/ProfilePage.tsx
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion, type Variants } from 'framer-motion';
 import {
   ArrowLeft,
   Award,
@@ -18,7 +18,10 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import Reusable_Button from '../../component/button/Reusable_Button';
 import { fetchUserProfile } from '../../store/homepage_slice/Profile_Slice';
+import type { AppDispatch } from '../../store/Store';
 import Profile_Edit from './Profile_Edit';
+
+
 
 // Animation variants
 const containerVariants = {
@@ -32,7 +35,7 @@ const containerVariants = {
   },
 };
 
-const itemVariants = {
+const itemVariants : Variants = {
   hidden: { y: 20, opacity: 0 },
   visible: {
     y: 0,
@@ -41,7 +44,7 @@ const itemVariants = {
   },
 };
 
-const cardVariants = {
+const cardVariants : Variants = {
   hidden: { scale: 0.95, opacity: 0 },
   visible: {
     scale: 1,
@@ -54,7 +57,7 @@ const cardVariants = {
   },
 };
 
-const modalVariants = {
+const modalVariants : Variants = {
   hidden: { opacity: 0, scale: 0.9, y: 20 },
   visible: {
     opacity: 1,
@@ -77,7 +80,7 @@ const overlayVariants = {
 };
 
 const Profile_Page_Model: React.FC = () => {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const { data: profile, isLoading, error } = useSelector(
     (state: any) => state.profile
   );

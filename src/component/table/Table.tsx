@@ -424,30 +424,31 @@ const Table: React.FC<TableProps> = ({
     }
   };
 
-  // Calculate column widths dynamically based on content
-  const calculateColumnWidth = (column: Column, data: any[]): string => {
-    if (column.width) return column.width;
-    
-    // Default widths based on column type
-    if (column.dataIndex === 'name' || column.title === 'Name') return 'minmax(180px, 1fr)';
-    if (column.dataIndex === 'email' || column.title === 'Email') return 'minmax(200px, 1.5fr)';
-    if (column.dataIndex === 'status' || column.title === 'Status') return 'minmax(100px, 0.8fr)';
-    if (column.dataIndex === 'actions') return 'minmax(80px, auto)';
-    
-    return 'minmax(120px, 1fr)';
-  };
 
   // --- Filtering & Sorting ---
   const filteredData = useMemo(() => {
     let filtered = [...data];
 
-    // Global Search
+    // --- DEEP GLOBAL SEARCH FILTER ---
     if (searchTerm) {
-      filtered = filtered.filter(record => columns.some(col => {
-        const value = record[col.dataIndex];
-        if (typeof value === 'string') return value.toLowerCase().includes(searchTerm.toLowerCase());
-        return String(value).toLowerCase().includes(searchTerm.toLowerCase());
-      }));
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(record => {
+        // Recursive function to search all nested values in the entire row record
+        const deepSearch = (obj: any): boolean => {
+          if (obj === null || obj === undefined) return false;
+          if (typeof obj === 'string') return obj.toLowerCase().includes(searchLower);
+          if (typeof obj === 'number' || typeof obj === 'boolean') return String(obj).toLowerCase().includes(searchLower);
+          
+          if (typeof obj === 'object') {
+            // Check through Arrays and Objects
+            return Object.values(obj).some(val => deepSearch(val));
+          }
+          return false;
+        };
+
+        // Execute deep search on the entire row object
+        return deepSearch(record);
+      });
     }
 
     // Individual Column Filters
@@ -530,12 +531,6 @@ const Table: React.FC<TableProps> = ({
   const hasActions = useMemo(() => typeof actionButtons === 'boolean' ? actionButtons : !!(actionButtons?.showView || actionButtons?.showEdit || actionButtons?.showDelete || actionButtons?.showFollowUp || actionButtons?.showConvert), [actionButtons]);
   const actions = typeof actionButtons === 'boolean' ? {} : actionButtons;
 
-  // Get dynamic table height
-  const getTableHeight = () => {
-    if (tableHeight !== 'auto') return tableHeight;
-    return `min(70vh, ${window.innerHeight - 280}px)`;
-  };
-
   return (
     <div className={`flex flex-col w-full bg-white rounded-[24px] border border-slate-100 shadow-sm overflow-hidden ${className}`}>
       
@@ -569,7 +564,7 @@ const Table: React.FC<TableProps> = ({
         </div>
       </div>
 
-      {/* TABLE SCROLL CONTAINER - Responsive Height */}
+      {/* TABLE SCROLL CONTAINER */}
       <div 
         ref={scrollContainerRef}
         onMouseDown={handleMouseDown} 
@@ -581,7 +576,8 @@ const Table: React.FC<TableProps> = ({
           height: tableHeight !== 'auto' ? tableHeight : 'auto',
           minHeight: '200px'
         }}
-        className="overflow-auto cursor-grab active:cursor-grabbing [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-400 transition-colors"
+        // The important CSS part: [&::-webkit-scrollbar:horizontal]:hidden hides the bottom scrollbar while maintaining horizontal overflow ability for dragging. 
+        className="overflow-auto cursor-grab active:cursor-grabbing [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar:horizontal]:hidden [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-slate-300 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-slate-400 transition-colors"
       >
         <table className="w-full border-collapse relative min-w-[800px]">
           <thead className={`${stickyHeader ? 'sticky top-0 z-[20]' : ''} shadow-sm`}>

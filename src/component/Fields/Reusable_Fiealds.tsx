@@ -8,7 +8,15 @@ export interface SelectOption {
 }
 
 interface ReusableFieldsProps {
-  type?: "text" | "password" | "email" | "number" | "date" | "select" | "textarea";
+  type?: 
+  | "text"
+  | "password"
+  | "email"
+  | "number"
+  | "date"
+  | "datetime-local"   
+  | "select"
+  | "textarea";
   label?: string;
   name: string;
   value: any;

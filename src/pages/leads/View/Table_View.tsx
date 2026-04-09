@@ -55,7 +55,7 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
   const [showNotificationPanel, setShowNotificationPanel] = useState(false);
   const [notifications, setNotifications] = useState<FollowUpReminder[]>([]);
   const [activeAlarms, setActiveAlarms] = useState<Map<string, FollowUpReminder>>(new Map());
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted] = useState(false);
   
   const [alarmTimers, setAlarmTimers] = useState<Map<string, AlarmState>>(new Map());
   
@@ -116,7 +116,7 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       
       // Clean up all alarms
-      alarmTimers.forEach((alarmState, reminderId) => {
+      alarmTimers.forEach((alarmState) => {
         if (alarmState.ringInterval) clearInterval(alarmState.ringInterval);
         if (alarmState.stopTimeout) clearTimeout(alarmState.stopTimeout);
         if (alarmState.currentAudio) {
@@ -155,7 +155,7 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
     if (Notification.permission === 'default') Notification.requestPermission();
   }, []);
 
-  const getAlarmSoundConfig = (stageSuffix: string) => {
+  const getAlarmSoundConfig = () => {
     return { url: ding_sound_246413, volume: 1.0 };
   };
 
@@ -226,7 +226,7 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
       return false;
     }
     
-    const config = getAlarmSoundConfig(stageSuffix);
+    const config = getAlarmSoundConfig();
     const audio = new Audio(config.url);
     audio.volume = config.volume;
     
@@ -488,18 +488,6 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
     return () => { document.head.removeChild(style); };
   }, []);
 
-  // Helper function to get row background color based on status
-  const getRowClassName = (record: any) => {
-    const statusValue = record.status;
-    
-    // If status is 3 (Converted/Won), apply light green background
-    if (statusValue === 3) {
-      return "bg-green-50/30 hover:bg-green-50/50";
-    }
-    
-    // Default row styling
-    return "";
-  };
 
   // Helper function to get status badge component
   const getStatusBadge = (record: any) => {
@@ -794,7 +782,12 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
       )}
 
       {searchParams.get("modal") === "schedule-followup" && <AddFollowUp_Model tableId={selectedLeadId} selectedData={selectedLeadData} />}
-      {searchParams.get("modal") === "convert-customer" && <Convert_custommer_Model tableId={selectedLeadId} selectedData={selectedLeadData} />}
+      {searchParams.get("modal") === "convert-customer" && selectedLeadId && (
+  <Convert_custommer_Model
+    tableId={selectedLeadId}
+    selectedData={selectedLeadData}
+  />
+)}
     </div>
   );
 };

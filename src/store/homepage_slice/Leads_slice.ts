@@ -137,7 +137,7 @@ export const createLead = createAsyncThunk(
       dispatch(fetchLeads());
       return res.data;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message);
+      return rejectWithValue(error.response?.data?.errors);
     }
   }
 );
@@ -153,7 +153,7 @@ export const ImportLead = createAsyncThunk(
       dispatch(fetchLeads());
       return res.data;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message);
+      return rejectWithValue(error.response?.data?.errors);
     }
   }
 );
@@ -218,8 +218,10 @@ export const convertCustomer = createAsyncThunk(
       return res.data;
     } catch (error: any) {
       return rejectWithValue(
-        error?.response?.data?.message || "Conversion failed"
-      );
+  error?.response?.data?.errors || 
+  error?.response?.data?.message || 
+  "Conversion failed"
+);
     }
   }
 );
@@ -296,6 +298,30 @@ export const createFollowUp = createAsyncThunk(
     }
   }
 );
+
+export const UpdateFollowUp = createAsyncThunk(
+  "leads/createFollowUp",
+  async (
+    { tableId, data, followID }: { tableId: string; data: any; followID : string },
+    { rejectWithValue, dispatch }
+  ) => {
+    try {
+      const res = await Reusable_Service().patch(
+        `/lead/${getSubdomain()}/${tableId}/followups/${followID}`,
+        data
+      );
+      // Refresh the lead view to show the new followup immediately
+      dispatch(getViewPage(tableId));
+      return res.data;
+    } catch (error: any) {
+      return rejectWithValue(error.response?.data?.message || "Error creating follow-up");
+    }
+  }
+);
+
+
+
+
 
 export const addFollowUp_status = createAsyncThunk(
   "leads/addFollowUpStatus",

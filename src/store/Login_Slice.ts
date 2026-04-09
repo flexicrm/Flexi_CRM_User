@@ -183,15 +183,15 @@ export const fetchMeData = createAsyncThunk(
       
       const userData = response.data?.data || response.data;
       
-      if (userData?.permissions) {
-        localStorage.setItem("userPermissions", JSON.stringify(userData.permissions));
-      }
+      // if (userData?.permissions) {
+      //   localStorage.setItem("userPermissions", JSON.stringify(userData.permissions));
+      // }
       
-      if (userData?.userRole) {
-        localStorage.setItem("userRole", userData.userRole);
-      }
+      // if (userData?.userRole) {
+      //   localStorage.setItem("userRole", userData.userRole);
+      // }
       
-      localStorage.setItem("userData", JSON.stringify(userData));
+      // localStorage.setItem("userData", JSON.stringify(userData));
       
       return userData;
     } catch (error: any) {

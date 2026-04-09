@@ -8,9 +8,10 @@ import {
   convertCustomer,
   fetchStatuses,
 } from "../../store/homepage_slice/Leads_slice";
+import type { AppDispatch } from "../../store/Store";
 
 interface ConvertCustomerModalProps {
-  tableId?: string;
+  tableId: string;
   selectedData?: any;
   onSuccess?: () => void;
 }
@@ -20,7 +21,7 @@ const Convert_custommer_Model: React.FC<ConvertCustomerModalProps> = ({
   selectedData, 
   onSuccess 
 }) => {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const { statusOptions, loading: statusLoading } = useSelector(
@@ -58,7 +59,7 @@ const Convert_custommer_Model: React.FC<ConvertCustomerModalProps> = ({
 
   useEffect(() => {
     if (!statusOptions?.length) {
-      dispatch(fetchStatuses());
+      dispatch(fetchStatuses() as any);
     }
   }, [dispatch, statusOptions]);
 

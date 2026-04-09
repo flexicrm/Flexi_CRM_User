@@ -17,6 +17,7 @@ import {
   MessageSquare,
   MinusCircle,
   MonitorPlay,
+  PencilLine,
   Phone,
   ShieldCheck,
   Target,
@@ -160,6 +161,9 @@ const FollowupsTab = ({ followUps, onAdd, statuses }: any) => {
   const [visibleCount, setVisibleCount] = useState(6);
   const [loadingMore, setLoadingMore] = useState(false);
   const observer = useRef<IntersectionObserver | null>(null);
+  const navigate = useNavigate();
+    const location = useLocation();
+  const { tableId } = location.state || {};
 
   const filterOptions = useMemo(() => [
     { label: "All Statuses", value: "all" },
@@ -266,6 +270,23 @@ const FollowupsTab = ({ followUps, onAdd, statuses }: any) => {
                     <h4 className="font-bold text-[#0d1954] text-xs">
                       {followup?.leadStatus?.StatusName || followup?.leadStatus?.statusName || 'No Title'}
                     </h4>
+                    <PencilLine 
+  size={14} 
+  onClick={(e) => {
+    e.stopPropagation();
+    navigate(
+      `/${localStorage.getItem('subdomain')}/leads?modal=schedule-followup&LeadId=${tableId}`,
+      { 
+        state: { 
+          followUpData: followup, 
+          followUpId: followup._id,
+          tableId: tableId 
+        } 
+      }
+    );
+  }}
+  className="cursor-pointer hover:text-indigo-600 transition-colors"
+/>
                   </div>
                   <PriorityChip priority={followup.priority} />
                 </div>

@@ -374,6 +374,7 @@ import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import Reusable_Button from '../../component/button/Reusable_Button';
 import { updateUserProfile, type UserData } from '../../store/homepage_slice/Profile_Slice';
+import type { AppDispatch } from '../../store/Store';
 
 interface ProfileEditProps {
   data: UserData;
@@ -394,7 +395,7 @@ const staggerContainer = {
 };
 
 const Profile_Edit: React.FC<ProfileEditProps> = ({ data, onClose }) => {
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const { isLoading } = useSelector((state: any) => state.profile);
   const [formData, setFormData] = useState<UserData>(data);
 

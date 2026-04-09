@@ -121,7 +121,6 @@ const Grid_View = ({ data, selectedIds, setSelectedIds }: GridViewProps) => {
             const priority = lead.followUps?.slice(-1)[0]?.priority || 'Medium';
             
             const assignees = getAssignees(lead);
-            const hasMultipleAssignees = assignees.length > 1;
 
             return (
               <motion.div
