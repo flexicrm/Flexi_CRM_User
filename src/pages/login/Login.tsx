@@ -107,7 +107,10 @@ const Login = () => {
       // Pass message as 1st arg, button text as 2nd arg
       successAlert(successMessage, "Continue");
 
-      navigate("/otp", { state: { mobile: loginData.mobile, otpData: res?.data?.data } });
+      // Delay navigation by 2000ms so the user can see the success popup
+      setTimeout(() => {
+        navigate("/otp", { state: { mobile: loginData.mobile, otpData: res?.data?.data } });
+      }, 2000);
 
     } catch (err: any) {
       // Extract error message exactly like Create_User does
@@ -120,7 +123,9 @@ const Login = () => {
       errorAlert(errorMessage, "Retry");
       
       console.error(err);
-    } finally {
+      
+      // Set loading to false ONLY on error. 
+      // If successful, we want the button to stay in the "loading" state during the 2000ms wait.
       setLoading(false);
     }
   };
@@ -149,18 +154,17 @@ const Login = () => {
             className="text-center mb-8"
           >
             <div className="relative inline-block">
-  <motion.div
-    whileHover={{ scale: 1.05, rotate: 5 }}
-    transition={{ type: "spring", stiffness: 400 }}
-  >
-    <img
-      src={Flexi_CRM_Logo}
-      alt="FlexiCRM"
-      className="w-20 h-20 mx-auto rounded-full"
-    />
-  </motion.div>
-
-</div>
+              <motion.div
+                whileHover={{ scale: 1.05, rotate: 5 }}
+                transition={{ type: "spring", stiffness: 400 }}
+              >
+                <img
+                  src={Flexi_CRM_Logo}
+                  alt="FlexiCRM"
+                  className="w-20 h-20 mx-auto rounded-full"
+                />
+              </motion.div>
+            </div>
             <motion.h1
               initial={{ y: 10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}

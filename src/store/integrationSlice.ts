@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { fetch } from "../api/fetch";
 
 interface Field {
@@ -37,9 +37,25 @@ export const createIntegration = createAsyncThunk<
       integrationCode: response?.data?.integrationCode || "",
     };
   } catch (err: any) {
-    return thunkAPI.rejectWithValue(
-      err.message || "Failed to create integration",
-    );
+    // Dynamically extract the exact API error message (Removes generic defaults)
+    let exactApiError = "Failed to create integration";
+
+    if (err?.response?.data?.errors) {
+      exactApiError = typeof err.response.data.errors === 'string'
+        ? err.response.data.errors
+        : Object.values(err.response.data.errors)[0] as string;
+    } else if (err?.response?.data?.message) {
+      exactApiError = err.response.data.message;
+    } else if (err?.errors) {
+      // Handles your exact JSON structure: { "errors": "A lead form with this name already exists." }
+      exactApiError = typeof err.errors === 'string'
+        ? err.errors
+        : Object.values(err.errors)[0] as string;
+    } else if (err?.message) {
+      exactApiError = err.message;
+    }
+
+    return thunkAPI.rejectWithValue(exactApiError);
   }
 });
 

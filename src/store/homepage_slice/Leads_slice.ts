@@ -169,7 +169,57 @@ export const createCustomer = createAsyncThunk(
       dispatch(fetchLeads());
       return res.data;
     } catch (error: any) {
-      return rejectWithValue(error.response?.data?.message);
+      console.error("Create customer error:", error);
+      
+      // Extract the error response
+      const errorResponse = error.response?.data;
+      
+      // Handle the errors field from your API
+      if (errorResponse?.errors) {
+        return rejectWithValue({ errors: errorResponse.errors });
+      }
+      
+      // Handle message field
+      if (errorResponse?.message) {
+        return rejectWithValue({ message: errorResponse.message });
+      }
+      
+      // Handle duplicate key error
+      if (error.message?.includes("E11000 duplicate key") || error.message?.includes("duplicate key error")) {
+        return rejectWithValue({ 
+          errors: "Customer with this email already exists" 
+        });
+      }
+      
+      return rejectWithValue({ 
+        message: errorResponse?.message || error.message || "Failed to create customer" 
+      });
+    }
+  }
+);
+
+export const convertCustomer = createAsyncThunk(
+  "leads/convertCustomer",
+  async (
+    {
+      subdomain,
+      leadId,
+      status,
+    }: { subdomain: string; leadId: string; status: string },
+    { rejectWithValue, dispatch }
+  ) => {
+    try {
+      const res = await Reusable_Service().put(
+        `/lead/converted/${subdomain}/${leadId}`, // ✅ correct API
+        { leadstatus: status }
+      );
+
+      dispatch(fetchLeads());
+      return res.data;
+    } catch (error: any) {
+      return rejectWithValue(
+        error?.response?.data?.message || "Conversion failed"
+      );
     }
   }
 );
@@ -282,6 +332,12 @@ export const addFollowUp_Leadstatus = createAsyncThunk(
     }
   }
 );
+
+export const GETactivity = async (id: any) => {
+  return Reusable_Service().get(`/activity/${getSubdomain()}/${id}`)
+
+};
+
 
 export const addFollowUp_Assignto = createAsyncThunk(
   "leads/addFollowUpAssignTo",

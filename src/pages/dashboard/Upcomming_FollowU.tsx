@@ -49,7 +49,7 @@ const Upcomming_FollowU = () => {
           <div className="grid-icon">
             <LayoutGrid size={16} color="#94a3b8" strokeWidth={3} />
           </div>
-          <h2 className="header-title">Recent Leads</h2>
+          <h2 className="header-title">Upcoming Followups</h2>
         </div>
         <button className="view-all">View All</button>
       </div>

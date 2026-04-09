@@ -1,8 +1,8 @@
-import { motion } from "framer-motion";
 import { Bell, ChevronRight, Clock, LogOut, UserCircle, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import Flexi_CRM_Logo from "../../assets/logo/Flexi_CRM_Logo.svg";
 import { logout, notificationAPI } from "../../store/Login_Slice";
 
 interface NavbarProps {
@@ -32,7 +32,7 @@ interface NotificationResponse {
   activities: Notification[];
 }
 
-const Navbar = ({ toggleMobileSidebar, isSidebarExpanded = false }: NavbarProps) => {
+const Navbar = ({ toggleMobileSidebar}: NavbarProps) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
@@ -44,7 +44,6 @@ const Navbar = ({ toggleMobileSidebar, isSidebarExpanded = false }: NavbarProps)
   const profileRef = useRef<HTMLDivElement>(null);
 
   // Get company info from localStorage
-  const companyLogo = localStorage.getItem("companyLogo") || "/default-logo.png";
   const companyName = localStorage.getItem("companyName") || "FlexiCRM";
 
   // 🔁 CLOSE DROPDOWNS
@@ -147,11 +146,10 @@ const Navbar = ({ toggleMobileSidebar, isSidebarExpanded = false }: NavbarProps)
 
   // Get user info from localStorage
   const userFirstname = localStorage.getItem("userFirstname") || "User";
-  const userLastname = localStorage.getItem("userLastname") || "";
   const userInitial = userFirstname.charAt(0).toUpperCase();
 
   return (
-    <nav className="bg-gradient-to-r from-[#0d1954] to-[#1a2a6c] px-4 py-3 sticky top-0 z-30 shadow-lg">
+    <nav className="bg-white px-4 py-3 sticky top-0 z-30 shadow-lg">
       <div className="flex items-center justify-between">
         {/* LEFT SECTION - Logo with Animation based on Sidebar Hover State */}
         <div className="flex items-center gap-3">
@@ -166,66 +164,46 @@ const Navbar = ({ toggleMobileSidebar, isSidebarExpanded = false }: NavbarProps)
           )}
           
           {/* Logo Section with Animation */}
-          <div className="flex items-center gap-3">
-            {/* Logo Icon - Always visible */}
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="relative cursor-pointer"
-              onClick={() => navigate("/dashboard")}
-            >
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
-                {companyLogo && companyLogo !== "/default-logo.png" ? (
+          <div  onClick={() => navigate("/dashboard")}
+          className="flex items-center gap-3">
+
+              <div className="h-6 flex items-center justify-center">
+                {/* {companyLogo && companyLogo !== "/default-logo.png" ? (
                   <img
                     src={companyLogo}
                     alt="Company Logo"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full"
                     onError={(e) => {
                       e.currentTarget.src = "/default-logo.png";
                     }}
                   />
                 ) : (
-                  <span className="text-white font-bold text-lg">
+                  <span className="text-black font-bold text-lg">
                     {companyName.charAt(0).toUpperCase()}
                   </span>
-                )}
+                )} */}
+                <div className="flex items-center gap-3">
+  {/* Logo Circle */}
+    <span className="text-white font-bold text-sm">
+      <img
+                  src={Flexi_CRM_Logo}
+                  alt="FlexiCRM"
+                  className="w-8 h-8 mx-auto rounded-full"
+                />
+    </span>
+
+  {/* Company Name */}
+  <div className="leading-tight flex items-center gap-2">
+    <p className="text-lg font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent tracking-tight">
+      {companyName}
+    </p>
+    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">
+      CRM SYSTEM
+    </span>
+  </div>
+</div>
               </div>
               
-              {/* Pulse ring animation when sidebar is expanded */}
-              {isSidebarExpanded && (
-                <motion.div
-                  animate={{
-                    scale: [1, 1.2, 1],
-                    opacity: [0.5, 0, 0.5],
-                  }}
-                  transition={{
-                    duration: 2,
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                  }}
-                  className="absolute inset-0 rounded-xl border-2 border-blue-400"
-                />
-              )}
-            </motion.div>
-
-            {/* Company Name - Shows only when sidebar is expanded (hovered) */}
-            <motion.div
-              initial={false}
-              animate={{
-                opacity: isSidebarExpanded ? 1 : 0,
-                width: isSidebarExpanded ? "auto" : 0,
-                marginLeft: isSidebarExpanded ? "0.5rem" : 0,
-              }}
-              transition={{ duration: 0.3, ease: "easeInOut" }}
-              className="overflow-hidden whitespace-nowrap"
-            >
-              <div className="flex flex-col">
-                <h2 className="text-white font-semibold text-base leading-tight">
-                  {companyName}
-                </h2>
-                <p className="text-blue-200 text-xs">CRM Dashboard</p>
-              </div>
-            </motion.div>
           </div>
         </div>
 
@@ -235,7 +213,7 @@ const Navbar = ({ toggleMobileSidebar, isSidebarExpanded = false }: NavbarProps)
           <div className="relative" ref={notificationRef}>
             <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 cursor-pointer group"
+              className="relative p-2 text-gray-500 hover:text-gray-600 hover:bg-white/10 rounded-lg transition-all duration-200 cursor-pointer group"
             >
               <Bell size={20} className="transition-transform group-hover:scale-110" />
               
@@ -356,6 +334,11 @@ const Navbar = ({ toggleMobileSidebar, isSidebarExpanded = false }: NavbarProps)
               onClick={() => setShowProfileMenu(!showProfileMenu)}
               className="flex items-center gap-3 cursor-pointer group"
             >
+              <div className="hidden md:block text-left">
+                <p className="text-sm font-medium text-slate-900">
+                  {localStorage.getItem("FirstName")} {localStorage.getItem("LastName")}
+                </p>
+              </div>
               <div className="relative">
                 <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-700 rounded-full flex items-center justify-center shadow-md group-hover:scale-105 transition-transform duration-200">
                   <span className="text-white font-semibold text-sm">
@@ -365,14 +348,7 @@ const Navbar = ({ toggleMobileSidebar, isSidebarExpanded = false }: NavbarProps)
                 <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 rounded-full border-2 border-white ring-2 ring-green-400 ring-opacity-50"></div>
               </div>
               
-              <div className="hidden md:block text-left">
-                <p className="text-sm font-medium text-white">
-                  {userFirstname} {userLastname}
-                </p>
-                <p className="text-xs text-blue-200">
-                  {localStorage.getItem("subdomain")}
-                </p>
-              </div>
+              
             </div>
 
             {/* Profile Dropdown */}
@@ -382,7 +358,7 @@ const Navbar = ({ toggleMobileSidebar, isSidebarExpanded = false }: NavbarProps)
                   <button
                     onClick={() => {
                       setShowProfileMenu(false);
-                      navigate("/profile");
+                      navigate(`/${localStorage.getItem('subdomain')}/profile`);
                     }}
                     className="w-full px-5 py-3 text-left text-gray-700 hover:bg-gray-50 transition-colors duration-200 flex items-center gap-3 group cursor-pointer"
                   >

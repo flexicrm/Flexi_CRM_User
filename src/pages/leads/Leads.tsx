@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   AlertCircle,
   ArrowUpFromLine,
@@ -8,8 +8,7 @@ import {
   Loader2,
   Plus,
   Target,
-  Upload,
-  X
+  Upload
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -30,7 +29,7 @@ const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.12, delayChildren: 0.05 },
+    transition: { staggerChildren: 0.1, delayChildren: 0.05 },
   },
 };
 
@@ -48,10 +47,10 @@ const Tooltip = ({ children, text }: { children: React.ReactNode, text: string }
   <div className="group relative flex flex-col items-center">
     {children}
     <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center z-50 animate-in fade-in zoom-in-95 duration-200">
-      <span className="relative z-10 px-2.5 py-1.5 text-[11px] font-semibold text-white whitespace-nowrap bg-slate-800 shadow-xl rounded-md">
+      <span className="relative z-10 px-2 py-1 text-[10px] font-semibold text-white whitespace-nowrap bg-slate-800 shadow-md rounded-md">
         {text}
       </span>
-      <div className="w-2.5 h-2.5 -mt-1.5 rotate-45 bg-slate-800 rounded-sm"></div>
+      <div className="w-2 h-2 -mt-1 rotate-45 bg-slate-800 rounded-sm"></div>
     </div>
   </div>
 );
@@ -150,13 +149,15 @@ const Leads: React.FC = () => {
     // Don't show error during initial load or refresh
     if (error && !isInitialLoad && !isRefreshing) {
       return (
-        <div className="flex flex-col items-center justify-center py-20 text-center">
-          <AlertCircle className="text-rose-500 mb-3" size={40} />
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center mb-4">
+            <AlertCircle className="text-rose-500" size={32} />
+          </div>
           <h3 className="text-lg font-semibold text-slate-800">Failed to load leads</h3>
-          <p className="text-sm text-slate-500 mt-1">{error}</p>
+          <p className="text-sm text-slate-500 mt-1 max-w-md">{error}</p>
           <button 
             onClick={handleRefresh} 
-            className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            className="mt-6 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
             disabled={isRefreshing}
           >
             {isRefreshing ? "Retrying..." : "Try Again"}
@@ -193,81 +194,81 @@ const Leads: React.FC = () => {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="min-h-screen bg-[#F8FAFC] py-8 px-6 lg:px-10"
+        className="min-h-screen bg-[#F8FAFC] py-6 px-4 md:py-8 md:px-6 lg:px-8"
       >
-        <div className="max-w-[1600px] mx-auto space-y-8">
+        <div className="w-full mx-auto space-y-6">
           
           {/* --- LAYER 1: HERO HEADER --- */}
-          <motion.header variants={itemVariants} className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center shadow-sm">
-                <Target size={24} strokeWidth={2.5} />
+          <motion.header variants={itemVariants} className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-indigo-100 text-indigo-600 rounded-xl md:rounded-2xl flex items-center justify-center shadow-sm">
+                <Target size={20} strokeWidth={2.5} className="md:w-6 md:h-6" />
               </div>
               <div>
-                <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">Lead Pipeline</h1>
-                <div className="flex items-center gap-3 mt-1">
-                  <p className="text-sm text-slate-500">Track, convert, and manage your prospects.</p>
-                  <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    {leadsData?.leadsCount || 0} Total {leadsData?.leadsCount === 1 ? 'Record' : 'Records'}
+                <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">Lead Pipeline</h1>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-xs md:text-sm text-slate-500">Track, convert, and manage your prospects.</p>
+                  <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                  <p className="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    {leadsData?.leadsCount || 0} Total
                   </p>
                 </div>
               </div>
             </div>
 
             {/* Action Toolbar */}
-            <div className="flex flex-wrap items-center gap-4 xl:justify-end w-full xl:w-auto">
+            <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
               
               {/* Refresh Button */}
               <Tooltip text="Refresh Data">
                 <button
                   onClick={handleRefresh}
                   disabled={isRefreshing}
-                  className="p-2 bg-white rounded-xl shadow-sm border border-slate-200 text-slate-500 hover:text-indigo-600 hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 bg-white rounded-lg shadow-sm border border-slate-200 text-slate-500 hover:text-indigo-600 hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Loader2 size={18} className={isRefreshing ? "animate-spin" : ""} />
+                  <Loader2 size={16} className={isRefreshing ? "animate-spin" : ""} />
                 </button>
               </Tooltip>
 
               {/* View Switchers */}
-              <div className="flex items-center p-1 bg-white rounded-xl shadow-sm border border-slate-200">
+              <div className="flex items-center p-1 bg-white rounded-lg shadow-sm border border-slate-200">
                 <Tooltip text="Table View">
                   <button
                     onClick={() => handleViewChange('table')}
-                    className={`p-2 rounded-lg transition-all ${currentView === 'table' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'}`}
+                    className={`p-1.5 rounded-md transition-all ${currentView === 'table' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'}`}
                     disabled={isRefreshing}
                   >
-                    <List size={18} />
+                    <List size={16} />
                   </button>
                 </Tooltip>
                 <Tooltip text="Grid View">
                   <button
                     onClick={() => handleViewChange('grid')}
-                    className={`p-2 rounded-lg transition-all ${currentView === 'grid' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'}`}
+                    className={`p-1.5 rounded-md transition-all ${currentView === 'grid' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'}`}
                     disabled={isRefreshing}
                   >
-                    <LayoutGrid size={18} />
+                    <LayoutGrid size={16} />
                   </button>
                 </Tooltip>
                 <Tooltip text="Kanban Board">
                   <button
                     onClick={() => handleViewChange('kanban')}
-                    className={`p-2 rounded-lg transition-all ${currentView === 'kanban' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'}`}
+                    className={`p-1.5 rounded-md transition-all ${currentView === 'kanban' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'}`}
                     disabled={isRefreshing}
                   >
-                    <Kanban size={18} />
+                    <Kanban size={16} />
                   </button>
                 </Tooltip>
               </div>
 
               {/* Utility Actions */}
-              <div className="flex items-center p-1 bg-white rounded-xl shadow-sm border border-slate-200 gap-1">
+              <div className="flex items-center p-1 bg-white rounded-lg shadow-sm border border-slate-200 gap-0.5">
                 <Tooltip text="Bulk Upload">
                   <Reusable_Button
                     variant='secondary'
                     onClick={() => handleViewChange('bulk')}
-                    className={`p-2 rounded-lg transition-all ${currentView === 'bulk' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'}`}
-                    icon={<Upload size={18} />}
+                    className={`p-1.5 rounded-md transition-all ${currentView === 'bulk' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'}`}
+                    icon={<Upload size={16} />}
                     disabled={!Roles?.canCreate || isRefreshing}
                   />
                 </Tooltip>
@@ -275,22 +276,23 @@ const Leads: React.FC = () => {
                   <Reusable_Button
                     variant='secondary'
                     onClick={() => setIsExportModalOpen(true)}
-                    className="p-2 rounded-lg transition-all text-slate-400 hover:text-slate-700 hover:bg-slate-50"
-                    icon={<ArrowUpFromLine size={18} />}
+                    className="p-1.5 rounded-md transition-all text-slate-400 hover:text-slate-700 hover:bg-slate-50"
+                    icon={<ArrowUpFromLine size={16} />}
                     disabled={!Roles?.canEdit || isRefreshing}
                   />
                 </Tooltip>
               </div>
 
               {/* Primary Action Button */}
-              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="w-full sm:w-auto">
                 <Reusable_Button 
                   text='Add New Lead'
                   variant="primary"
-                  icon={<Plus size={18} />}
-                  size='px-5 py-2.5 font-medium shadow-lg shadow-indigo-200/50 rounded-xl'
+                  icon={<Plus size={16} />}
+                  size='px-4 py-2 text-sm font-medium shadow-md shadow-indigo-200/50 rounded-lg'
                   onClick={() => navigate(`/${localStorage.getItem('subdomain')}/leads/create-leads/`)}
                   disabled={!Roles?.canCreate || isRefreshing}
+                  className="w-full sm:w-auto"
                 />
               </motion.div>
             </div>
@@ -302,52 +304,14 @@ const Leads: React.FC = () => {
             className={`transition-all duration-300 ${
               currentView === 'kanban' 
                 ? '' 
-                : 'bg-white rounded-3xl shadow-[0px_4px_24px_rgba(0,0,0,0.02)] border border-slate-200/60 overflow-hidden'
+                : 'bg-white rounded-xl md:rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden'
             }`}
           >
-            <div className={currentView === 'table' || currentView === 'grid' ? 'p-2 sm:p-6' : ''}>
+            <div className={currentView === 'table' || currentView === 'grid' ? 'p-0 sm:p-4' : ''}>
               {renderView()}
             </div>
           </motion.main>
         </div>
-
-        {/* --- FLOATING BULK ACTIONS TOAST --- */}
-        <AnimatePresence>
-          {selectedIds.length > 0 && !isRefreshing && (
-            <motion.div 
-              initial={{ y: 100, opacity: 0, scale: 0.9 }}
-              animate={{ y: 0, opacity: 1, scale: 1 }}
-              exit={{ y: 100, opacity: 0, scale: 0.9 }}
-              transition={{ type: "spring" as const, stiffness: 400, damping: 25 }}
-              className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-[#0F172A] text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-slate-700/50"
-            >
-              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-indigo-500/20 text-indigo-400 font-bold text-sm">
-                {selectedIds.length}
-              </div>
-              <span className="font-medium text-sm tracking-wide">
-                Lead{selectedIds.length !== 1 ? 's' : ''} Selected
-              </span>
-              <div className="w-px h-6 bg-slate-700 mx-2"></div>
-              
-              {/* Export Selected Data Button */}
-              <button
-                onClick={() => setIsExportModalOpen(true)}
-                className="group text-sm font-semibold bg-white/10 text-white hover:bg-white/20 px-4 py-2 rounded-xl transition-all flex items-center gap-2 border border-white/5 hover:border-white/20"
-              >
-                <ArrowUpFromLine size={16} className="group-hover:-translate-y-0.5 transition-transform" />
-                Export Selected
-              </button>
-
-              <button
-                onClick={() => setSelectedIds([])}
-                className="text-slate-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-slate-800"
-                aria-label="Clear selection"
-              >
-                <X size={18} />
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Export Modal Component */}
         <ExportModal 

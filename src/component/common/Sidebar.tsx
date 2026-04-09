@@ -236,6 +236,7 @@ const Sidebar = ({ onHoverChange }: SidebarProps) => {
   const [error, setError] = useState<string | null>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
   
   const navigate = useNavigate();
   const subdomain = localStorage.getItem("subdomain") || "default";
@@ -254,6 +255,8 @@ const Sidebar = ({ onHoverChange }: SidebarProps) => {
         
         const response = await meAPI();
         let permissionsArray: Permission[] = [];
+        localStorage.setItem("FirstName", response?.data?.data?.firstname || "");
+        localStorage.setItem("LastName", response?.data?.data?.lastname || "");
         
         if (response.data?.data?.permissions && Array.isArray(response.data.data.permissions)) {
           permissionsArray = response.data.data.permissions;
@@ -322,14 +325,28 @@ const Sidebar = ({ onHoverChange }: SidebarProps) => {
     navigate("/login");
   };
 
+  // Update tooltip position when hovering over an item
+  const handleMouseEnter = (e: React.MouseEvent, label: string) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setTooltipPosition({
+      top: rect.top + rect.height / 2,
+      left: rect.right + 8,
+    });
+    setHoveredItem(label);
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredItem(null);
+  };
+
   if (loading) {
     return (
-      <aside className="bg-gradient-to-b from-[#0d1954] to-[#0a1240] text-gray-300 w-20 flex flex-col shadow-2xl">
+      <aside className="bg-white text-gray-300 w-20 flex flex-col shadow-2xl border-r border-slate-200">
         <div className="flex items-center justify-center h-full">
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-            className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full"
+            className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full"
           />
         </div>
       </aside>
@@ -351,115 +368,44 @@ const Sidebar = ({ onHoverChange }: SidebarProps) => {
   };
 
   const tooltipVariants = {
-    hidden: { opacity: 0, x: -10, scale: 0.95 },
-    visible: { opacity: 1, x: 0, scale: 1 },
+    hidden: { opacity: 0, scale: 0.95, x: -5 },
+    visible: { opacity: 1, scale: 1, x: 0 },
   };
 
   return (
-    <motion.aside
-      initial="collapsed"
-      animate={isHovered ? "expanded" : "collapsed"}
-      variants={sidebarVariants}
-      transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="relative bg-gradient-to-b from-[#0d1954] to-[#0a1240] text-gray-300 flex flex-col shadow-2xl z-20"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      {/* Spacer to account for navbar logo (no logo in sidebar anymore) */}
-      <div className="h-4"></div>
+    <>
+      <motion.aside
+        initial="collapsed"
+        animate={isHovered ? "expanded" : "collapsed"}
+        variants={sidebarVariants}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+        className="relative bg-white text-gray-300 flex flex-col shadow-xl z-20 border-r border-slate-200"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        {/* Spacer */}
+        <div className="h-4"></div>
 
-      {/* Main Navigation */}
-      <nav className="flex-1 overflow-y-auto py-6">
-        <div className="px-3 space-y-1">
-          {menuItems.map((item, index) => (
-            <motion.div
-              key={item.path}
-              initial="hidden"
-              animate="visible"
-              variants={menuItemVariants}
-              transition={{ delay: index * 0.05 }}
-              className="relative"
-              onMouseEnter={() => setHoveredItem(item.label)}
-              onMouseLeave={() => setHoveredItem(null)}
-            >
-              <NavLink
-                to={item.path}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 relative group ${
-                    isActive
-                      ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg"
-                      : "text-gray-400 hover:bg-gray-700/50 hover:text-white"
-                  }`
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    {isActive && (
-                      <motion.div
-                        layoutId="activeIndicator"
-                        className="absolute left-0 w-1 h-8 bg-blue-400 rounded-r-full"
-                        initial={{ scaleY: 0 }}
-                        animate={{ scaleY: 1 }}
-                        transition={{ duration: 0.2 }}
-                      />
-                    )}
-                    
-                    <item.icon className="w-5 h-5 flex-shrink-0" />
-                    
-                    <motion.span
-                      className="whitespace-nowrap text-sm font-medium"
-                      animate={{
-                        opacity: isHovered ? 1 : 0,
-                        display: isHovered ? "inline-block" : "none",
-                      }}
-                      transition={{ duration: 0.2 }}
-                    >
-                      {item.label}
-                    </motion.span>
-                  </>
-                )}
-              </NavLink>
-
-              {!isHovered && hoveredItem === item.label && (
-                <motion.div
-                  variants={tooltipVariants}
-                  initial="hidden"
-                  animate="visible"
-                  className="absolute left-full ml-2 top-1/2 -translate-y-1/2 z-50"
-                >
-                  <div className="bg-gray-900 text-white text-sm px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
-                    {item.label}
-                    <div className="absolute left-0 top-1/2 -translate-x-1 -translate-y-1/2 w-1 h-0 border-t-4 border-r-4 border-b-4 border-transparent border-r-gray-900" />
-                  </div>
-                </motion.div>
-              )}
-            </motion.div>
-          ))}
-        </div>
-      </nav>
-
-      {/* Bottom Navigation */}
-      {bottomItems.length > 0 && (
-        <div className="border-t border-gray-700/50 pt-4 pb-6 px-3">
-          <div className="space-y-1">
-            {bottomItems.map((item, index) => (
+        {/* Main Navigation */}
+        <nav className="flex-1 py-6">
+          <div className="px-3 space-y-1">
+            {menuItems.map((item, index) => (
               <motion.div
                 key={item.path}
                 initial="hidden"
                 animate="visible"
                 variants={menuItemVariants}
-                transition={{ delay: (menuItems.length + index) * 0.05 }}
-                className="relative"
-                onMouseEnter={() => setHoveredItem(item.label)}
-                onMouseLeave={() => setHoveredItem(null)}
+                transition={{ delay: index * 0.05 }}
+                onMouseEnter={(e) => handleMouseEnter(e, item.label)}
+                onMouseLeave={handleMouseLeave}
               >
                 <NavLink
                   to={item.path}
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 relative group ${
                       isActive
-                        ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg"
-                        : "text-gray-400 hover:bg-gray-700/50 hover:text-white"
+                        ? "bg-blue-50 text-[#0000FF] shadow-sm"
+                        : "text-slate-700 hover:bg-slate-100"
                     }`
                   }
                 >
@@ -467,18 +413,20 @@ const Sidebar = ({ onHoverChange }: SidebarProps) => {
                     <>
                       {isActive && (
                         <motion.div
-                          layoutId="activeIndicatorBottom"
-                          className="absolute left-0 w-1 h-8 bg-blue-400 rounded-r-full"
+                          layoutId="activeIndicator"
+                          className="absolute left-0 w-1 h-8 bg-blue-600 rounded-r-full"
                           initial={{ scaleY: 0 }}
                           animate={{ scaleY: 1 }}
                           transition={{ duration: 0.2 }}
                         />
                       )}
                       
-                      <item.icon className="w-5 h-5 flex-shrink-0" />
+                      <item.icon 
+                        className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-blue-700' : 'text-blue-600'}`} 
+                      />
                       
                       <motion.span
-                        className="whitespace-nowrap text-sm font-medium"
+                        className="whitespace-nowrap text-sm font-medium text-slate-800"
                         animate={{
                           opacity: isHovered ? 1 : 0,
                           display: isHovered ? "inline-block" : "none",
@@ -490,80 +438,134 @@ const Sidebar = ({ onHoverChange }: SidebarProps) => {
                     </>
                   )}
                 </NavLink>
-
-                {!isHovered && hoveredItem === item.label && (
-                  <motion.div
-                    variants={tooltipVariants}
-                    initial="hidden"
-                    animate="visible"
-                    className="absolute left-full ml-2 top-1/2 -translate-y-1/2 z-50"
-                  >
-                    <div className="bg-gray-900 text-white text-sm px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
-                      {item.label}
-                      <div className="absolute left-0 top-1/2 -translate-x-1 -translate-y-1/2 w-1 h-0 border-t-4 border-r-4 border-b-4 border-transparent border-r-gray-900" />
-                    </div>
-                  </motion.div>
-                )}
               </motion.div>
             ))}
+          </div>
+        </nav>
 
-            {/* Logout Button */}
-            <motion.div
-              initial="hidden"
-              animate="visible"
-              variants={menuItemVariants}
-              transition={{ delay: (menuItems.length + bottomItems.length) * 0.05 }}
-              className="relative"
-              onMouseEnter={() => setHoveredItem("Logout")}
-              onMouseLeave={() => setHoveredItem(null)}
-            >
-              <button
-                onClick={handleLogout}
-                className="flex items-center w-full gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-red-600 hover:text-white transition-all duration-200 cursor-pointer group"
-              >
-                <LogOut className="w-5 h-5 flex-shrink-0" />
-                
-                <motion.span
-                  className="whitespace-nowrap text-sm font-medium"
-                  animate={{
-                    opacity: isHovered ? 1 : 0,
-                    display: isHovered ? "inline-block" : "none",
-                  }}
-                  transition={{ duration: 0.2 }}
-                >
-                  Logout
-                </motion.span>
-              </button>
-
-              {!isHovered && hoveredItem === "Logout" && (
+        {/* Bottom Navigation */}
+        {bottomItems.length > 0 && (
+          <div className="border-t border-slate-200 pt-4 pb-6 px-3">
+            <div className="space-y-1">
+              {bottomItems.map((item, index) => (
                 <motion.div
-                  variants={tooltipVariants}
+                  key={item.path}
                   initial="hidden"
                   animate="visible"
-                  className="absolute left-full ml-2 top-1/2 -translate-y-1/2 z-50"
+                  variants={menuItemVariants}
+                  transition={{ delay: (menuItems.length + index) * 0.05 }}
+                  onMouseEnter={(e) => handleMouseEnter(e, item.label)}
+                  onMouseLeave={handleMouseLeave}
                 >
-                  <div className="bg-red-600 text-white text-sm px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
-                    Logout
-                    <div className="absolute left-0 top-1/2 -translate-x-1 -translate-y-1/2 w-1 h-0 border-t-4 border-r-4 border-b-4 border-transparent border-r-red-600" />
-                  </div>
+                  <NavLink
+                    to={item.path}
+                    className={({ isActive }) =>
+                      `flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 relative group ${
+                        isActive
+                          ? "bg-blue-50 text-blue-700 shadow-sm"
+                          : "text-slate-700 hover:bg-slate-100"
+                      }`
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        {isActive && (
+                          <motion.div
+                            layoutId="activeIndicatorBottom"
+                            className="absolute left-0 w-1 h-8 bg-blue-600 rounded-r-full"
+                            initial={{ scaleY: 0 }}
+                            animate={{ scaleY: 1 }}
+                            transition={{ duration: 0.2 }}
+                          />
+                        )}
+                        
+                        <item.icon 
+                          className={`w-5 h-5 flex-shrink-0 ${isActive ? 'text-blue-700' : 'text-blue-600'}`} 
+                        />
+                        
+                        <motion.span
+                          className="whitespace-nowrap text-sm font-medium text-slate-800"
+                          animate={{
+                            opacity: isHovered ? 1 : 0,
+                            display: isHovered ? "inline-block" : "none",
+                          }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          {item.label}
+                        </motion.span>
+                      </>
+                    )}
+                  </NavLink>
                 </motion.div>
-              )}
-            </motion.div>
-          </div>
-        </div>
-      )}
+              ))}
 
-      {/* Version Info */}
-      <motion.div
-        className="text-center pb-4"
-        animate={{ opacity: isHovered ? 0.5 : 0 }}
-        transition={{ duration: 0.2 }}
-      >
-        {isHovered && (
-          <p className="text-xs text-gray-500">Version 1.0.0</p>
+              {/* Logout Button */}
+              <motion.div
+                initial="hidden"
+                animate="visible"
+                variants={menuItemVariants}
+                transition={{ delay: (menuItems.length + bottomItems.length) * 0.05 }}
+                onMouseEnter={(e) => handleMouseEnter(e, "Logout")}
+                onMouseLeave={handleMouseLeave}
+              >
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center w-full gap-3 px-3 py-2.5 rounded-lg text-slate-700 hover:bg-red-50 hover:text-red-600 transition-all duration-200 cursor-pointer group"
+                >
+                  <LogOut className="w-5 h-5 flex-shrink-0 text-red-500" />
+                  
+                  <motion.span
+                    className="whitespace-nowrap text-sm font-medium text-slate-800"
+                    animate={{
+                      opacity: isHovered ? 1 : 0,
+                      display: isHovered ? "inline-block" : "none",
+                    }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    Logout
+                  </motion.span>
+                </button>
+              </motion.div>
+            </div>
+          </div>
         )}
-      </motion.div>
-    </motion.aside>
+
+        {/* Version Info */}
+        <motion.div
+          className="text-center pb-4"
+          animate={{ opacity: isHovered ? 0.5 : 0 }}
+          transition={{ duration: 0.2 }}
+        >
+          {isHovered && (
+            <p className="text-xs text-slate-400">Version 1.0.0</p>
+          )}
+        </motion.div>
+      </motion.aside>
+
+      {/* Tooltip Portal - Rendered outside sidebar */}
+      {hoveredItem && !isHovered && (
+        <motion.div
+          key="tooltip"
+          variants={tooltipVariants}
+          initial="hidden"
+          animate="visible"
+          exit="hidden"
+          style={{
+            position: 'fixed',
+            top: tooltipPosition.top,
+            left: tooltipPosition.left,
+            transform: 'translateY(-50%)',
+            zIndex: 9999,
+          }}
+          className="pointer-events-none"
+        >
+          <div className="bg-slate-800 text-white text-sm px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap">
+            {hoveredItem}
+            <div className="absolute left-0 top-1/2 -translate-x-1 -translate-y-1/2 w-0 h-0 border-t-4 border-r-4 border-b-4 border-transparent border-r-slate-800" />
+          </div>
+        </motion.div>
+      )}
+    </>
   );
 };
 

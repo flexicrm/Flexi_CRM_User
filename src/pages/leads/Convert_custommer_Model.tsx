@@ -1,410 +1,356 @@
-import { AnimatePresence, motion } from 'framer-motion';
-import { Loader2, Sparkles, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { useSearchParams } from 'react-router-dom';
-import Reusable_Button from '../../component/button/Reusable_Button';
-import Reusable_Fields from '../../component/Fields/Reusable_Fiealds';
-import { errorAlert, successAlert } from '../../component/Notification/statusHandler';
+import { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useSearchParams } from "react-router-dom";
+import Reusable_Button from "../../component/button/Reusable_Button";
+import RippleLoader from "../../component/Loader/RippleLoader";
+import { errorAlert, successAlert } from "../../component/Notification/statusHandler";
 import {
-  addFollowUp_Assignto,
-  addFollowUp_Leadstatus,
-  addFollowUp_status,
-  addFollowUp_type,
-  createFollowUp
-} from '../../store/homepage_slice/Leads_slice';
+  convertCustomer,
+  fetchStatuses,
+} from "../../store/homepage_slice/Leads_slice";
 
-// Helper function to extract error message from API response
-const extractErrorMessage = (error: any): string => {
-  let errorMessage = "Error occurred while saving user. Please try again.";
-  
-  if (error?.response?.data) {
-    const responseData = error.response.data;
-    if (responseData.errors) {
-      if (typeof responseData.errors === 'string') errorMessage = responseData.errors;
-      else if (typeof responseData.errors === 'object') {
-        const firstErrorKey = Object.keys(responseData.errors)[0];
-        errorMessage = firstErrorKey && responseData.errors[firstErrorKey] ? responseData.errors[firstErrorKey] : JSON.stringify(responseData.errors);
-      }
-    }
-    else if (responseData.message) errorMessage = responseData.message;
-    else if (responseData.error) errorMessage = responseData.error;
-  }
-  else if (error?.errors) {
-    if (typeof error.errors === 'string') errorMessage = error.errors;
-    else if (typeof error.errors === 'object') {
-      const firstErrorKey = Object.keys(error.errors)[0];
-      errorMessage = firstErrorKey && error.errors[firstErrorKey] ? error.errors[firstErrorKey] : JSON.stringify(error.errors);
-    }
-  }
-  else if (error?.message) errorMessage = error.message;
-  
-  return errorMessage;
-};
+interface ConvertCustomerModalProps {
+  tableId?: string;
+  selectedData?: any;
+  onSuccess?: () => void;
+}
 
-// Validation function for form data
-const validateFormData = (formData: any): string | null => {
-  if (!formData.leadStatus) {
-    return "Please select a lead status.";
-  }
-  if (!formData.type) {
-    return "Please select an interaction type.";
-  }
-  if (!formData.status) {
-    return "Please select a follow-up status.";
-  }
-  if (!formData.assignTo) {
-    return "Please select a team member to assign this follow-up to.";
-  }
-  if (!formData.dueDate) {
-    return "Please select a due date for the follow-up.";
-  }
-  if (formData.notes && formData.notes.length < 5) {
-    return "Notes should be at least 5 characters long.";
-  }
-  return null;
-};
-
-const AddFollowUp_Model = ({tableId} : { tableId: string | null; selectedData: any }) => {
+const Convert_custommer_Model: React.FC<ConvertCustomerModalProps> = ({ 
+  tableId, 
+  selectedData, 
+  onSuccess 
+}) => {
   const dispatch = useDispatch();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const { statusOptions, loading: statusLoading } = useSelector(
+    (state: any) => state.leads
+  );
+
+  const [loading, setLoading] = useState(false);
+
+  // Find the appropriate status for conversion (Won or Converted)
+  const leadStatusArray = Array.isArray(statusOptions) ? statusOptions : [];
   
-  const isOpen = searchParams.get("modal") === "schedule-followup";
+  // Try to find 'Won' status first, then 'Converted'
+  const conversionStatus = leadStatusArray.find(
+    (item: any) => {
+      const statusName = item?.statusName || item?.name || item?.label || "";
+      return statusName.toLowerCase() === 'won' || statusName.toLowerCase() === 'converted';
+    }
+  );
 
-  const {
-    followUpStatuses,
-    followUpTypes,
-    followUpLeadStatuses,
-    assignToUsers,
-    isSubmittingFollowUp
-  } = useSelector((state: any) => state.leads);
-
-  const [formData, setFormData] = useState({
-    leadStatus: '',
-    type: '',
-    priority: 'medium',
-    status: '',
-    assignTo: '',
-    notes: '',
-    dueDate: '',
-    setReminder: false
-  });
-
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-
+  // Debug: Log available statuses
   useEffect(() => {
-    if (isOpen) {
-      dispatch(addFollowUp_status() as any);
-      dispatch(addFollowUp_Assignto() as any);
-      dispatch(addFollowUp_Leadstatus() as any);
-      dispatch(addFollowUp_type() as any);
-      
-      // Reset validation errors when modal opens
-      setValidationErrors({});
+    if (leadStatusArray.length > 0) {
+      console.log("Available statuses:", leadStatusArray.map(s => s.statusName || s.name));
+      console.log("Conversion status found:", conversionStatus);
     }
-  }, [isOpen, dispatch]);
+  }, [leadStatusArray, conversionStatus]);
 
-  const handleChange = (e: any) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    
-    // Clear validation error for this field when user starts typing
-    if (validationErrors[name]) {
-      setValidationErrors(prev => ({ ...prev, [name]: '' }));
-    }
+  // Prefilled values for display only
+  const values = {
+    companyName: selectedData?.manualData?.company || selectedData?.Company || "",
+    email: selectedData?.manualData?.email || selectedData?.Email || "",
+    phone: selectedData?.manualData?.mobileNo || selectedData?.Phone || "",
+    name: selectedData?.manualData?.name || selectedData?.Name || "",
   };
 
-  const closeModal = () => {
-    const params = new URLSearchParams(searchParams);
-    params.delete("modal");
-    setSearchParams(params, { state: { activeId: tableId } });
-    setFormData({ 
-      leadStatus: '', 
-      type: '', 
-      priority: 'medium', 
-      status: '', 
-      assignTo: '', 
-      notes: '', 
-      dueDate: '', 
-      setReminder: false 
-    });
-    setValidationErrors({});
+  useEffect(() => {
+    if (!statusOptions?.length) {
+      dispatch(fetchStatuses());
+    }
+  }, [dispatch, statusOptions]);
+
+  const handleClose = () => {
+    searchParams.delete("modal");
+    searchParams.delete("LeadId");
+    setSearchParams(searchParams);
+    if (onSuccess) onSuccess();
+  };
+
+  // ✅ Enhanced function to extract error message from API response
+  const extractErrorMessage = (err: any): string => {
+    console.log("Full error object:", err);
+    
+    // Check for response.data (axios error response)
+    if (err?.response?.data) {
+      const responseData = err.response.data;
+      
+      // Handle your API response structure: { success: false, errors: "...", statusCode: 500 }
+      if (responseData.errors) {
+        if (typeof responseData.errors === 'string') {
+          // Check for duplicate key error
+          if (responseData.errors.includes("E11000 duplicate key") || 
+              responseData.errors.includes("duplicate key error")) {
+            // Extract email from error message
+            const emailMatch = responseData.errors.match(/email: \"([^\"]+)\"/);
+            if (emailMatch) {
+              return `Customer with email "${emailMatch[1]}" already exists.`;
+            }
+            return "Customer with this email already exists.";
+          }
+          return responseData.errors;
+        }
+        if (typeof responseData.errors === 'object') {
+          const errorMessages = Object.values(responseData.errors).join(', ');
+          return errorMessages;
+        }
+      }
+      
+      if (responseData.message) {
+        if (typeof responseData.message === 'string') {
+          if (responseData.message.includes("E11000 duplicate key")) {
+            const emailMatch = responseData.message.match(/email: \"([^\"]+)\"/);
+            if (emailMatch) {
+              return `Customer with email "${emailMatch[1]}" already exists.`;
+            }
+            return "Customer with this email already exists.";
+          }
+          return responseData.message;
+        }
+      }
+      
+      if (responseData.error) {
+        if (typeof responseData.error === 'string') {
+          return responseData.error;
+        }
+      }
+    }
+    
+    // Check for errors field directly
+    if (err?.errors) {
+      if (typeof err.errors === 'string') {
+        if (err.errors.includes("E11000 duplicate key")) {
+          const emailMatch = err.errors.match(/email: \"([^\"]+)\"/);
+          if (emailMatch) {
+            return `Customer with email "${emailMatch[1]}" already exists.`;
+          }
+          return "Customer with this email already exists.";
+        }
+        return err.errors;
+      }
+      if (typeof err.errors === 'object') {
+        const errorMessages = Object.values(err.errors).join(', ');
+        return errorMessages;
+      }
+    }
+    
+    // Check for message field
+    if (err?.message) {
+      if (typeof err.message === 'string') {
+        if (err.message.includes("E11000 duplicate key")) {
+          const emailMatch = err.message.match(/email: \"([^\"]+)\"/);
+          if (emailMatch) {
+            return `Customer with email "${emailMatch[1]}" already exists.`;
+          }
+          return "Customer with this email already exists.";
+        }
+        return err.message;
+      }
+    }
+    
+    // Check for string error
+    if (typeof err === 'string') {
+      if (err.includes("E11000 duplicate key")) {
+        const emailMatch = err.match(/email: \"([^\"]+)\"/);
+        if (emailMatch) {
+          return `Customer with email "${emailMatch[1]}" already exists.`;
+        }
+        return "Customer with this email already exists.";
+      }
+      return err;
+    }
+    
+    return "Conversion failed. Please try again.";
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Client-side validation
-    const validationError = validateFormData(formData);
-    if (validationError) {
-      errorAlert(validationError, "Okay");
-      return;
-    }
-    
+    // Validation
     if (!tableId) {
-      errorAlert("Lead ID missing! Please try again.", "Retry");
+      errorAlert("Lead ID is missing", "OK", "Error");
       return;
     }
 
-    const payload = {
-      followUps: [
-        {
-          leadStatus: formData.leadStatus,
-          type: formData.type,
-          notes: formData.notes,
-          assignTo: formData.assignTo,
-          isSetTimer: formData.setReminder,
-          priority: formData.priority,
-          status: formData.status,
-          ...(formData.dueDate && { dueDate: formData.dueDate })
-        }
-      ]
-    };
+    if (!conversionStatus?._id) {
+      console.error("Conversion status not found. Available statuses:", leadStatusArray);
+      errorAlert(
+        "No suitable status found for conversion. Please add 'Won' or 'Converted' status in settings.",
+        "OK",
+        "Status Missing"
+      );
+      return;
+    }
+
+    setLoading(true);
 
     try {
-      const resultAction = await dispatch(createFollowUp({ tableId: tableId, data: payload }) as any).unwrap();
-      const successMsg = resultAction?.message || resultAction?.data?.message || "Follow-up created successfully!";
-      successAlert(successMsg, "Done");
-      closeModal();
-    } catch (error: any) {
-      // Enhanced error handling with specific error messages
-      let errorMessage = extractErrorMessage(error);
+      const subdomain = localStorage.getItem("subdomain") || "default";
+
+      // Call convertCustomer API
+      const convertData = {
+        subdomain: subdomain,
+        leadId: tableId,
+        status: conversionStatus._id,
+      };
+
+      console.log("Converting lead with data:", convertData);
+
+      const convertResult = await dispatch(convertCustomer(convertData)).unwrap();
       
-      // Additional fallback for the specific error format
-      if (error && typeof error === 'object') {
-        // Check for the exact format: { success: false, errors: "...", statusCode: 500 }
-        if (error.success === false && error.errors) {
-          errorMessage = error.errors;
-          
-          // Clean up the message
-          if (errorMessage.includes('Cast to [ObjectId] failed')) {
-            if (errorMessage.includes('assignTo')) {
-              errorMessage = "Invalid team member selection. Please choose a valid user from the dropdown list.";
-            } else if (errorMessage.includes('leadStatus')) {
-              errorMessage = "Invalid lead status selection. Please choose a valid status from the dropdown list.";
-            } else if (errorMessage.includes('status')) {
-              errorMessage = "Invalid follow-up status selection. Please choose a valid status from the dropdown list.";
-            } else if (errorMessage.includes('type')) {
-              errorMessage = "Invalid interaction type selection. Please choose a valid type from the dropdown list.";
-            } else {
-              errorMessage = "Invalid selection. Please choose valid options from all dropdown lists.";
-            }
-          }
-        }
+      console.log("Conversion result:", convertResult);
+      
+      // Success message
+      if (convertResult?.data?.message) {
+        successAlert(convertResult.data.message, "Done", "Conversion Successful");
+      } else if (convertResult?.message) {
+        successAlert(convertResult.message, "Done", "Conversion Successful");
+      } else {
+        successAlert("Lead converted to customer successfully!", "Done", "Conversion Successful");
       }
-      
-      errorAlert(errorMessage, "Retry");
-      console.error("Follow-up creation error details:", error);
+
+      // Close modal after successful conversion
+      setTimeout(() => {
+        handleClose();
+      }, 1500);
+
+    } catch (err: any) {
+      console.error("Conversion error details:", err);
+      const errorMessage = extractErrorMessage(err);
+      // Show the extracted error message in the alert
+      errorAlert(errorMessage, "Try Again", "Conversion Failed");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const fieldStyles = "text-slate-900 bg-white border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 w-full";
-  const errorFieldStyles = "border-red-500 focus:border-red-500 focus:ring-red-500";
-
-  if (!isOpen) return null;
-
   return (
     <>
-      <style>{`select option { background-color: white !important; color: #0f172a !important; } input, select, textarea { color: #0f172a !important; background-color: white !important; }`}</style>
+      {(loading || statusLoading) && <RippleLoader />}
+      
+      <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
+        <div className="bg-white w-[450px] rounded-lg shadow-lg">
+          <div className="flex justify-between items-center p-4 border-b">
+            <h2 className="text-lg font-semibold text-gray-800">
+              Convert Lead to Customer
+            </h2>
+            <button
+              onClick={handleClose}
+              className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
+              disabled={loading}
+            >
+              &times;
+            </button>
+          </div>
 
-      <AnimatePresence>
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={closeModal}
-            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"
-          />
-
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="relative w-full max-w-3xl bg-white rounded-[40px] shadow-2xl overflow-hidden z-[101] max-h-[90vh] overflow-y-auto"
-          >
-            <div className="p-8 md:p-12">
-              <div className="flex justify-between items-center mb-10">
-                <h2 className="text-2xl font-black text-[#0d1954] tracking-tight">Add New Follow-Up</h2>
-                <button 
-                    onClick={closeModal} 
-                    className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-
-              <form className="space-y-8" onSubmit={handleSubmit}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="w-full">
-                    <Reusable_Fields
-                      type="select"
-                      label="Lead Status"
-                      name="leadStatus"
-                      value={formData.leadStatus}
-                      onChange={handleChange}
-                      className={`${fieldStyles} ${validationErrors.leadStatus ? errorFieldStyles : ''}`}
-                      options={followUpLeadStatuses?.map((item: any) => ({
-                        label: item.statusName || item.StatusName,
-                        value: item._id
-                      })) || []}
-                      required
-                    />
-                    {validationErrors.leadStatus && (
-                      <p className="text-red-500 text-xs mt-1">{validationErrors.leadStatus}</p>
-                    )}
-                  </div>
-                  <div className="w-full">
-                    <Reusable_Fields
-                      type="select"
-                      label="Interaction Type"
-                      name="type"
-                      value={formData.type}
-                      onChange={handleChange}
-                      className={`${fieldStyles} ${validationErrors.type ? errorFieldStyles : ''}`}
-                      options={followUpTypes?.map((item: any) => ({
-                        label: item.TypeName || item.name, 
-                        value: item._id
-                      })) || []}
-                      required
-                    />
-                    {validationErrors.type && (
-                      <p className="text-red-500 text-xs mt-1">{validationErrors.type}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="w-full">
-                    <Reusable_Fields
-                      type="select"
-                      label="Priority"
-                      name="priority"
-                      value={formData.priority}
-                      onChange={handleChange}
-                      className={fieldStyles}
-                      options={[
-                        { label: "High", value: "high" },
-                        { label: "Medium", value: "medium" },
-                        { label: "Low", value: "low" }
-                      ]}
-                    />
-                  </div>
-                  <div className="w-full">
-                    <Reusable_Fields
-                      type="select"
-                      label="Follow-up Status"
-                      name="status"
-                      value={formData.status}
-                      onChange={handleChange}
-                      className={`${fieldStyles} ${validationErrors.status ? errorFieldStyles : ''}`}
-                      options={followUpStatuses?.map((item: any) => ({
-                        label: item.StatusName,
-                        value: item._id
-                      })) || []}
-                      required
-                    />
-                    {validationErrors.status && (
-                      <p className="text-red-500 text-xs mt-1">{validationErrors.status}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="w-full">
-                    <Reusable_Fields
-                      type="select"
-                      label="Assign To"
-                      name="assignTo"
-                      value={formData.assignTo}
-                      onChange={handleChange}
-                      className={`${fieldStyles} ${validationErrors.assignTo ? errorFieldStyles : ''}`}
-                      placeholder="Select team member"
-                      options={assignToUsers?.map((user: any) => ({
-                        label: `${user.firstname || ''} ${user.lastname || ''}`.trim() || user.name || user.email,
-                        value: user._id
-                      })) || []}
-                      required
-                    />
-                    {validationErrors.assignTo && (
-                      <p className="text-red-500 text-xs mt-1">{validationErrors.assignTo}</p>
-                    )}
-                  </div>
-                  <div className="w-full">
-                    <Reusable_Fields
-                      type="date"
-                      label="Due Date"
-                      name="dueDate"
-                      value={formData.dueDate}
-                      onChange={handleChange}
-                      className={`${fieldStyles} ${validationErrors.dueDate ? errorFieldStyles : ''}`}
-                      required
-                    />
-                    {validationErrors.dueDate && (
-                      <p className="text-red-500 text-xs mt-1">{validationErrors.dueDate}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3 px-1">
-                  <input 
-                    type="checkbox" 
-                    id="reminder" 
-                    name="setReminder"
-                    checked={formData.setReminder}
-                    onChange={(e) => setFormData(prev => ({...prev, setReminder: e.target.checked}))}
-                    className="w-5 h-5 rounded border-slate-300 text-[#0d1954] focus:ring-[#0d1954]" 
-                  />
-                  <label htmlFor="reminder" className="text-sm font-bold text-slate-700 cursor-pointer">
-                    Set reminder
-                  </label>
-                </div>
-
-                <div className="relative">
-                  <div className="absolute top-4 left-5 flex items-center gap-2 z-20 pointer-events-none">
-                    <Sparkles size={14} className="text-indigo-500" />
-                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Explore AI solution</span>
-                  </div>
-                  
-                  <Reusable_Fields
-                    type="textarea"
-                    label="Notes"
-                    name="notes"
-                    value={formData.notes}
-                    onChange={handleChange}
-                    className={`${fieldStyles} pt-6 ${validationErrors.notes ? errorFieldStyles : ''}`}
-                    placeholder="Use 5 or more words to describe it, then let AI do the rest."
-                  />
-                  {validationErrors.notes && (
-                    <p className="text-red-500 text-xs mt-1">{validationErrors.notes}</p>
-                  )}
-                </div>
-
-                <div className="flex justify-end items-center gap-6 pt-4">
-                  <button 
-                    type="button" 
-                    onClick={closeModal} 
-                    className="text-slate-500 hover:text-slate-800 font-bold text-sm transition-colors disabled:opacity-50"
-                    disabled={isSubmittingFollowUp}
-                  >
-                    Cancel
-                  </button>
-                  <Reusable_Button 
-                    text={isSubmittingFollowUp ? "Submitting..." : "Create Follow-Up"}
-                    variant="primary"
-                    disabled={isSubmittingFollowUp}
-                    className="rounded-2xl px-8 py-4 bg-[#0d1954] text-white hover:bg-[#162a8c] transition-all flex items-center justify-center min-w-[180px]"
-                    onClick={handleSubmit}
-                    icon={isSubmittingFollowUp ? <Loader2 className="animate-spin mr-2" size={18} /> : null}
-                  />
-                </div>
-              </form>
+          <form onSubmit={handleSubmit} className="p-4 space-y-4">
+            <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
+              <p className="text-xs text-blue-600 font-semibold mb-1">
+                Converting Lead:
+              </p>
+              <p className="text-sm text-gray-700 font-medium">
+                {values.name || "Unnamed Lead"}
+                <span className="text-gray-500 text-xs ml-2">
+                  (ID: {tableId})
+                </span>
+              </p>
             </div>
-          </motion.div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Lead Name *
+              </label>
+              <input
+                value={values.name}
+                disabled
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                placeholder="Lead Name"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Company Name *
+              </label>
+              <input
+                value={values.companyName}
+                disabled
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                placeholder="Company Name"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email *
+              </label>
+              <input
+                value={values.email}
+                disabled
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                placeholder="Email"
+                type="email"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Phone Number *
+              </label>
+              <input
+                value={values.phone}
+                disabled
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                placeholder="Phone Number"
+                type="tel"
+              />
+            </div>
+
+            {/* Show conversion status info */}
+            {conversionStatus && (
+              <div className="mb-4 p-3 bg-green-50 rounded-lg border border-green-100">
+                <p className="text-xs text-green-700 font-semibold mb-1">
+                  ✓ Ready to Convert:
+                </p>
+                <p className="text-xs text-green-600">
+                  Lead will be marked as "{conversionStatus.statusName || conversionStatus.name}"
+                </p>
+              </div>
+            )}
+
+            {!conversionStatus && leadStatusArray.length > 0 && (
+              <div className="mb-4 p-3 bg-red-50 rounded-lg border border-red-200">
+                <p className="text-xs text-red-700 font-semibold mb-1">
+                  ⚠️ Status Issue:
+                </p>
+                <p className="text-xs text-red-600">
+                  No "Won" or "Converted" status found. Available statuses:{" "}
+                  {leadStatusArray.map(s => s.statusName || s.name).join(", ")}
+                </p>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 pt-4">
+              <Reusable_Button
+                onClick={handleClose}
+                disabled={loading}
+                text="Cancel"
+                variant="secondary"
+              />
+              <Reusable_Button
+                type="submit"
+                disabled={loading || !conversionStatus}
+                text={loading ? "Converting..." : "Convert to Customer"}
+                variant="primary"
+              />
+            </div>
+          </form>
         </div>
-      </AnimatePresence>
+      </div>
     </>
   );
 };
 
-export default AddFollowUp_Model;
+export default Convert_custommer_Model;

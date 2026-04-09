@@ -49,6 +49,7 @@ const Reusable_Fields: React.FC<ReusableFieldsProps> = ({
   searchable = true,
   icon,
   rows = 3,
+  error,
 }) => {
   const [dynamicOptions, setDynamicOptions] = useState<SelectOption[]>([]);
   const [loading, setLoading] = useState(false);
@@ -92,9 +93,8 @@ const Reusable_Fields: React.FC<ReusableFieldsProps> = ({
     onChange(e);
   };
 
-  // Custom styles for React Select
+  // Custom styles for React Select with gray borders
   const customSelectStyles: StylesConfig<SelectOption, false> = {
-    // This is the key fix: It teleports the menu to the <body> so it's never cut off
     menuPortal: (base) => ({ 
       ...base, 
       zIndex: 999999 
@@ -104,10 +104,17 @@ const Reusable_Fields: React.FC<ReusableFieldsProps> = ({
       minHeight: '48px',
       borderRadius: '12px',
       paddingLeft: icon ? '35px' : '0px',
-      borderColor: state.isFocused ? '#6366f1' : '#e2e8f0',
+      // Default light gray border, dark gray on hover, focus stays gray (not blue)
+      borderColor: error 
+        ? '#ef4444' 
+        : state.isFocused 
+          ? '#9ca3af' 
+          : '#e2e8f0',
       backgroundColor: disabled ? '#f8fafc' : 'white',
-      boxShadow: state.isFocused ? '0 0 0 3px rgba(99, 102, 241, 0.1)' : 'none',
-      '&:hover': { borderColor: '#cbd5e1' },
+      '&:hover': { 
+        borderColor: error ? '#ef4444' : '#9ca3af' 
+      },
+      boxShadow: state.isFocused ? '0 0 0 2px rgba(156, 163, 175, 0.1)' : 'none',
     }),
     menu: (base) => ({
       ...base,
@@ -137,6 +144,19 @@ const Reusable_Fields: React.FC<ReusableFieldsProps> = ({
   const hasValue = value !== undefined && value !== null && value.toString().length > 0;
   const isFloating = isFocused || hasValue || type === "date" || menuIsOpen || isActive;
 
+  // Get border color based on state
+  const getBorderColor = () => {
+    if (error) return 'border-red-500';
+    if (isFocused) return 'border-gray-400';
+    return 'border-slate-200';
+  };
+
+  // Get focus ring color
+  const getFocusRing = () => {
+    if (error) return 'focus:ring-red-500/20 focus:border-red-500';
+    return 'focus:ring-gray-400/20 focus:border-gray-400';
+  };
+
   return (
     <div 
       className={`relative w-full ${className}`} 
@@ -148,7 +168,7 @@ const Reusable_Fields: React.FC<ReusableFieldsProps> = ({
             absolute transition-all duration-200 pointer-events-none z-[10] px-1 rounded-md
             ${icon && !isFloating ? "left-11" : "left-3"}
             ${isFloating 
-              ? "-top-2 text-[11px] font-bold bg-white text-indigo-600 translate-y-0" 
+              ? "-top-2 text-[11px] font-bold bg-white text-gray-600 translate-y-0" 
               : "top-1/2 -translate-y-1/2 text-sm text-slate-500 bg-transparent"
             }
           `}
@@ -159,7 +179,7 @@ const Reusable_Fields: React.FC<ReusableFieldsProps> = ({
       
       <div className="relative flex items-center">
         {icon && (
-          <div className={`absolute left-4 z-[5] transition-colors ${isFocused ? 'text-indigo-600' : 'text-slate-400'}`}>
+          <div className={`absolute left-4 z-[5] transition-colors ${isFocused ? 'text-gray-500' : 'text-slate-400'}`}>
             {icon}
           </div>
         )}
@@ -178,7 +198,6 @@ const Reusable_Fields: React.FC<ReusableFieldsProps> = ({
               onMenuOpen={() => setMenuIsOpen(true)}
               onMenuClose={() => setMenuIsOpen(false)}
               styles={customSelectStyles}
-              // CRITICAL: Portals the menu to document.body to prevent layout collapse
               menuPortalTarget={document.body} 
               menuPosition="fixed" 
               value={(apiEndpoint ? dynamicOptions : options).find(opt => opt.value === value) || null}
@@ -197,7 +216,9 @@ const Reusable_Fields: React.FC<ReusableFieldsProps> = ({
             disabled={disabled}
             placeholder={isFocused ? placeholder : ""}
             rows={rows}
-            className={`w-full px-4 py-3 rounded-xl border text-sm transition-all outline-none bg-white border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 ${icon ? 'pl-11' : 'pl-4'}`}
+            className={`w-full px-4 py-3 rounded-xl border text-sm transition-all outline-none bg-white ${
+              error ? 'border-red-500' : getBorderColor()
+            } ${getFocusRing()} ${icon ? 'pl-11' : 'pl-4'}`}
           />
         ) : (
           <input
@@ -209,10 +230,13 @@ const Reusable_Fields: React.FC<ReusableFieldsProps> = ({
             onBlur={() => setIsFocused(false)}
             disabled={disabled}
             placeholder={isFocused ? placeholder : ""}
-            className={`w-full px-4 h-[48px] rounded-xl border text-sm transition-all outline-none bg-white border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 ${icon ? 'pl-11' : 'pl-4'}`}
+            className={`w-full px-4 h-[48px] rounded-xl border text-sm transition-all outline-none bg-white ${
+              error ? 'border-red-500' : getBorderColor()
+            } ${getFocusRing()} ${icon ? 'pl-11' : 'pl-4'}`}
           />
         )}
       </div>
+      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
     </div>
   );
 };

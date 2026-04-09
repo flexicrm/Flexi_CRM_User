@@ -1,11 +1,12 @@
 import { DragDropContext, Draggable, Droppable, type DropResult } from "@hello-pangea/dnd";
 import { AnimatePresence, motion } from "framer-motion";
-import { Calendar, Eye, MoreVertical, Pencil, Users } from "lucide-react";
+import { Calendar, Eye, MoreVertical, Pencil, Search, Users, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { fetchLeads, fetchStatuses, updateLeadkanban } from "../../../store/homepage_slice/Leads_slice"; // Adjust path to your slice
+import LeadStatusPopup from "../../../component/GridView_Popup/LeadStatusPopup";
+import { fetchLeads, fetchStatuses, updateLeadkanban } from "../../../store/homepage_slice/Leads_slice";
 import type { AppDispatch } from "../../../store/Store";
 
 // --- Types (Matching your slice) ---
@@ -33,6 +34,10 @@ const priorityOptions = [
   { value: "low", label: "Low", color: "bg-green-700" },
 ];
 
+// Define Won and Lost status names (adjust based on your actual status names)
+const WON_STATUS_NAMES = ["won", "closed won", "winner", "success"];
+const LOST_STATUS_NAMES = ["lost", "closed lost", "loser", "failed"];
+
 const Kanban_View = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
@@ -48,6 +53,7 @@ const Kanban_View = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
   const [leadStatusFilter, setLeadStatusFilter] = useState("");
+  const [popup, setPopup] = useState<{ type: 'won' | 'lost'; leadName: string; leadId: string } | null>(null);
   
   // Menu State for CRUD operations
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
@@ -81,7 +87,9 @@ const Kanban_View = () => {
           lead.manualData?.name?.toLowerCase().includes(lowerSearch) ||
           lead.manualData?.company?.toLowerCase().includes(lowerSearch) ||
           lead.manualData?.email?.toLowerCase().includes(lowerSearch) ||
-          lead.LeadId?.toLowerCase().includes(lowerSearch)
+          lead.manualData?.mobileNo?.toLowerCase().includes(lowerSearch) ||
+          lead.LeadId?.toLowerCase().includes(lowerSearch) ||
+          lead.leadstatus?.statusName?.toLowerCase().includes(lowerSearch)
       );
     }
 
@@ -92,7 +100,7 @@ const Kanban_View = () => {
       );
     }
 
-    // Lead Status filter - using leadstatus from the lead object
+    // Lead Status filter
     if (leadStatusFilter) {
       filtered = filtered.filter(
         (lead) => lead.leadstatus?.statusName?.toLowerCase() === leadStatusFilter.toLowerCase()
@@ -102,20 +110,48 @@ const Kanban_View = () => {
     return filtered;
   }, [localLeads, searchTerm, priorityFilter, leadStatusFilter]);
 
+  // Check if status is Won or Lost
+  const isWonStatus = (statusName: string) => {
+    return WON_STATUS_NAMES.includes(statusName.toLowerCase());
+  };
+
+  const isLostStatus = (statusName: string) => {
+    return LOST_STATUS_NAMES.includes(statusName.toLowerCase());
+  };
+
+  // Show popup for Won/Lost
+  const showStatusPopup = (type: 'won' | 'lost', leadId: string, leadName: string) => {
+    setPopup({ type, leadName, leadId });
+    setTimeout(() => {
+      setPopup(null);
+    }, 2000);
+  };
+
   // Drag and Drop Handler
   const handleDragEnd = (result: DropResult) => {
     const { source, destination, draggableId } = result;
 
-    // Dropped outside a column
     if (!destination) return;
-
-    // Dropped in the same column
     if (source.droppableId === destination.droppableId) return;
 
-    // 1. Optimistic UI Update
+    const draggedLead = localLeads.find((lead) => lead.LeadId === draggableId);
+    const destinationStatus = statusOptions.find(
+      (s: any) => s._id === destination.droppableId
+    );
+
+    if (draggedLead && destinationStatus) {
+      const statusName = destinationStatus.statusName;
+      
+      if (isWonStatus(statusName)) {
+        showStatusPopup('won', draggableId, draggedLead.manualData?.name || 'Lead');
+      } else if (isLostStatus(statusName)) {
+        showStatusPopup('lost', draggableId, draggedLead.manualData?.name || 'Lead');
+      }
+    }
+
+    // Optimistic UI Update
     const updatedLeads = localLeads.map((lead) => {
       if (lead.LeadId === draggableId) {
-        // Find the new status object from Redux state to assign it locally
         const newStatus = statusOptions.find(
           (s: any) => s._id === destination.droppableId
         );
@@ -129,13 +165,16 @@ const Kanban_View = () => {
 
     setLocalLeads(updatedLeads);
 
-    // 2. Dispatch API Call
+    // Dispatch API Call
     dispatch(
       updateLeadkanban({
         leadId: draggableId,
         formData: { leadstatusid: destination.droppableId },
       })
-    );
+    ).catch((error) => {
+      console.error("Failed to update lead status:", error);
+      setLocalLeads(leadsData?.leads || []);
+    });
   };
 
   const clearFilters = () => {
@@ -150,7 +189,7 @@ const Kanban_View = () => {
     const rect = e.currentTarget.getBoundingClientRect();
     setMenuPosition({
       top: rect.bottom + window.scrollY + 8,
-      left: rect.right + window.scrollX - 220,
+      left: rect.right + window.scrollX - 200,
     });
     setSelectedLead(lead);
     setActiveMenuId(lead.LeadId);
@@ -206,101 +245,107 @@ const Kanban_View = () => {
     if (!dateString) return "N/A";
     return new Date(dateString).toLocaleDateString(undefined, {
       day: 'numeric',
-      month: 'short',
-      year: 'numeric'
+      month: 'short'
     });
   };
 
   return (
-    <div className="w-full h-full p-4 flex flex-col bg-gray-50">
-      {/* HEADER / FILTERS */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-        {/* Left Side: Priority & Lead Status Dropdown */}
-        <div className="flex flex-wrap items-center gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-700">Priority:</span>
-            <div className="flex bg-gray-100 rounded border border-gray-200 p-1">
-              {priorityOptions.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() =>
-                    setPriorityFilter(
-                      priorityFilter === opt.value ? "" : opt.value
-                    )
-                  }
-                  className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
-                    priorityFilter === opt.value
-                      ? "bg-blue-600 text-white shadow"
-                      : "text-gray-600 hover:bg-gray-200"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-700">Lead Status:</span>
-            <select
-              value={leadStatusFilter}
-              onChange={(e) => setLeadStatusFilter(e.target.value)}
-              className="text-sm border border-gray-300 rounded px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            >
-              <option value="">All Statuses</option>
-              {statusOptions?.map((status: any) => (
-                <option key={status._id} value={status.statusName}>
-                  {status.statusName}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {(searchTerm || priorityFilter || leadStatusFilter) && (
+    <div className="w-full h-full p-4 flex flex-col bg-[#F8FAFC]">
+      {/* HEADER / FILTERS - Compact like Grid View */}
+      <div className="sticky top-0 z-20 bg-[#F8FAFC] pb-4 space-y-3">
+        {/* Search Bar */}
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search by name, email, phone, company, Lead ID, status..."
+            className="w-full pl-10 pr-10 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white"
+          />
+          {searchTerm && (
             <button
               onClick={clearFilters}
-              className="text-sm text-blue-600 hover:text-blue-800 underline transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
             >
-              Clear Filters
+              <X size={16} />
             </button>
           )}
         </div>
 
-        {/* Right Side: Search */}
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search leads..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-[250px] pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <svg
-            className="absolute left-3 top-2.5 h-4 w-4 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        {/* Filter Row */}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Priority Filters - Compact */}
+          <div className="flex items-center gap-1.5 bg-white rounded-lg border border-slate-200 p-1">
+            {priorityOptions.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() =>
+                  setPriorityFilter(
+                    priorityFilter === opt.value ? "" : opt.value
+                  )
+                }
+                className={`px-2.5 py-1 text-xs font-medium rounded-md transition-all ${
+                  priorityFilter === opt.value
+                    ? "bg-indigo-600 text-white shadow-sm"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Lead Status Filter - Compact */}
+          <select
+            value={leadStatusFilter}
+            onChange={(e) => setLeadStatusFilter(e.target.value)}
+            className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-700"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+            <option value="">All Statuses</option>
+            {statusOptions?.map((status: any) => (
+              <option key={status._id} value={status.statusName}>
+                {status.statusName}
+              </option>
+            ))}
+          </select>
+
+          {(searchTerm || priorityFilter || leadStatusFilter) && (
+            <button
+              onClick={clearFilters}
+              className="text-xs text-indigo-600 hover:text-indigo-800 font-medium transition-colors"
+            >
+              Clear all filters
+            </button>
+          )}
         </div>
+
+        {/* Results Count */}
+        {searchTerm && (
+          <div className="text-xs text-slate-500">
+            Found {filteredLeads.length} result{filteredLeads.length !== 1 ? 's' : ''}
+          </div>
+        )}
       </div>
 
       {/* KANBAN BOARD */}
       {loading && localLeads.length === 0 ? (
-        <div className="flex-1 flex items-center justify-center text-gray-500">
+        <div className="flex-1 flex items-center justify-center text-slate-500">
           Loading board...
         </div>
       ) : (
-        <div className="flex-1 overflow-x-auto pb-4">
+        <div className="flex-1 overflow-x-auto pb-4 -mr-2 pr-2">
           <DragDropContext onDragEnd={handleDragEnd}>
-            <div className="flex gap-6 items-start h-full min-h-[500px]">
+            <div className="flex gap-4 items-start h-full min-h-[500px]">
               {/* Render Columns based on Status Options */}
               {statusOptions?.map((status: any) => {
-                // Get leads that belong to this column
                 const columnLeads = filteredLeads.filter(
                   (lead) => lead.leadstatus?._id === status._id
                 );
+                
+                const isWonColumn = isWonStatus(status.statusName);
+                const isLostColumn = isLostStatus(status.statusName);
+                const isSpecialColumn = isWonColumn || isLostColumn;
 
                 return (
                   <Droppable key={status._id} droppableId={status._id}>
@@ -308,28 +353,44 @@ const Kanban_View = () => {
                       <div
                         ref={provided.innerRef}
                         {...provided.droppableProps}
-                        className={`min-w-[280px] w-[280px] rounded-lg p-3 flex flex-col transition-colors ${
-                          snapshot.isDraggingOver ? "bg-gray-200" : "bg-gray-100"
+                        className={`min-w-[280px] w-[280px] rounded-xl flex flex-col transition-all duration-300 ${
+                          snapshot.isDraggingOver 
+                            ? isWonColumn 
+                              ? 'bg-green-50 ring-2 ring-green-400' 
+                              : isLostColumn 
+                                ? 'bg-red-50 ring-2 ring-red-400'
+                                : 'bg-slate-100 ring-2 ring-indigo-400'
+                            : 'bg-slate-50'
                         }`}
                       >
-                        {/* Column Header */}
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-2">
-                            <span
-                              className="w-3 h-3 rounded-full"
-                              style={{ backgroundColor: status.color || "#ccc" }}
-                            />
-                            <h3 className="font-semibold text-gray-700 text-sm uppercase tracking-wide">
-                              {status.statusName}
-                            </h3>
+                        {/* Column Header - Compact */}
+                        <div className="sticky top-0 bg-inherit rounded-t-xl p-3 border-b border-slate-200">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className="w-2.5 h-2.5 rounded-full"
+                                style={{ backgroundColor: status.color || "#ccc" }}
+                              />
+                              <h3 className={`font-semibold text-sm ${
+                                isWonColumn ? 'text-green-700' : isLostColumn ? 'text-red-700' : 'text-slate-700'
+                              }`}>
+                                {status.statusName}
+                              </h3>
+                            </div>
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                              isWonColumn ? 'bg-green-100 text-green-700' : 
+                              isLostColumn ? 'bg-red-100 text-red-700' : 
+                              'bg-slate-200 text-slate-600'
+                            }`}>
+                              {columnLeads.length}
+                            </span>
                           </div>
-                          <span className="text-xs font-bold text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">
-                            {columnLeads.length}
-                          </span>
                         </div>
 
-                        {/* Draggable Cards */}
-                        <div className="flex flex-col gap-3 min-h-[50px]">
+                        {/* Scrollable Cards Container - Fixed Height */}
+                        <div 
+                          className="flex flex-col gap-2 p-3 max-h-[calc(100vh-280px)] overflow-y-auto"
+                        >
                           {columnLeads.map((lead, index) => (
                             <Draggable
                               key={lead.LeadId}
@@ -341,9 +402,15 @@ const Kanban_View = () => {
                                   ref={provided.innerRef}
                                   {...provided.draggableProps}
                                   {...provided.dragHandleProps}
-                                  className={`relative p-4 rounded-lg shadow-sm border border-gray-200 bg-white group hover:border-blue-300 transition-all ${
+                                  className={`relative p-3 rounded-lg border group hover:shadow-md transition-all ${
+                                    isWonColumn 
+                                      ? 'border-green-200 bg-green-50/50 hover:bg-green-50' 
+                                      : isLostColumn 
+                                        ? 'border-red-200 bg-red-50/50 hover:bg-red-50'
+                                        : 'border-slate-200 bg-white hover:border-indigo-200'
+                                  } ${
                                     snapshot.isDragging
-                                      ? "shadow-lg scale-105 rotate-1 z-50 ring-2 ring-blue-400"
+                                      ? "shadow-lg scale-[1.02] rotate-1 z-50 ring-2 ring-indigo-400"
                                       : ""
                                   }`}
                                   style={{ ...provided.draggableProps.style }}
@@ -351,51 +418,54 @@ const Kanban_View = () => {
                                   {/* Menu Button */}
                                   <button
                                     onClick={(e) => handleOpenMenu(e, lead)}
-                                    className="absolute top-3 right-3 p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-gray-100 z-10"
+                                    className="absolute top-2 right-2 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-all hover:bg-slate-100 z-10"
                                   >
-                                    <MoreVertical size={16} className="text-gray-500" />
+                                    <MoreVertical size={14} className="text-slate-500" />
                                   </button>
 
-                                  <div className="flex items-start gap-3 mb-3">
+                                  {/* Header - Compact */}
+                                  <div className="flex items-start gap-2 mb-2 pr-6">
                                     <div
-                                      className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-inner flex-shrink-0"
+                                      className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
                                       style={{ backgroundColor: lead.leadstatus?.color || '#6366f1' }}
                                     >
                                       {lead.manualData?.name?.charAt(0) || 'L'}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                      <h4 className="font-semibold text-gray-800 text-sm mb-1 truncate">
+                                      <h4 className="font-semibold text-slate-800 text-xs mb-0.5 truncate">
                                         {lead.manualData?.name || "Unknown Lead"}
                                       </h4>
-                                      <p className="text-indigo-500 text-xs font-bold">
+                                      <p className="text-indigo-500 text-[10px] font-medium truncate">
                                         {lead.LeadId}
                                       </p>
                                     </div>
                                   </div>
 
-                                  <div className="space-y-2 mb-3">
-                                    <div className="text-xs text-gray-600 truncate">
+                                  {/* Details - Compact */}
+                                  <div className="space-y-1 mb-2">
+                                    <div className="text-[10px] text-slate-600 truncate">
                                       <span className="font-medium">Email:</span> {lead.manualData?.email || "N/A"}
                                     </div>
-                                    <div className="text-xs text-gray-600 truncate">
+                                    <div className="text-[10px] text-slate-600 truncate">
                                       <span className="font-medium">Mobile:</span> {lead.manualData?.mobileNo || "N/A"}
                                     </div>
-                                    <div className="text-xs text-gray-600 truncate">
+                                    <div className="text-[10px] text-slate-600 truncate">
                                       <span className="font-medium">Company:</span> {lead.manualData?.company || "N/A"}
                                     </div>
                                   </div>
 
-                                  <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                                  {/* Footer - Compact */}
+                                  <div className="flex items-center justify-between pt-1.5 border-t border-slate-100">
                                     <span
-                                      className="px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider"
+                                      className="px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider"
                                       style={{
                                         backgroundColor: `${lead.leadstatus?.color}15`,
                                         color: lead.leadstatus?.color
                                       }}
                                     >
-                                      {lead.leadstatus?.statusName}
+                                      {lead.leadstatus?.statusName?.substring(0, 12)}
                                     </span>
-                                    <span className="text-[10px] text-gray-400 font-medium">
+                                    <span className="text-[9px] text-slate-400 font-medium">
                                       {formatDate(lead.createdAt)}
                                     </span>
                                   </div>
@@ -404,7 +474,29 @@ const Kanban_View = () => {
                             </Draggable>
                           ))}
                           {provided.placeholder}
+                          
+                          {/* Empty State */}
+                          {columnLeads.length === 0 && (
+                            <div className="text-center py-6 text-xs text-slate-400">
+                              No leads in this column
+                            </div>
+                          )}
                         </div>
+                        
+                        {/* Drop hint for Won/Lost columns */}
+                        {snapshot.isDraggingOver && isSpecialColumn && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="mt-1 mb-2 mx-3 text-center text-[10px] font-medium py-1.5 rounded-lg"
+                            style={{
+                              backgroundColor: isWonColumn ? '#22c55e15' : '#ef444415',
+                              color: isWonColumn ? '#166534' : '#991b1b'
+                            }}
+                          >
+                            {isWonColumn ? '🎉 Drop to mark as WON!' : '😔 Drop to mark as LOST'}
+                          </motion.div>
+                        )}
                       </div>
                     )}
                   </Droppable>
@@ -415,7 +507,7 @@ const Kanban_View = () => {
         </div>
       )}
 
-      {/* PORTAL FOR THE DROPDOWN MENU - CRUD Operations */}
+      {/* PORTAL FOR THE DROPDOWN MENU - Compact */}
       {typeof document !== 'undefined' && createPortal(
         <AnimatePresence>
           {activeMenuId !== null && selectedLead && (
@@ -435,42 +527,51 @@ const Kanban_View = () => {
                   left: menuPosition.left,
                   zIndex: 9999
                 }}
-                className="w-[220px] bg-white rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.12)] border border-slate-100 p-2 py-3"
+                className="w-[200px] bg-white rounded-xl shadow-xl border border-slate-100 p-1 py-2"
               >
                 <button
                   onClick={handleEditLead}
-                  className="w-full flex items-center gap-4 px-4 py-3 text-[#1e293b] hover:bg-slate-50 rounded-2xl transition-all text-[15px] font-semibold text-left"
+                  className="w-full flex items-center gap-3 px-3 py-2 text-slate-700 hover:bg-slate-50 rounded-lg transition-all text-xs font-semibold text-left"
                 >
-                  <Pencil size={18} className="text-slate-400" /> Edit lead
+                  <Pencil size={14} className="text-slate-400" /> Edit lead
                 </button>
 
                 <button
                   onClick={handleAddFollowUp}
-                  className="w-full flex items-center gap-4 px-4 py-3 text-[#1e293b] hover:bg-slate-50 rounded-2xl transition-all text-[15px] font-semibold text-left"
+                  className="w-full flex items-center gap-3 px-3 py-2 text-slate-700 hover:bg-slate-50 rounded-lg transition-all text-xs font-semibold text-left"
                 >
-                  <Calendar size={18} className="text-slate-400" /> Add Follow-Up
+                  <Calendar size={14} className="text-slate-400" /> Add Follow-Up
                 </button>
 
                 <button
                   onClick={handleViewLead}
-                  className="w-full flex items-center gap-4 px-4 py-3 text-[#1e293b] hover:bg-slate-50 rounded-2xl transition-all text-[15px] font-semibold text-left"
+                  className="w-full flex items-center gap-3 px-3 py-2 text-slate-700 hover:bg-slate-50 rounded-lg transition-all text-xs font-semibold text-left"
                 >
-                  <Eye size={18} className="text-slate-400" /> View Lead
+                  <Eye size={14} className="text-slate-400" /> View Lead
                 </button>
 
-                <div className="my-2 mx-3 border-t border-slate-50" />
+                <div className="my-1 mx-2 border-t border-slate-100" />
 
                 <button
                   onClick={handleConvertCustomer}
-                  className="w-full flex items-center gap-4 px-4 py-3 text-[#0f172a] hover:bg-slate-50 rounded-2xl transition-all text-[15px] font-black text-left"
+                  className="w-full flex items-center gap-3 px-3 py-2 text-slate-800 hover:bg-slate-50 rounded-lg transition-all text-xs font-bold text-left"
                 >
-                  <Users size={18} className="text-slate-400" /> Convert Customer
+                  <Users size={14} className="text-slate-400" /> Convert Customer
                 </button>
               </motion.div>
             </>
           )}
         </AnimatePresence>,
         document.body
+      )}
+
+      {/* Won/Lost Popup */}
+      {popup && (
+        <LeadStatusPopup
+          type={popup.type}
+          leadName={popup.leadName}
+          onClose={() => setPopup(null)}
+        />
       )}
     </div>
   );

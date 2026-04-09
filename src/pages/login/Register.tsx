@@ -267,7 +267,7 @@ const Register = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="w-full max-w-2xl"
+            className="w-full max-w-md"
           >
             {/* Header Section */}
             <motion.div
@@ -294,22 +294,22 @@ const Register = () => {
               </motion.p>
             </motion.div>
 
-            {/* Progress Steps */}
+            {/* Progress Steps - Compact */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
               className="mb-8"
             >
-              <div className="flex justify-between items-center max-w-md mx-auto">
+              <div className="flex justify-between items-center max-w-xs mx-auto">
                 {[
-                  { step: 1, label: "Company Info" },
-                  { step: 2, label: "Admin Details" },
-                  { step: 3, label: "Business Info" },
+                  { step: 1, label: "Company" },
+                  { step: 2, label: "Admin" },
+                  { step: 3, label: "Business" },
                 ].map((item) => (
                   <div key={item.step} className="flex-1 text-center">
                     <div
-                      className={`w-8 h-8 mx-auto rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-300 ${
+                      className={`w-8 h-8 mx-auto rounded-full flex items-center justify-center text-xs font-semibold transition-all duration-300 ${
                         currentStep >= item.step
                           ? "bg-gradient-to-r from-[#05264e] to-[#0a3a6e] text-white shadow-lg"
                           : "bg-gray-200 text-gray-500"
@@ -317,11 +317,11 @@ const Register = () => {
                     >
                       {item.step}
                     </div>
-                    <p className="text-xs text-gray-500 mt-2 hidden sm:block">{item.label}</p>
+                    <p className="text-xs text-gray-500 mt-1 hidden sm:block">{item.label}</p>
                   </div>
                 ))}
               </div>
-              <div className="relative mt-2 max-w-md mx-auto">
+              <div className="relative mt-2 max-w-xs mx-auto">
                 <div className="absolute top-0 left-0 h-1 bg-gray-200 rounded-full w-full">
                   <motion.div
                     className="h-full bg-gradient-to-r from-[#05264e] to-[#0a3a6e] rounded-full"
@@ -333,13 +333,13 @@ const Register = () => {
               </div>
             </motion.div>
 
-            {/* Form */}
+            {/* Form - Compact Fields */}
             <motion.form
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6 }}
               onSubmit={handleSubmit}
-              className="space-y-5"
+              className="space-y-8"
             >
               {/* Step 1: Company Information */}
               <AnimatePresence mode="wait">
@@ -350,7 +350,7 @@ const Register = () => {
                     animate={{ x: 0, opacity: 1 }}
                     exit={{ x: -20, opacity: 0 }}
                     transition={{ duration: 0.3 }}
-                    className="space-y-5"
+                    className="space-y-4"
                   >
                     <Reusable_Fields
                       type="text"
@@ -360,7 +360,7 @@ const Register = () => {
                       onChange={handleChange}
                       placeholder="Enter your company name"
                       required={true}
-                      icon={<Building2 className="w-5 h-5" />}
+                      icon={<Building2 className="w-4 h-4" />}
                     />
 
                     <Reusable_Fields
@@ -371,18 +371,20 @@ const Register = () => {
                       onChange={handleChange}
                       placeholder="Enter your company address"
                       required={true}
-                      icon={<MapPin className="w-5 h-5" />}
-                      rows={3}
+                      icon={<MapPin className="w-4 h-4" />}
+                      rows={2}
                     />
 
                     <div className="flex justify-end">
-                      <button
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         type="button"
                         onClick={() => setCurrentStep(2)}
-                        className="px-6 py-2 bg-gradient-to-r from-[#05264e] to-[#0a3a6e] text-white rounded-lg font-medium hover:shadow-lg transition-all"
+                        className="px-5 py-2 bg-gradient-to-r from-[#05264e] to-[#0a3a6e] text-white rounded-lg font-medium text-sm hover:shadow-lg transition-all"
                       >
                         Next →
-                      </button>
+                      </motion.button>
                     </div>
                   </motion.div>
                 )}
@@ -395,18 +397,18 @@ const Register = () => {
                     animate={{ x: 0, opacity: 1 }}
                     exit={{ x: -20, opacity: 0 }}
                     transition={{ duration: 0.3 }}
-                    className="space-y-5"
+                    className="space-y-4"
                   >
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-3">
                       <Reusable_Fields
                         type="text"
                         label="First Name"
                         name="firstName"
                         value={formData.firstName}
                         onChange={handleChange}
-                        placeholder="Enter first name"
+                        placeholder="First name"
                         required={true}
-                        icon={<User className="w-5 h-5" />}
+                        icon={<User className="w-4 h-4" />}
                       />
 
                       <Reusable_Fields
@@ -415,9 +417,9 @@ const Register = () => {
                         name="lastName"
                         value={formData.lastName}
                         onChange={handleChange}
-                        placeholder="Enter last name"
+                        placeholder="Last name"
                         required={true}
-                        icon={<User className="w-5 h-5" />}
+                        icon={<User className="w-4 h-4" />}
                       />
                     </div>
 
@@ -429,7 +431,7 @@ const Register = () => {
                       onChange={handleChange}
                       placeholder="Enter email address"
                       required={true}
-                      icon={<Mail className="w-5 h-5" />}
+                      icon={<Mail className="w-4 h-4" />}
                     />
 
                     <Reusable_Fields
@@ -440,24 +442,28 @@ const Register = () => {
                       onChange={handleChange}
                       placeholder="Enter 10-digit mobile number"
                       required={true}
-                      icon={<Phone className="w-5 h-5" />}
+                      icon={<Phone className="w-4 h-4" />}
                     />
 
-                    <div className="flex justify-between gap-4">
-                      <button
+                    <div className="flex justify-between gap-3">
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         type="button"
                         onClick={() => setCurrentStep(1)}
-                        className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-all"
+                        className="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-300 transition-all"
                       >
                         ← Back
-                      </button>
-                      <button
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         type="button"
                         onClick={() => setCurrentStep(3)}
-                        className="px-6 py-2 bg-gradient-to-r from-[#05264e] to-[#0a3a6e] text-white rounded-lg font-medium hover:shadow-lg transition-all"
+                        className="px-5 py-2 bg-gradient-to-r from-[#05264e] to-[#0a3a6e] text-white rounded-lg font-medium text-sm hover:shadow-lg transition-all"
                       >
                         Next →
-                      </button>
+                      </motion.button>
                     </div>
                   </motion.div>
                 )}
@@ -470,7 +476,7 @@ const Register = () => {
                     animate={{ x: 0, opacity: 1 }}
                     exit={{ x: -20, opacity: 0 }}
                     transition={{ duration: 0.3 }}
-                    className="space-y-5"
+                    className="space-y-4"
                   >
                     <Reusable_Fields
                       type="select"
@@ -481,7 +487,7 @@ const Register = () => {
                       placeholder="Select your industry"
                       options={industryOptions}
                       required={true}
-                      icon={<Briefcase className="w-5 h-5" />}
+                      icon={<Briefcase className="w-4 h-4" />}
                       disabled={categoriesLoading}
                     />
 
@@ -494,36 +500,40 @@ const Register = () => {
                       placeholder="Select company size"
                       options={companySizeOptions}
                       required={true}
-                      icon={<Building2 className="w-5 h-5" />}
+                      icon={<Building2 className="w-4 h-4" />}
                     />
 
                     {/* Remember Me Checkbox */}
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2 py-1">
                       <input
                         type="checkbox"
                         id="rememberMe"
                         name="rememberMe"
                         checked={formData.rememberMe}
                         onChange={handleChange}
-                        className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                        className="w-3.5 h-3.5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
                       />
-                      <label htmlFor="rememberMe" className="text-sm text-gray-600 cursor-pointer">
+                      <label htmlFor="rememberMe" className="text-xs text-gray-600 cursor-pointer">
                         Remember me
                       </label>
                     </div>
 
-                    <div className="flex justify-between gap-4">
-                      <button
+                    <div className="flex justify-between gap-3">
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         type="button"
                         onClick={() => setCurrentStep(2)}
-                        className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-all"
+                        className="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-300 transition-all"
                       >
                         ← Back
-                      </button>
-                      <button
+                      </motion.button>
+                      <motion.button
                         type="submit"
                         disabled={isLoading}
-                        className={`flex-1 py-3 rounded-lg font-semibold text-white transition-all duration-200 ${
+                        whileHover={{ scale: isLoading ? 1 : 1.02 }}
+                        whileTap={{ scale: isLoading ? 1 : 0.98 }}
+                        className={`flex-1 py-2 rounded-lg font-semibold text-sm text-white transition-all duration-200 ${
                           isLoading
                             ? "bg-gray-400 cursor-not-allowed"
                             : "bg-gradient-to-r from-[#05264e] to-[#0a3a6e] hover:shadow-lg"
@@ -531,13 +541,13 @@ const Register = () => {
                       >
                         {isLoading ? (
                           <div className="flex items-center justify-center gap-2">
-                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            <span>Creating Account...</span>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            <span>Creating...</span>
                           </div>
                         ) : (
                           "Create Account →"
                         )}
-                      </button>
+                      </motion.button>
                     </div>
                   </motion.div>
                 )}
@@ -550,9 +560,9 @@ const Register = () => {
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="p-3 rounded-lg bg-red-50 border border-red-200"
+                    className="p-2 rounded-lg bg-red-50 border border-red-200"
                   >
-                    <p className="text-red-600 text-sm text-center">
+                    <p className="text-red-600 text-xs text-center">
                       {localError || (typeof error === "string" ? error : error?.message)}
                     </p>
                   </motion.div>
@@ -565,7 +575,7 @@ const Register = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.7 }}
-              className="text-center text-sm text-gray-600 mt-6"
+              className="text-center text-xs text-gray-600 mt-5"
             >
               Already have an account?{" "}
               <button

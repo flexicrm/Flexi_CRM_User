@@ -45,69 +45,12 @@ interface ValidationErrors {
   fields?: string;
 }
 
-// Helper function to extract error message from API response
-const extractErrorMessage = (error: any): string => {
-  let errorMessage = "Error occurred while generating integration code. Please try again.";
-  
-  if (error?.response?.data) {
-    const responseData = error.response.data;
-    
-    if (responseData.message) {
-      errorMessage = responseData.message;
-    } else if (responseData.errors) {
-      if (typeof responseData.errors === 'string') {
-        errorMessage = responseData.errors;
-      } else if (typeof responseData.errors === 'object') {
-        const firstErrorKey = Object.keys(responseData.errors)[0];
-        if (firstErrorKey && responseData.errors[firstErrorKey]) {
-          errorMessage = Array.isArray(responseData.errors[firstErrorKey]) 
-            ? responseData.errors[firstErrorKey][0] 
-            : responseData.errors[firstErrorKey];
-        } else {
-          errorMessage = JSON.stringify(responseData.errors);
-        }
-      }
-    } else if (responseData.error) {
-      errorMessage = responseData.error;
-    }
-  } else if (error?.errors) {
-    if (typeof error.errors === 'string') {
-      errorMessage = error.errors;
-    } else if (typeof error.errors === 'object') {
-      const firstErrorKey = Object.keys(error.errors)[0];
-      if (firstErrorKey && error.errors[firstErrorKey]) {
-        errorMessage = Array.isArray(error.errors[firstErrorKey]) 
-          ? error.errors[firstErrorKey][0] 
-          : error.errors[firstErrorKey];
-      }
-    }
-  } else if (error?.message) {
-    errorMessage = error.message;
-  }
-  
-  // Clean up specific error messages
-  if (errorMessage.toLowerCase().includes('duplicate') || errorMessage.toLowerCase().includes('already exists')) {
-    errorMessage = "A form with this name already exists. Please use a different name.";
-  }
-  if (errorMessage.toLowerCase().includes('validation')) {
-    errorMessage = "Please check all required fields and try again.";
-  }
-  if (errorMessage.toLowerCase().includes('network') || errorMessage.toLowerCase().includes('connection')) {
-    errorMessage = "Network error. Please check your internet connection and try again.";
-  }
-  if (errorMessage.toLowerCase().includes('permission') || errorMessage.toLowerCase().includes('unauthorized')) {
-    errorMessage = "You don't have permission to perform this action.";
-  }
-  
-  return errorMessage;
-};
-
 // --- Animation Variants ---
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.12, delayChildren: 0.05 },
+    transition: { staggerChildren: 0.1, delayChildren: 0.05 },
   },
 };
 
@@ -125,10 +68,10 @@ const Tooltip = ({ children, text }: { children: React.ReactNode, text: string }
   <div className="group relative flex flex-col items-center">
     {children}
     <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center z-50 animate-in fade-in zoom-in-95 duration-200">
-      <span className="relative z-10 px-2.5 py-1.5 text-[11px] font-semibold text-white whitespace-nowrap bg-slate-800 shadow-xl rounded-md">
+      <span className="relative z-10 px-2 py-1 text-[10px] font-semibold text-white whitespace-nowrap bg-slate-800 shadow-md rounded-md">
         {text}
       </span>
-      <div className="w-2.5 h-2.5 -mt-1.5 rotate-45 bg-slate-800 rounded-sm"></div>
+      <div className="w-2 h-2 -mt-1 rotate-45 bg-slate-800 rounded-sm"></div>
     </div>
   </div>
 );
@@ -184,26 +127,26 @@ const PreviewModal = ({ isOpen, onClose, formData, generatedCode }: PreviewModal
               {field.type === "textarea" ? (
                 <textarea
                   placeholder={`Enter ${field.label.toLowerCase()}`}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm"
                   rows={3}
                 />
               ) : field.type === "tel" ? (
                 <input
                   type="tel"
                   placeholder={`Enter ${field.label.toLowerCase()}`}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm"
                 />
               ) : field.type === "email" ? (
                 <input
                   type="email"
                   placeholder={`Enter ${field.label.toLowerCase()}`}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm"
                 />
               ) : (
                 <input
                   type="text"
                   placeholder={`Enter ${field.label.toLowerCase()}`}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm"
                 />
               )}
             </div>
@@ -211,7 +154,7 @@ const PreviewModal = ({ isOpen, onClose, formData, generatedCode }: PreviewModal
           
           <button
             type="submit"
-            className="w-full bg-indigo-600 text-white py-2 rounded-lg font-semibold hover:bg-indigo-700 transition-colors shadow-sm"
+            className="w-full bg-indigo-600 text-white py-2 rounded-lg font-semibold hover:bg-indigo-700 transition-colors shadow-sm text-sm"
           >
             Submit
           </button>
@@ -280,8 +223,7 @@ const ${formData.formName.replace(/\s/g, '')}Form = () => {
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
           />`
         }
-      </div>
-      `).join("")}
+      </div>`).join("")}
       <button
         type="submit"
         disabled={isLoading}
@@ -305,12 +247,12 @@ export default ${formData.formName.replace(/\s/g, '')}Form;`;
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; padding: 20px; }
         .form-container { max-width: 500px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h2 { margin-bottom: 20px; color: #333; }
+        h2 { margin-bottom: 20px; color: #333; font-size: 1.5rem; }
         .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: 500; color: #555; }
+        label { display: block; margin-bottom: 5px; font-weight: 500; color: #555; font-size: 14px; }
         input, textarea { width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
         input:focus, textarea:focus { outline: none; border-color: #6366f1; }
-        button { width: 100%; padding: 10px; background: #6366f1; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: 600; cursor: pointer; }
+        button { width: 100%; padding: 10px; background: #6366f1; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
         button:hover { background: #4f46e5; }
         button:disabled { opacity: 0.5; cursor: not-allowed; }
         .loader { display: inline-block; width: 20px; height: 20px; border: 2px solid #fff; border-radius: 50%; border-top-color: transparent; animation: spin 0.6s linear infinite; }
@@ -328,8 +270,7 @@ export default ${formData.formName.replace(/\s/g, '')}Form;`;
                   `<textarea id="${f.name}" name="${f.name}" rows="3"></textarea>` :
                   `<input type="${f.type}" id="${f.name}" name="${f.name}">`
                 }
-            </div>
-            `).join("")}
+            </div>`).join("")}
             <button type="submit" id="submitBtn">Submit</button>
         </form>
     </div>
@@ -374,25 +315,25 @@ export default ${formData.formName.replace(/\s/g, '')}Form;`;
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{ type: "spring", duration: 0.3 }}
-          className="relative bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden"
+          className="relative bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
         >
-          <div className="flex items-center justify-between p-6 border-b border-slate-200">
+          <div className="flex items-center justify-between p-5 border-b border-slate-200">
             <div>
-              <h2 className="text-xl font-bold text-slate-900">Form Preview</h2>
-              <p className="text-sm text-slate-500 mt-1">Preview and copy your integration code</p>
+              <h2 className="text-lg font-bold text-slate-900">Form Preview</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Preview and copy your integration code</p>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
             >
-              <X size={20} className="text-slate-500" />
+              <X size={18} className="text-slate-500" />
             </button>
           </div>
           
-          <div className="flex border-b border-slate-200 px-6">
+          <div className="flex border-b border-slate-200 px-5">
             <button
               onClick={() => setActiveTab("preview")}
-              className={`px-4 py-2 text-sm font-medium transition-colors relative ${
+              className={`px-3 py-2 text-xs font-medium transition-colors relative ${
                 activeTab === "preview"
                   ? "text-indigo-600"
                   : "text-slate-500 hover:text-slate-700"
@@ -408,7 +349,7 @@ export default ${formData.formName.replace(/\s/g, '')}Form;`;
             </button>
             <button
               onClick={() => setActiveTab("code")}
-              className={`px-4 py-2 text-sm font-medium transition-colors relative ${
+              className={`px-3 py-2 text-xs font-medium transition-colors relative ${
                 activeTab === "code"
                   ? "text-indigo-600"
                   : "text-slate-500 hover:text-slate-700"
@@ -424,39 +365,39 @@ export default ${formData.formName.replace(/\s/g, '')}Form;`;
             </button>
           </div>
           
-          <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+          <div className="p-5 overflow-y-auto max-h-[calc(90vh-180px)]">
             {activeTab === "preview" ? (
               renderFormPreview()
             ) : (
-              <div className="space-y-4">
-                <div className="bg-[#0F172A] rounded-xl overflow-hidden">
-                  <div className="bg-slate-900/50 px-4 py-2 flex items-center justify-between border-b border-slate-800">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full bg-rose-500/80"></div>
-                      <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80"></div>
-                      <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></div>
-                      <span className="ml-2 text-xs font-mono text-slate-400">
+              <div className="space-y-3">
+                <div className="bg-[#0F172A] rounded-lg overflow-hidden">
+                  <div className="bg-slate-900/50 px-3 py-2 flex items-center justify-between border-b border-slate-800">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-rose-500/80"></div>
+                      <div className="w-2 h-2 rounded-full bg-amber-500/80"></div>
+                      <div className="w-2 h-2 rounded-full bg-emerald-500/80"></div>
+                      <span className="ml-1.5 text-[10px] font-mono text-slate-400">
                         {formData.integrationType === "React" ? "FormComponent.jsx" : "index.html"}
                       </span>
                     </div>
                     <button
                       onClick={handleCopyCode}
-                      className="flex items-center gap-1.5 px-2 py-1 text-xs bg-slate-800 hover:bg-slate-700 rounded-md transition-colors text-slate-300"
+                      className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] bg-slate-800 hover:bg-slate-700 rounded transition-colors text-slate-300"
                     >
                       {isCopied ? (
                         <>
-                          <CheckCircle2 size={12} className="text-emerald-400" />
+                          <CheckCircle2 size={10} className="text-emerald-400" />
                           <span>Copied!</span>
                         </>
                       ) : (
                         <>
-                          <Copy size={12} />
+                          <Copy size={10} />
                           <span>Copy</span>
                         </>
                       )}
                     </button>
                   </div>
-                  <pre className="p-4 text-sm font-mono text-emerald-400/90 leading-relaxed overflow-x-auto">
+                  <pre className="p-3 text-xs font-mono text-emerald-400/90 leading-relaxed overflow-x-auto whitespace-pre-wrap">
                     <code>{generatePreviewCode()}</code>
                   </pre>
                 </div>
@@ -464,18 +405,20 @@ export default ${formData.formName.replace(/\s/g, '')}Form;`;
             )}
           </div>
           
-          <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-200 bg-slate-50">
+          <div className="flex items-center justify-end gap-2 p-4 border-t border-slate-200 bg-slate-50 mt-auto">
             <Reusable_Button
               text="Close"
               variant="ghost"
               onClick={onClose}
+              size="px-3 py-1.5 text-xs"
             />
             {activeTab === "code" && (
               <Reusable_Button
                 text={isCopied ? "Copied!" : "Copy Code"}
                 variant="primary"
-                icon={isCopied ? <CheckCircle2 size={16} /> : <Copy size={16} />}
+                icon={isCopied ? <CheckCircle2 size={14} /> : <Copy size={14} />}
                 onClick={handleCopyCode}
+                size="px-3 py-1.5 text-xs"
               />
             )}
           </div>
@@ -487,7 +430,7 @@ export default ${formData.formName.replace(/\s/g, '')}Form;`;
 
 const Utilities = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { message, error, isLoading } = useSelector((state: any) => state.generatedCode || {});
+  const { isLoading } = useSelector((state: any) => state.generatedCode || {});
   
   const [formName, setFormName] = useState("Contact Us");
   const [platform, setPlatform] = useState("website");
@@ -511,15 +454,17 @@ const Utilities = () => {
   const { permissions } = useSelector((state: any) => state.auth);
   const Roles = permissions[6];
 
-  // Simulate initial load (fetch saved forms if needed)
   useEffect(() => {
-    // Simulate loading saved data
     const timer = setTimeout(() => {
       setIsInitialLoad(false);
     }, 500);
-    
     return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    dispatch(clearIntegrationMessage());
+    dispatch(clearIntegrationError());
+  }, [dispatch]);
 
   const validateForm = (): boolean => {
     const errors: ValidationErrors = {};
@@ -563,13 +508,10 @@ const Utilities = () => {
       setAvailableFields(destList);
     }
     
-    successAlert(`Field "${removed.label}" moved successfully`, "Got it");
   };
 
   const handleSubmit = async () => {
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     if (!Roles?.canCreate) {
       warningAlert("You don't have permission to generate code", "Okay");
@@ -594,34 +536,29 @@ const Utilities = () => {
           integrationType,
         };
         
-        console.log("Generation Payload:", payload);
-        
         try {
           const result = await dispatch(createIntegration(payload)).unwrap();
           
           let formattedCode;
-          if (typeof result === 'object') {
-            formattedCode = JSON.stringify(result, null, 2);
-          } else if (typeof result === 'string') {
-            formattedCode = result;
+          if (typeof result === 'object' && result.integrationCode) {
+            formattedCode = result.integrationCode;
           } else {
-            formattedCode = JSON.stringify(payload, null, 2);
+            formattedCode = JSON.stringify(result, null, 2);
           }
           
           setGeneratedCode(formattedCode);
           
-          const successMsg = result?.message || message || "Integration code generated successfully!";
+          const successMsg = result?.message || "Integration code generated successfully!";
           successAlert(successMsg, "Awesome!", "Success!");
         } catch (err: any) {
           console.error("Generation error:", err);
-          const errorMessage = extractErrorMessage(err);
           
-          if (errorMessage.toLowerCase().includes('duplicate')) {
+          const errorMessage = typeof err === 'string' ? err : "An unexpected error occurred.";
+
+          if (errorMessage.toLowerCase().includes('already exists') || errorMessage.toLowerCase().includes('duplicate')) {
             errorAlert(errorMessage, "Try Different Name", "Duplicate Form");
           } else if (errorMessage.toLowerCase().includes('validation')) {
             errorAlert(errorMessage, "Fix Errors", "Validation Error");
-          } else if (errorMessage.toLowerCase().includes('network') || errorMessage.toLowerCase().includes('connection')) {
-            errorAlert("Network error. Please check your internet connection and try again.", "Retry", "Connection Error");
           } else if (errorMessage.toLowerCase().includes('permission')) {
             errorAlert(errorMessage, "Contact Admin", "Permission Denied");
           } else {
@@ -686,7 +623,6 @@ const Utilities = () => {
   };
 
   const handleRefresh = () => {
-    // Reset to default state
     setSelectedFields([]);
     setGeneratedCode("");
     setFormName("Contact Us");
@@ -711,21 +647,7 @@ const Utilities = () => {
     }
   };
 
-  useEffect(() => {
-    if (message && !isGenerating) {
-      successAlert(message, "Success!");
-      dispatch(clearIntegrationMessage());
-    }
-    if (error) {
-      errorAlert(error, "Try Again");
-      dispatch(clearIntegrationError());
-    }
-  }, [message, error, dispatch, isGenerating]);
-
-  // Show initial loader
-  if (isInitialLoad) {
-    return <RippleLoader />;
-  }
+  if (isInitialLoad) return <RippleLoader />;
 
   const isLoadingState = isLoading || isGenerating;
 
@@ -737,80 +659,77 @@ const Utilities = () => {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="min-h-screen bg-[#F8FAFC] py-8 px-6 lg:px-10"
+        className="min-h-screen bg-[#F8FAFC] py-6 px-4 md:py-8 md:px-6 lg:px-8"
       >
-        <div className="max-w-[1600px] mx-auto space-y-8">
+        <div className="w-full mx-auto space-y-6">
           
-          {/* --- LAYER 1: HERO HEADER --- */}
           <motion.header variants={itemVariants} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center shadow-sm">
-                <Blocks size={24} strokeWidth={2.5} />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-indigo-100 text-indigo-600 rounded-xl md:rounded-2xl flex items-center justify-center shadow-sm">
+                <Blocks size={20} strokeWidth={2.5} className="md:w-6 md:h-6" />
               </div>
               <div>
-                <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">Form Builder</h1>
-                <div className="flex items-center gap-3 mt-1">
-                  <p className="text-sm text-slate-500">Design custom forms and generate integration code instantly.</p>
-                  <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">Form Builder</h1>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-xs md:text-sm text-slate-500">Design custom forms and generate integration code instantly.</p>
+                  <span className="w-1 h-1 rounded-full bg-slate-300 hidden sm:block"></span>
+                  <p className="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-wider hidden sm:block">
                     {selectedFields.length} Field{selectedFields.length !== 1 ? 's' : ''} Selected
                   </p>
                 </div>
               </div>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <Tooltip text="Refresh Builder">
                 <button
                   onClick={handleRefresh}
                   disabled={isLoadingState}
-                  className="p-2.5 bg-white rounded-xl shadow-sm border border-slate-200 text-slate-500 hover:text-indigo-600 hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 bg-white rounded-lg shadow-sm border border-slate-200 text-slate-500 hover:text-indigo-600 hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <RefreshCw size={18} className={isLoadingState ? "animate-spin" : ""} />
+                  <RefreshCw size={16} className={isLoadingState ? "animate-spin" : ""} />
                 </button>
               </Tooltip>
               
               <Reusable_Button
-                text="Reset All"
+                text="Reset"
                 variant="ghost"
-                icon={<X size={16} />}
+                icon={<X size={14} />}
                 onClick={handleReset}
-                disabled={!Roles?.canCreate || isLoadingState}
-                size="px-4 py-2 rounded-xl"
+                disabled={!Roles?.canCreate}
+                size="px-3 py-1.5 text-xs rounded-lg"
               />
             </div>
           </motion.header>
 
-          {/* --- LAYER 2: UNIFIED DATA CARD --- */}
-          <motion.main variants={itemVariants} className="bg-white rounded-3xl shadow-[0px_4px_24px_rgba(0,0,0,0.02)] border border-slate-200/60 overflow-hidden">
+          <motion.main variants={itemVariants} className="bg-white rounded-xl md:rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
             
-            {/* Configuration Toolbar */}
-            <div className="bg-slate-50/80 border-b border-slate-100 p-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <div className="bg-slate-50/80 border-b border-slate-100 p-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                     Form Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     value={formName}
                     onChange={handleFormNameChange}
                     placeholder="e.g., Contact Us"
-                    className={`w-full px-4 py-2.5 rounded-xl bg-white text-slate-800 border ${
+                    className={`w-full px-3 py-1.5 rounded-lg bg-white text-slate-800 border text-sm ${
                       validationErrors.formName ? 'border-red-500 focus:ring-red-500' : 'border-slate-200 focus:ring-indigo-500'
                     } focus:border-indigo-500 outline-none transition-all shadow-sm`}
                     disabled={isLoadingState}
                   />
                   {validationErrors.formName && (
-                    <p className="text-xs text-red-500 mt-1">{validationErrors.formName}</p>
+                    <p className="text-[10px] text-red-500 mt-0.5">{validationErrors.formName}</p>
                   )}
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Platform</label>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Platform</label>
                   <select
                     value={platform}
                     onChange={(e) => setPlatform(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white text-slate-800 border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm appearance-none"
+                    className="w-full px-3 py-1.5 rounded-lg bg-white text-slate-800 border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm text-sm"
                     disabled={isLoadingState}
                   >
                     <option value="website">Website</option>
@@ -818,12 +737,12 @@ const Utilities = () => {
                   </select>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Framework</label>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Framework</label>
                   <select
                     value={integrationType}
                     onChange={(e) => setIntegrationType(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-white text-slate-800 border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm appearance-none"
+                    className="w-full px-3 py-1.5 rounded-lg bg-white text-slate-800 border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm text-sm"
                     disabled={isLoadingState}
                   >
                     <option value="React">React App</option>
@@ -832,31 +751,29 @@ const Utilities = () => {
                 </div>
               </div>
               {validationErrors.fields && (
-                <div className="mt-3 text-sm text-red-500 flex items-center gap-2">
-                  <AlertCircle size={16} />
+                <div className="mt-2 text-xs text-red-500 flex items-center gap-1.5">
+                  <AlertCircle size={12} />
                   <span>{validationErrors.fields}</span>
                 </div>
               )}
             </div>
 
-            {/* Builder Area */}
-            <div className="p-6">
+            <div className="p-4">
               <DragDropContext onDragEnd={onDragEnd}>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 min-h-[500px]">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-[400px]">
                   
-                  {/* Column 1: Available Fields */}
                   <div className="flex flex-col">
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="w-2 h-2 rounded-full bg-slate-300" />
-                      <h3 className="font-semibold text-slate-700">Available Fields</h3>
-                      <span className="text-xs text-slate-400 ml-auto">{availableFields.length} fields</span>
+                    <div className="flex items-center gap-1.5 mb-3">
+                      <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                      <h3 className="font-semibold text-slate-700 text-sm">Available Fields</h3>
+                      <span className="text-[10px] text-slate-400 ml-auto">{availableFields.length} fields</span>
                     </div>
                     <Droppable droppableId="available">
                       {(provided, snapshot) => (
                         <div
                           ref={provided.innerRef}
                           {...provided.droppableProps}
-                          className={`flex-1 p-4 rounded-2xl border-2 border-dashed transition-colors ${
+                          className={`flex-1 p-3 rounded-xl border-2 border-dashed transition-colors ${
                             snapshot.isDraggingOver ? 'bg-slate-100 border-slate-300' : 'bg-slate-50 border-slate-200'
                           }`}
                         >
@@ -869,15 +786,15 @@ const Utilities = () => {
                                     {...prov.draggableProps}
                                     {...prov.dragHandleProps}
                                     style={{ ...prov.draggableProps.style }}
-                                    className={`mb-3 flex items-center justify-between p-3 rounded-xl bg-white border shadow-sm transition-shadow ${
-                                      snap.isDragging ? 'border-indigo-300 shadow-lg shadow-indigo-100 scale-105 z-50' : 'border-slate-200 hover:border-slate-300 hover:shadow-md'
+                                    className={`mb-2 flex items-center justify-between p-2 rounded-lg bg-white border shadow-sm transition-shadow ${
+                                      snap.isDragging ? 'border-indigo-300 shadow-md shadow-indigo-100 scale-105 z-50' : 'border-slate-200 hover:border-slate-300 hover:shadow-md'
                                     }`}
                                   >
-                                    <div className="flex items-center gap-3">
-                                      <GripVertical size={16} className="text-slate-400" />
+                                    <div className="flex items-center gap-2">
+                                      <GripVertical size={14} className="text-slate-400" />
                                       <div className="flex flex-col">
-                                        <span className="text-sm font-semibold text-slate-700">{field.label}</span>
-                                        <span className="text-[11px] font-mono text-slate-400">{field.type}</span>
+                                        <span className="text-xs font-semibold text-slate-700">{field.label}</span>
+                                        <span className="text-[10px] font-mono text-slate-400">{field.type}</span>
                                       </div>
                                     </div>
                                   </div>
@@ -887,7 +804,7 @@ const Utilities = () => {
                           </AnimatePresence>
                           {provided.placeholder}
                           {availableFields.length === 0 && (
-                            <div className="text-center py-8 text-slate-400 text-sm">
+                            <div className="text-center py-6 text-slate-400 text-xs">
                               All fields have been added to the form
                             </div>
                           )}
@@ -896,27 +813,26 @@ const Utilities = () => {
                     </Droppable>
                   </div>
 
-                  {/* Column 2: Selected Fields */}
                   <div className="flex flex-col">
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
-                      <h3 className="font-semibold text-indigo-900">Form Structure</h3>
-                      <span className="text-xs text-indigo-400 ml-auto">{selectedFields.length} fields</span>
+                    <div className="flex items-center gap-1.5 mb-3">
+                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
+                      <h3 className="font-semibold text-indigo-900 text-sm">Form Structure</h3>
+                      <span className="text-[10px] text-indigo-400 ml-auto">{selectedFields.length} fields</span>
                     </div>
                     <Droppable droppableId="selected">
                       {(provided, snapshot) => (
                         <div
                           ref={provided.innerRef}
                           {...provided.droppableProps}
-                          className={`flex-1 p-4 rounded-2xl border-2 border-dashed transition-colors flex flex-col ${
+                          className={`flex-1 p-3 rounded-xl border-2 border-dashed transition-colors flex flex-col ${
                             snapshot.isDraggingOver ? 'bg-indigo-50 border-indigo-300' : 'bg-indigo-50/30 border-indigo-100'
                           }`}
                         >
                           {selectedFields.length === 0 && !snapshot.isDraggingOver && (
-                            <div className="m-auto flex flex-col items-center justify-center text-center p-6 opacity-60">
-                              <MousePointerClick size={40} className="text-indigo-300 mb-3" />
-                              <p className="text-sm font-medium text-indigo-800">Drag fields here to build</p>
-                              <p className="text-xs text-indigo-500 mt-1">Configure your form structure</p>
+                            <div className="m-auto flex flex-col items-center justify-center text-center p-4 opacity-60">
+                              <MousePointerClick size={32} className="text-indigo-300 mb-2" />
+                              <p className="text-xs font-medium text-indigo-800">Drag fields here to build</p>
+                              <p className="text-[10px] text-indigo-500 mt-0.5">Configure your form structure</p>
                             </div>
                           )}
 
@@ -929,15 +845,15 @@ const Utilities = () => {
                                     {...prov.draggableProps}
                                     {...prov.dragHandleProps}
                                     style={{ ...prov.draggableProps.style }}
-                                    className={`mb-3 flex items-center justify-between p-3 rounded-xl bg-white border transition-shadow ${
-                                      snap.isDragging ? 'border-indigo-400 shadow-xl shadow-indigo-200 scale-105 z-50' : 'border-indigo-100 shadow-sm hover:border-indigo-200'
+                                    className={`mb-2 flex items-center justify-between p-2 rounded-lg bg-white border transition-shadow ${
+                                      snap.isDragging ? 'border-indigo-400 shadow-lg shadow-indigo-200 scale-105 z-50' : 'border-indigo-100 shadow-sm hover:border-indigo-200'
                                     }`}
                                   >
-                                    <div className="flex items-center gap-3">
-                                      <GripVertical size={16} className="text-indigo-300" />
+                                    <div className="flex items-center gap-2">
+                                      <GripVertical size={14} className="text-indigo-300" />
                                       <div className="flex flex-col">
-                                        <span className="text-sm font-semibold text-indigo-900">{field.label}</span>
-                                        <span className="text-[11px] font-mono text-indigo-400">{field.type}</span>
+                                        <span className="text-xs font-semibold text-indigo-900">{field.label}</span>
+                                        <span className="text-[10px] font-mono text-indigo-400">{field.type}</span>
                                       </div>
                                     </div>
                                   </div>
@@ -951,74 +867,72 @@ const Utilities = () => {
                     </Droppable>
                   </div>
 
-                  {/* Column 3: Output Code */}
                   <div className="flex flex-col">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-center gap-2">
-                        <TerminalSquare size={18} className="text-slate-600" />
-                        <h3 className="font-semibold text-slate-800">Integration Code</h3>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-1.5">
+                        <TerminalSquare size={16} className="text-slate-600" />
+                        <h3 className="font-semibold text-slate-800 text-sm">Integration Code</h3>
                       </div>
                       {generatedCode && (
-                        <span className="text-xs text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                        <span className="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
                           Generated
                         </span>
                       )}
                     </div>
                     
-                    <div className="flex-1 bg-[#0F172A] rounded-2xl border border-slate-800 overflow-hidden flex flex-col shadow-xl">
-                      <div className="bg-slate-900/50 px-4 py-3 flex items-center gap-2 border-b border-slate-800">
-                        <div className="w-3 h-3 rounded-full bg-rose-500/80"></div>
-                        <div className="w-3 h-3 rounded-full bg-amber-500/80"></div>
-                        <div className="w-3 h-3 rounded-full bg-emerald-500/80"></div>
-                        <span className="ml-2 text-xs font-mono text-slate-500">
+                    <div className="flex-1 bg-[#0F172A] rounded-xl border border-slate-800 overflow-hidden flex flex-col shadow-md">
+                      <div className="bg-slate-900/50 px-3 py-2 flex items-center gap-1.5 border-b border-slate-800">
+                        <div className="w-2 h-2 rounded-full bg-rose-500/80"></div>
+                        <div className="w-2 h-2 rounded-full bg-amber-500/80"></div>
+                        <div className="w-2 h-2 rounded-full bg-emerald-500/80"></div>
+                        <span className="ml-1.5 text-[10px] font-mono text-slate-500">
                           {generatedCode ? "integration-config.json" : "output.json"}
                         </span>
                       </div>
                       
-                      <div className="p-4 flex-1 overflow-auto custom-scrollbar">
+                      <div className="p-3 flex-1 overflow-auto max-h-[300px]">
                         {generatedCode ? (
-                          <pre className="text-[13px] font-mono text-emerald-400/90 leading-relaxed">
+                          <pre className="text-[11px] font-mono text-emerald-400/90 leading-relaxed">
                             {generatedCode}
                           </pre>
                         ) : (
-                          <div className="h-full flex flex-col items-center justify-center text-slate-600 text-sm font-mono opacity-50 gap-3">
-                            <AlertCircle size={32} className="text-slate-500" />
+                          <div className="h-full flex flex-col items-center justify-center text-slate-600 text-xs font-mono opacity-50 gap-2">
+                            <AlertCircle size={24} className="text-slate-500" />
                             <div className="text-center">
                               <p>No code generated yet</p>
-                              <p className="text-xs mt-1">Configure your form and click "Generate Code"</p>
+                              <p className="text-[10px] mt-0.5">Configure your form and click "Generate Code"</p>
                             </div>
                           </div>
                         )}
                       </div>
                     </div>
 
-                    {/* Action Buttons */}
-                    <div className="flex flex-wrap items-center justify-end gap-3 mt-4">
+                    <div className="flex flex-wrap items-center justify-end gap-2 mt-3">
                       <Reusable_Button
-                        text={isCopied ? "Copied!" : "Copy Code"}
+                        text={isCopied ? "Copied!" : "Copy"}
                         variant="ghost"
-                        icon={isCopied ? <CheckCircle2 size={16} className="text-emerald-500"/> : <Copy size={16} />}
+                        icon={isCopied ? <CheckCircle2 size={14} className="text-emerald-500"/> : <Copy size={14} />}
                         onClick={handleCopy}
-                        disabled={!Roles?.canRead || isLoadingState || !generatedCode}
-                        size="px-5 py-2.5 font-semibold rounded-xl"
+                        disabled={!Roles?.canRead}
+                        size="px-3 py-1.5 text-xs rounded-lg"
                       />
 
                       <Reusable_Button
-                        text="Preview Form"
+                        text="Preview"
                         variant="secondary"
-                        icon={<Eye size={16} />}
+                        icon={<Eye size={14} />}
                         onClick={handlePreview}
-                        disabled={!Roles?.canRead || isLoadingState || !generatedCode}
-                        size="px-5 py-2.5 font-semibold rounded-xl"
+                        disabled={!Roles?.canRead}
+                        size="px-3 py-1.5 text-xs rounded-lg"
                       />
 
                       <Reusable_Button
-                        text={isGenerating ? "Generating..." : "Generate Code"}
+                        text={isGenerating ? "Generating..." : "Generate"}
                         variant="primary"
-                        icon={isGenerating ? <Loader2 size={16} className="animate-spin" /> : <Code2 size={16} />}
+                        icon={isGenerating ? <Loader2 size={14} className="animate-spin" /> : <Code2 size={14} />}
                         onClick={handleSubmit}
-                        disabled={!Roles?.canCreate || isLoadingState}
-                        size="px-5 py-2.5 font-semibold shadow-lg shadow-indigo-200/50 rounded-xl"
+                        disabled={!Roles?.canCreate}
+                        size="px-3 py-1.5 text-xs rounded-lg"
                       />
                     </div>
                   </div>
@@ -1030,7 +944,6 @@ const Utilities = () => {
         </div>
       </motion.div>
 
-      {/* Preview Modal */}
       <PreviewModal
         isOpen={isPreviewModalOpen}
         onClose={() => setIsPreviewModalOpen(false)}

@@ -25,7 +25,7 @@ const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.12, delayChildren: 0.05 },
+    transition: { staggerChildren: 0.1, delayChildren: 0.05 },
   },
 };
 
@@ -43,10 +43,10 @@ const Tooltip = ({ children, text }: { children: React.ReactNode, text: string }
   <div className="group relative flex flex-col items-center">
     {children}
     <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center z-50 animate-in fade-in zoom-in-95 duration-200">
-      <span className="relative z-10 px-2.5 py-1.5 text-[11px] font-semibold text-white whitespace-nowrap bg-slate-800 shadow-xl rounded-md">
+      <span className="relative z-10 px-2 py-1 text-[10px] font-semibold text-white whitespace-nowrap bg-slate-800 shadow-md rounded-md">
         {text}
       </span>
-      <div className="w-2.5 h-2.5 -mt-1.5 rotate-45 bg-slate-800 rounded-sm"></div>
+      <div className="w-2 h-2 -mt-1 rotate-45 bg-slate-800 rounded-sm"></div>
     </div>
   </div>
 );
@@ -193,7 +193,7 @@ const Dashboard = () => {
       case "Upcomming_FollowU": return <Upcomming_FollowU />;
       case "LeadAcquisitionChart": return <LeadAcquisitionChart />;
       default: return (
-        <div className="flex items-center justify-center h-full p-8 bg-white border border-rose-200 rounded-3xl text-rose-500 font-medium">
+        <div className="flex items-center justify-center h-full p-6 bg-white border border-rose-200 rounded-xl text-rose-500 font-medium text-sm">
           Component "{componentName}" not found
         </div>
       );
@@ -203,25 +203,25 @@ const Dashboard = () => {
   // Show error state if initial load fails
   if (error && !reduxSections?.length && !isRefreshing && !isInitialLoad) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] py-8 px-6 lg:px-10">
-        <div className="max-w-[1600px] mx-auto">
-          <div className="flex flex-col items-center justify-center py-20 text-center bg-white rounded-3xl border border-slate-200">
-            <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-4">
-              <LayoutDashboard size={40} className="text-red-500" />
+      <div className="min-h-screen bg-[#F8FAFC] py-6 px-4 md:py-8 md:px-6 lg:px-8">
+        <div className="w-full mx-auto">
+          <div className="flex flex-col items-center justify-center py-16 text-center bg-white rounded-xl border border-slate-200">
+            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4">
+              <LayoutDashboard size={32} className="text-red-500" />
             </div>
-            <h3 className="text-xl font-semibold text-slate-800 mb-2">Failed to Load Dashboard</h3>
-            <p className="text-sm text-slate-500 mb-6 max-w-md">{error}</p>
+            <h3 className="text-lg font-semibold text-slate-800 mb-2">Failed to Load Dashboard</h3>
+            <p className="text-sm text-slate-500 mb-6 max-w-md px-4">{error}</p>
             <div className="flex gap-3">
               <button
                 onClick={handleRefresh}
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2"
+                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2 text-sm"
               >
-                <RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""} />
+                <RefreshCw size={14} className={isRefreshing ? "animate-spin" : ""} />
                 Try Again
               </button>
               <button
                 onClick={() => window.location.reload()}
-                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors"
+                className="px-4 py-2 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors text-sm"
               >
                 Reload Page
               </button>
@@ -248,22 +248,22 @@ const Dashboard = () => {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="min-h-screen bg-[#F8FAFC] py-8 px-6 lg:px-10"
+        className="min-h-screen bg-[#F8FAFC] py-6 px-4 md:py-8 md:px-6 lg:px-8"
       >
-        <div className="max-w-[1600px] mx-auto space-y-8">
+        <div className="w-full mx-auto space-y-6">
           
           {/* --- LAYER 1: HERO HEADER --- */}
           <motion.header variants={itemVariants} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center shadow-sm">
-                <LayoutDashboard size={24} strokeWidth={2.5} />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-indigo-100 text-indigo-600 rounded-xl md:rounded-2xl flex items-center justify-center shadow-sm">
+                <LayoutDashboard size={20} strokeWidth={2.5} className="md:w-6 md:h-6" />
               </div>
               <div>
-                <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">Overview Dashboard</h1>
-                <div className="flex items-center gap-3 mt-1">
-                  <p className="text-sm text-slate-500">Drag and drop widgets to customize your workspace layout.</p>
-                  <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">Overview Dashboard</h1>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-xs md:text-sm text-slate-500">Drag and drop widgets to customize your workspace layout.</p>
+                  <span className="w-1 h-1 rounded-full bg-slate-300 hidden sm:block"></span>
+                  <p className="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-wider hidden sm:block">
                     {sections.length} Widget{sections.length !== 1 ? 's' : ''}
                   </p>
                 </div>
@@ -271,13 +271,13 @@ const Dashboard = () => {
             </div>
 
             {/* Refresh Button */}
-            <Tooltip text="Refresh Dashboard">
+            <Tooltip text="Refresh">
               <button
                 onClick={handleRefresh}
                 disabled={isLoadingState}
-                className="p-2.5 bg-white rounded-xl shadow-sm border border-slate-200 text-slate-500 hover:text-indigo-600 hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-2 bg-white rounded-lg shadow-sm border border-slate-200 text-slate-500 hover:text-indigo-600 hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <RefreshCw size={18} className={isRefreshing ? "animate-spin" : ""} />
+                <RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""} />
               </button>
             </Tooltip>
           </motion.header>
@@ -285,9 +285,9 @@ const Dashboard = () => {
           {/* --- LAYER 2: DRAGGABLE GRID WIDGETS --- */}
           <motion.main variants={itemVariants}>
             {sections.length === 0 && !isLoadingState ? (
-              <div className="flex flex-col items-center justify-center py-20 text-center bg-white rounded-3xl border border-slate-200">
-                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                  <LayoutDashboard size={40} className="text-slate-400" />
+              <div className="flex flex-col items-center justify-center py-16 text-center bg-white rounded-xl border border-slate-200">
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                  <LayoutDashboard size={32} className="text-slate-400" />
                 </div>
                 <h3 className="text-lg font-semibold text-slate-800 mb-2">No Widgets Configured</h3>
                 <p className="text-sm text-slate-500">No dashboard widgets are currently available.</p>
@@ -299,8 +299,8 @@ const Dashboard = () => {
                     <div 
                       {...provided.droppableProps} 
                       ref={provided.innerRef}
-                      className={`grid grid-cols-12 gap-6 transition-all duration-200 ${
-                        snapshot.isDraggingOver ? 'bg-indigo-50/30 rounded-3xl p-2 -m-2' : ''
+                      className={`grid grid-cols-12 gap-4 md:gap-6 transition-all duration-200 ${
+                        snapshot.isDraggingOver ? 'bg-indigo-50/30 rounded-xl p-2 -m-2' : ''
                       }`}
                     >
                       {sections.map((section, index) => (
@@ -325,35 +325,35 @@ const Dashboard = () => {
                               }}
                             >
                               <div className={`
-                                relative group h-full rounded-3xl transition-all duration-300
-                                ${snapshot.isDragging ? "ring-4 ring-indigo-500/20 shadow-2xl shadow-indigo-500/10 scale-[1.02]" : "hover:shadow-lg hover:shadow-slate-200/50"}
+                                relative group h-full rounded-xl md:rounded-2xl transition-all duration-300
+                                ${snapshot.isDragging ? "ring-2 ring-indigo-500/20 shadow-xl shadow-indigo-500/5 scale-[1.01]" : "hover:shadow-md hover:shadow-slate-200/50"}
                                 ${isLoadingState ? "opacity-70 pointer-events-none" : ""}
                               `}>
                                 
                                 {/* Glassmorphism Widget Controls Overlay */}
                                 <div className={`
-                                  absolute top-3 right-3 z-30 flex items-center gap-1 p-1 
-                                  bg-white/80 backdrop-blur-md border border-slate-200 shadow-sm rounded-xl
+                                  absolute top-2 right-2 z-30 flex items-center gap-0.5 p-1 
+                                  bg-white/80 backdrop-blur-md border border-slate-200 shadow-sm rounded-lg
                                   opacity-0 group-hover:opacity-100 transition-opacity duration-200
                                   ${snapshot.isDragging ? "opacity-100 shadow-md bg-white" : ""}
                                 `}>
                                   <div 
                                     {...provided.dragHandleProps}
-                                    className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-indigo-600 cursor-grab active:cursor-grabbing transition-colors"
+                                    className="p-1 hover:bg-slate-100 rounded-md text-slate-400 hover:text-indigo-600 cursor-grab active:cursor-grabbing transition-colors"
                                     title="Drag to move widget"
                                   >
-                                    <GripVertical size={16} />
+                                    <GripVertical size={14} />
                                   </div>
                                   
                                   {/* Only show resize button if not Dashboard_Stats */}
                                   {section.sections !== "Dashboard_Stats" && (
                                     <button 
                                       onClick={() => toggleSize(index)}
-                                      className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-indigo-600 transition-colors"
+                                      className="p-1 hover:bg-slate-100 rounded-md text-slate-400 hover:text-indigo-600 transition-colors"
                                       title={section.size === 6 ? "Expand Widget" : "Shrink Widget"}
                                       disabled={isLoadingState}
                                     >
-                                      {section.size === 6 ? <Maximize2 size={16} /> : <Minimize2 size={16} />}
+                                      {section.size === 6 ? <Maximize2 size={14} /> : <Minimize2 size={14} />}
                                     </button>
                                   )}
                                 </div>
@@ -378,9 +378,9 @@ const Dashboard = () => {
 
           {/* Save indicator */}
           {isSaving && (
-            <div className="fixed bottom-4 right-4 bg-indigo-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 z-50">
-              <Loader2 size={16} className="animate-spin" />
-              <span className="text-sm font-medium">Saving layout...</span>
+            <div className="fixed bottom-4 right-4 bg-indigo-600 text-white px-3 py-2 rounded-lg shadow-lg flex items-center gap-2 z-50">
+              <Loader2 size={14} className="animate-spin" />
+              <span className="text-xs font-medium">Saving layout...</span>
             </div>
           )}
         </div>

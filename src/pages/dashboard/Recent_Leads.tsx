@@ -63,13 +63,27 @@ const Recent_Leads = () => {
       width: '250px',
       filterable: true,
       sortable: true,
-      render: (name: string, record: any) => (
+      render: (name: string,record: any) => (
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center">
             <User size={16} className="text-slate-500" />
           </div>
           <div className="flex flex-col">
             <span className="font-semibold text-slate-800 text-sm">{name}</span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: 'Company',
+      dataIndex: 'leadName',
+      key: 'lead',
+      width: '250px',
+      filterable: true,
+      sortable: true,
+      render: (name: string,record: any) => (
+        <div className="flex items-center gap-3">
+          <div className="flex flex-col">
             <div className="flex items-center gap-1 text-xs text-slate-400 mt-0.5">
               <Building2 size={12} />
               <span>{record.leadSubInfo}</span>
@@ -79,7 +93,7 @@ const Recent_Leads = () => {
       ),
     },
     {
-      title: 'Contact',
+      title: 'Email',
       dataIndex: 'email',
       key: 'contact',
       width: '250px',
@@ -91,6 +105,18 @@ const Recent_Leads = () => {
             <Mail size={14} className="text-slate-400" />
             <span>{record.email}</span>
           </div>
+        </div>
+      ),
+    },
+    {
+      title: 'Mobile',
+      dataIndex: 'mobile',
+      key: 'contact',
+      width: '250px',
+      filterable: true,
+      sortable: true,
+      render: (_: string, record: any) => (
+        <div className="flex flex-col gap-1.5">
           <div className="flex items-center gap-2 text-sm text-slate-600">
             <Phone size={14} className="text-slate-400" />
             <span>{record.mobile}</span>

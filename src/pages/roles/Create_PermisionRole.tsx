@@ -26,8 +26,9 @@ type PermissionItem = {
 };
 
 type ApiPermission = {
+  module: string;
   canCreate?: boolean;
-  canView?: boolean;
+  canRead?: boolean;
   canEdit?: boolean;
   canDelete?: boolean;
 };
@@ -155,13 +156,15 @@ const Create_PermisionRole = () => {
     fetchModules();
   }, [dispatch, meData]);
 
-  // Prefill edit data
+  // Prefill edit data - FIXED with proper debugging
   useEffect(() => {
     if (edit && rolesData && permissions.length > 0) {
+      console.log("🔍 Editing role data:", rolesData);
+      
       setUserRole(rolesData.userRole || "");
       setGroup(rolesData.Group || "");
       
-      let apiPermissions: any = {};
+      let apiPermissions: Record<string, any> = {};
       
       if (Array.isArray(rolesData.permissions)) {
         rolesData.permissions.forEach((perm: any) => {
@@ -170,20 +173,31 @@ const Create_PermisionRole = () => {
       } else {
         apiPermissions = rolesData.permissions || {};
       }
+      
+      console.log("📦 API Permissions mapping:", apiPermissions);
 
       const merged = permissions.map((item) => {
         const apiPerm = apiPermissions[item.module];
         if (apiPerm) {
+          console.log(`📌 Module: ${item.module}`, {
+            apiCanRead: apiPerm.canRead,
+            apiCanCreate: apiPerm.canCreate,
+            apiCanEdit: apiPerm.canEdit,
+            apiCanDelete: apiPerm.canDelete
+          });
+          
           return {
             module: item.module,
-            create: apiPerm.canCreate || apiPerm.canCreate === true,
-            view: apiPerm.canRead || apiPerm.canRead || false,
-            edit: apiPerm.canEdit || apiPerm.canUpdate || false,
-            delete: apiPerm.canDelete || false,
+            create: apiPerm.canCreate === true,
+            view: apiPerm.canRead === true,  // Map canRead to view
+            edit: apiPerm.canEdit === true,
+            delete: apiPerm.canDelete === true,
           };
         }
         return item;
       });
+      
+      console.log("✅ Merged permissions:", merged);
       setPermissions(merged);
     }
   }, [edit, rolesData, permissions.length]);
@@ -209,13 +223,18 @@ const Create_PermisionRole = () => {
   };
 
   const buildPayload = (): ApiPayload => {
-    const permissionsArray = permissions.map((item) => ({
-      module: item.module,
-      canCreate: item.create,
-      canRead: item.view,
-      canEdit: item.edit,
-      canDelete: item.delete,
-    }));
+    const permissionsArray = permissions.map((item) => {
+      const permission = {
+        module: item.module,
+        canCreate: item.create,
+        canRead: item.view,     // Map view to canRead
+        canEdit: item.edit,
+        canDelete: item.delete,
+      };
+      
+      console.log(`📤 Building payload for ${item.module}:`, permission);
+      return permission;
+    });
 
     const payload: ApiPayload = {
       userRole: userRole.trim(),
@@ -226,11 +245,15 @@ const Create_PermisionRole = () => {
       payload.Group = group.trim();
     }
 
+    console.log("📤 Final payload:", JSON.stringify(payload, null, 2));
     return payload;
   };
 
   const handleSubmit = () => {
     if (!validateForm()) return;
+
+    // Log current permissions state before submit
+    console.log("📊 Current permissions state before submit:", permissions);
 
     confirmAlert({
       title: edit ? "Update Role" : "Create Role",
@@ -239,7 +262,6 @@ const Create_PermisionRole = () => {
       cancelText: "Cancel",
       onConfirm: async () => {
         const payload = buildPayload();
-        console.log("Submitting payload:", JSON.stringify(payload, null, 2));
         
         setSubmitting(true);
         
@@ -292,6 +314,11 @@ const Create_PermisionRole = () => {
     }
   };
 
+  // Debug: Log permissions whenever they change
+  useEffect(() => {
+    console.log("🔄 Permissions updated:", permissions);
+  }, [permissions]);
+
   if (loading || meLoading) {
     return <RippleLoader />;
   }
@@ -304,7 +331,7 @@ const Create_PermisionRole = () => {
         <div className="flex items-center gap-4 mb-6">
           <button
             onClick={handleCancel}
-            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
             disabled={submitting}
           >
             <ArrowLeft size={20} className="text-slate-600" />
@@ -392,7 +419,7 @@ const Create_PermisionRole = () => {
             text={submitting ? (edit ? "Updating..." : "Creating...") : (edit ? "Update Role Permissions" : "Save Role Permissions")}
             onClick={handleSubmit}
             variant="primary"
-            size="px-6 py-3"
+            size="px-3 py-2"
             disabled={submitting}
             isLoading={submitting}
           />

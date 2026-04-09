@@ -58,7 +58,6 @@ const extractErrorMessage = (error: any): string => {
     errorMessage = error.message;
   }
   
-  // Clean up specific error messages
   if (errorMessage.toLowerCase().includes('network') || errorMessage.toLowerCase().includes('connection')) {
     errorMessage = "Network error. Please check your internet connection and try again.";
   }
@@ -117,7 +116,7 @@ const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.12, delayChildren: 0.05 },
+    transition: { staggerChildren: 0.1, delayChildren: 0.05 },
   },
 };
 
@@ -135,10 +134,10 @@ const Tooltip = ({ children, text }: { children: React.ReactNode, text: string }
   <div className="group relative flex flex-col items-center">
     {children}
     <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center z-50 animate-in fade-in zoom-in-95 duration-200">
-      <span className="relative z-10 px-2.5 py-1.5 text-[11px] font-semibold text-white whitespace-nowrap bg-slate-800 shadow-xl rounded-md">
+      <span className="relative z-10 px-2 py-1 text-[10px] font-semibold text-white whitespace-nowrap bg-slate-800 shadow-md rounded-md">
         {text}
       </span>
-      <div className="w-2.5 h-2.5 -mt-1.5 rotate-45 bg-slate-800 rounded-sm"></div>
+      <div className="w-2 h-2 -mt-1 rotate-45 bg-slate-800 rounded-sm"></div>
     </div>
   </div>
 );
@@ -357,10 +356,10 @@ const All_Users: React.FC = () => {
       render: (profile: string) => (
         <div className="flex items-center justify-center">
           <motion.img
-            whileHover={{ scale: 1.1, rotate: 3 }}
+            whileHover={{ scale: 1.05, rotate: 2 }}
             src={profile || "https://via.placeholder.com/40"}
             alt="profile"
-            className="w-10 h-10 rounded-full ring-2 ring-slate-100 object-cover bg-slate-50"
+            className="w-8 h-8 md:w-10 md:h-10 rounded-full ring-2 ring-slate-100 object-cover bg-slate-50 shadow-sm"
             onError={(e) => {
               (e.target as HTMLImageElement).src = "https://via.placeholder.com/40";
             }}
@@ -376,18 +375,19 @@ const All_Users: React.FC = () => {
       sortable: true,
       render: (name: string, record: TableDataItem) => (
         <div className="flex flex-col">
-          <span className="font-semibold text-slate-800">{name || 'N/A'}</span>
-          <span className="text-xs text-slate-500 mt-0.5">{record.email}</span>
+          <span className="font-semibold text-slate-800 text-sm">{name || 'N/A'}</span>
+          <span className="text-[11px] text-slate-500 mt-0.5">{record.email}</span>
         </div>
       ),
     },
+    
     {
       title: 'Contact',
       dataIndex: 'mobile',
       key: 'mobile',
       filterable: true,
       sortable: true,
-      render: (mobile: string) => <span className="text-slate-600">{mobile || '-'}</span>
+      render: (mobile: string) => <span className="text-slate-600 text-xs">{mobile || '-'}</span>
     },
     {
       title: 'Role',
@@ -409,7 +409,7 @@ const All_Users: React.FC = () => {
         };
         const colorClass = roleColors[role] || roleColors.User;
         return (
-          <span className={`px-2.5 py-1 rounded-md text-[12px] font-medium border ${colorClass}`}>
+          <span className={`px-2 py-0.5 rounded-md text-[11px] font-medium border ${colorClass}`}>
             {role}
           </span>
         );
@@ -425,9 +425,9 @@ const All_Users: React.FC = () => {
       render: (status: string) => {
         const isActive = String(status) === '1';
         return (
-          <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-            <span className={`text-[13px] font-medium ${isActive ? 'text-emerald-700' : 'text-rose-700'}`}>
+          <div className="flex items-center gap-1.5">
+            <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+            <span className={`text-xs font-medium ${isActive ? 'text-emerald-700' : 'text-rose-700'}`}>
               {isActive ? 'Active' : 'Inactive'}
             </span>
           </div>
@@ -435,14 +435,14 @@ const All_Users: React.FC = () => {
       },
     },
     {
-      title: 'Joined Date',
+      title: 'Joined',
       dataIndex: 'created',
       key: 'created',
       filterable: true,
       sortable: true,
       filterType: 'date' as const,
       render: (date: string) =>
-        date ? <span className="text-slate-600">{new Date(date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</span> : '-',
+        date ? <span className="text-slate-600 text-xs">{new Date(date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</span> : '-',
     },
   ], []);
 
@@ -454,26 +454,28 @@ const All_Users: React.FC = () => {
   // Show error state with retry option
   if (hasError && !tableData.length && !isRefreshing) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] py-8 px-6 lg:px-10">
-        <div className="max-w-[1600px] mx-auto">
-          <div className="flex flex-col items-center justify-center py-20 text-center bg-white rounded-3xl border border-slate-200">
-            <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mb-4">
-              <Users size={40} className="text-red-500" />
+      <div className="min-h-screen bg-[#F8FAFC] py-6 px-4 md:py-8 md:px-6 lg:px-8">
+        <div className="w-full mx-auto">
+          <div className="flex flex-col items-center justify-center py-16 text-center bg-white rounded-xl border border-slate-200">
+            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4">
+              <Users size={32} className="text-red-500" />
             </div>
-            <h3 className="text-xl font-semibold text-slate-800 mb-2">Failed to Load Users</h3>
-            <p className="text-sm text-slate-500 mb-6 max-w-md">{hasError}</p>
+            <h3 className="text-lg font-semibold text-slate-800 mb-2">Failed to Load Users</h3>
+            <p className="text-sm text-slate-500 mb-6 max-w-md px-4">{hasError}</p>
             <div className="flex gap-3">
               <Reusable_Button
                 text="Try Again"
                 variant="primary"
                 onClick={handleRefresh}
-                icon={<RefreshCw size={16} />}
+                icon={<RefreshCw size={14} />}
                 isLoading={isRefreshing}
+                size="px-4 py-2 text-sm"
               />
               <Reusable_Button
                 text="Go Back"
                 variant="secondary"
                 onClick={() => window.history.back()}
+                size="px-4 py-2 text-sm"
               />
             </div>
           </div>
@@ -494,36 +496,36 @@ const All_Users: React.FC = () => {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="min-h-screen bg-[#F8FAFC] py-8 px-6 lg:px-10"
+        className="min-h-screen bg-[#F8FAFC] py-6 px-4 md:py-8 md:px-6 lg:px-8"
       >
-        <div className="max-w-[1600px] mx-auto space-y-8">
+        <div className="w-full mx-auto space-y-6">
           
           {/* --- LAYER 1: HERO HEADER --- */}
           <motion.header variants={itemVariants} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center shadow-sm">
-                <Users size={24} strokeWidth={2.5} />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-indigo-100 text-indigo-600 rounded-xl md:rounded-2xl flex items-center justify-center shadow-sm">
+                <Users size={20} strokeWidth={2.5} className="md:w-6 md:h-6" />
               </div>
               <div>
-                <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">Team Directory</h1>
-                <div className="flex items-center gap-3 mt-1">
-                  <p className="text-sm text-slate-500">Manage user access, roles, and status across your workspace.</p>
-                  <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    {tableData.length} Total {tableData.length === 1 ? 'User' : 'Users'}
+                <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">Team Directory</h1>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-xs md:text-sm text-slate-500">Manage user access, roles, and status across your workspace.</p>
+                  <span className="w-1 h-1 rounded-full bg-slate-300 hidden sm:block"></span>
+                  <p className="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-wider hidden sm:block">
+                    {tableData.length} Total
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               <Tooltip text="Refresh Data">
                 <button
                   onClick={handleRefresh}
                   disabled={isRefreshing || isDeleting}
-                  className="p-2.5 bg-white rounded-xl shadow-sm border border-slate-200 text-slate-500 hover:text-indigo-600 hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 bg-white rounded-lg shadow-sm border border-slate-200 text-slate-500 hover:text-indigo-600 hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <RefreshCw size={18} className={isRefreshing ? "animate-spin" : ""} />
+                  <RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""} />
                 </button>
               </Tooltip>
               
@@ -531,8 +533,8 @@ const All_Users: React.FC = () => {
                 <Reusable_Button
                   onClick={handleAddUser}
                   variant='primary'
-                  text='+ Add New User'
-                  size='px-5 py-2.5 font-medium shadow-lg shadow-indigo-200/50 rounded-xl'
+                  text='+ Add User'
+                  size='px-3 py-2 text-sm font-medium shadow-md shadow-indigo-200/50 rounded-lg'
                   disabled={!Roles?.canCreate}
                 />
               </motion.div>
@@ -550,7 +552,7 @@ const All_Users: React.FC = () => {
           </motion.section>
 
           {/* --- LAYER 3: UNIFIED DATA CARD --- */}
-          <motion.main variants={itemVariants} className="bg-white rounded-3xl shadow-[0px_4px_24px_rgba(0,0,0,0.02)] border border-slate-200/60 overflow-hidden flex flex-col">
+          <motion.main variants={itemVariants} className="bg-white rounded-xl md:rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden flex flex-col">
             
             {/* Context Toolbar inside the Card */}
             <AnimatePresence>
@@ -559,37 +561,37 @@ const All_Users: React.FC = () => {
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
-                  className="bg-slate-50/80 border-b border-slate-100 px-6 py-4"
+                  className="bg-slate-50/80 border-b border-slate-100 px-4 py-3"
                 >
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <div className="flex items-center gap-2 text-slate-400 mr-2">
-                      <Filter size={16} />
-                      <span className="text-sm font-semibold text-slate-600">Filtered By:</span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-1.5 text-slate-400 mr-1">
+                      <Filter size={13} />
+                      <span className="text-xs font-semibold text-slate-600">Filtered:</span>
                     </div>
                     
                     {statusFilter && (
-                      <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm font-medium text-slate-700 shadow-sm">
+                      <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-white border border-slate-200 rounded-full text-xs font-medium text-slate-700 shadow-sm">
                         <span className="text-indigo-600">Status:</span> {statusFilter === '1' ? 'Active' : 'Inactive'}
                         <button onClick={() => setStatusFilter(null)} className="text-slate-400 hover:text-slate-700 transition-colors">
-                          <X size={14} />
+                          <X size={12} />
                         </button>
                       </span>
                     )}
 
                     {roleFilter && (
-                      <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-slate-200 rounded-full text-sm font-medium text-slate-700 shadow-sm">
+                      <span className="inline-flex items-center gap-1.5 px-2 py-1 bg-white border border-slate-200 rounded-full text-xs font-medium text-slate-700 shadow-sm">
                         <span className="text-indigo-600">Role:</span> {roleFilter}
                         <button onClick={() => setRoleFilter(null)} className="text-slate-400 hover:text-slate-700 transition-colors">
-                          <X size={14} />
+                          <X size={12} />
                         </button>
                       </span>
                     )}
 
                     <button
                       onClick={clearFilters}
-                      className="ml-auto text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors px-3 py-1.5 rounded-lg hover:bg-slate-200/50"
+                      className="ml-auto text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors px-2 py-1 rounded-md hover:bg-slate-200/50"
                     >
-                      Clear Filters
+                      Clear
                     </button>
                   </div>
                 </motion.div>
@@ -597,20 +599,20 @@ const All_Users: React.FC = () => {
             </AnimatePresence>
 
             {/* Table Container */}
-            <div className="p-2 sm:p-6">
+            <div className="p-0 sm:p-4">
               {filteredData.length === 0 && !isRefreshing ? (
-                <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                    <Users size={40} className="text-slate-400" />
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                    <Users size={32} className="text-slate-400" />
                   </div>
-                  <h3 className="text-lg font-semibold text-slate-800 mb-2">No Users Found</h3>
-                  <p className="text-sm text-slate-500">
+                  <h3 className="text-base font-semibold text-slate-800 mb-1">No Users Found</h3>
+                  <p className="text-xs text-slate-500">
                     {hasActiveFilters ? "No users match the current filters." : "No user records are available."}
                   </p>
                   {hasActiveFilters && (
                     <button
                       onClick={clearFilters}
-                      className="mt-4 text-indigo-600 hover:text-indigo-700 text-sm font-medium"
+                      className="mt-3 text-indigo-600 hover:text-indigo-700 text-xs font-medium"
                     >
                       Clear filters
                     </button>
@@ -669,29 +671,29 @@ const All_Users: React.FC = () => {
               animate={{ y: 0, opacity: 1, scale: 1 }}
               exit={{ y: 100, opacity: 0, scale: 0.9 }}
               transition={{ type: "spring", stiffness: 400, damping: 25 }}
-              className="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 bg-[#0F172A] text-white px-5 py-3.5 rounded-2xl shadow-2xl border border-slate-700/50"
+              className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-[#0F172A] text-white px-3 py-2.5 rounded-xl shadow-xl border border-slate-700/50"
             >
-              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-800 text-indigo-400 font-bold text-sm">
+              <div className="flex items-center justify-center w-7 h-7 rounded-full bg-slate-800 text-indigo-400 font-bold text-xs">
                 {selectedRows.length}
               </div>
-              <span className="font-medium text-sm tracking-wide">
+              <span className="font-medium text-xs tracking-wide">
                 User{selectedRows.length !== 1 ? 's' : ''} Selected
               </span>
-              <div className="w-px h-6 bg-slate-700 mx-2"></div>
+              <div className="w-px h-5 bg-slate-700 mx-1"></div>
               <button
                 onClick={handleBulkDelete}
                 disabled={!Roles?.canDelete}
-                className="group text-sm font-semibold bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white px-4 py-2 rounded-xl transition-all flex items-center gap-2 border border-rose-500/20 hover:border-rose-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="group text-xs font-semibold bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 border border-rose-500/20 hover:border-rose-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Trash2 size={16} className="group-hover:scale-110 transition-transform" />
-                Delete Selected
+                <Trash2 size={13} className="group-hover:scale-110 transition-transform" />
+                Delete
               </button>
               <button
                 onClick={() => setSelectedRows([])}
-                className="text-slate-400 hover:text-white transition-colors p-2 rounded-lg hover:bg-slate-800"
+                className="text-slate-400 hover:text-white transition-colors p-1.5 rounded-md hover:bg-slate-800"
                 aria-label="Clear selection"
               >
-                <X size={18} />
+                <X size={14} />
               </button>
             </motion.div>
           )}

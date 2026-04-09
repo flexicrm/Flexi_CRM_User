@@ -6,8 +6,6 @@ import {
   setupTokenRefresh,
 } from "../utils/SetupRefreshToken";
 
-const submenue = localStorage.getItem("subdomain") || "default";
-
 interface Category {
   _id: string;
   categoryname: string;
@@ -96,10 +94,16 @@ export const RegisterAPI = (data: any) =>
 export const getCategories = () =>
   axios.get("http://192.168.1.11:5000/api/v1/category/");
 
-export const meAPI = () => Reusable_Service().get(`/user/${submenue}/me`);
+// Evaluate localStorage dynamically ONLY when the function is called!
+export const meAPI = () => {
+  const subdomain = localStorage.getItem("subdomain") || "default";
+  return Reusable_Service().get(`/user/${subdomain}/me`);
+};
 
-export const notificationAPI = () =>
-  Reusable_Service().get(`/activity/own/activity/${submenue}`);
+export const notificationAPI = () => {
+  const subdomain = localStorage.getItem("subdomain") || "default";
+  return Reusable_Service().get(`/activity/own/activity/${subdomain}`);
+};
 
 export const refreshTokenAPI = (data: { refreshToken: string }) =>
   axios.post(`${import.meta.env.VITE_BASE_URL}/auth/refresh-token`, data);
@@ -170,7 +174,6 @@ export const fetchCategories = createAsyncThunk<Category[]>(
   },
 );
 
-// New thunk to fetch meAPI data
 export const fetchMeData = createAsyncThunk(
   "auth/fetchMeData",
   async (_, { rejectWithValue }) => {
@@ -178,20 +181,16 @@ export const fetchMeData = createAsyncThunk(
       const response = await meAPI();
       console.log("meAPI Response:", response);
       
-      // Extract user data from response
       const userData = response.data?.data || response.data;
       
-      // Store permissions in localStorage for easy access
       if (userData?.permissions) {
         localStorage.setItem("userPermissions", JSON.stringify(userData.permissions));
       }
       
-      // Store user role
       if (userData?.userRole) {
         localStorage.setItem("userRole", userData.userRole);
       }
       
-      // Store full user data
       localStorage.setItem("userData", JSON.stringify(userData));
       
       return userData;
@@ -229,14 +228,23 @@ export const refreshToken = createAsyncThunk(
       return response.data;
     } catch (error: any) {
       console.error("❌ Token refresh failed:", error);
-      localStorage.clear();
+      
+      // Only clear auth data on refresh fail, preserve app settings/alarms
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("tokenExpiry");
+      localStorage.removeItem("loginTimestamp");
+      localStorage.removeItem("userData");
+      localStorage.removeItem("userPermissions");
+      localStorage.removeItem("userRole");
+      localStorage.removeItem("mobile");
+      
       dispatch(logout());
       return rejectWithValue(error.response?.data || error.message);
     }
   },
 );
 
-// Try to load initial state from localStorage
 const loadInitialState = (): Partial<AuthState> => {
   const storedUserData = localStorage.getItem("userData");
   const storedPermissions = localStorage.getItem("userPermissions");
@@ -284,7 +292,16 @@ const authSlice = createSlice({
       state.meData = null;
       state.meError = null;
       clearTokenRefresh();
-      localStorage.clear();
+      
+      // ✅ Targeted cleanup: Destroys auth/user data, but keeps dismissed alarms & subdomain safe
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("tokenExpiry");
+      localStorage.removeItem("loginTimestamp");
+      localStorage.removeItem("userData");
+      localStorage.removeItem("userPermissions");
+      localStorage.removeItem("userRole");
+      localStorage.removeItem("mobile");
     },
     clearError: (state) => {
       state.error = null;
@@ -323,12 +340,10 @@ const authSlice = createSlice({
         state.token = accessToken;
         state.isAuthenticated = true;
         
-        // Store permissions if available
         if (user?.permissions) {
           state.permissions = user.permissions;
         }
         
-        // Store user role if available
         if (user?.userRole) {
           state.userRole = user.userRole;
         }
@@ -369,7 +384,6 @@ const authSlice = createSlice({
         state.categoriesError = action.payload;
       })
 
-      // Handle fetchMeData
       .addCase(fetchMeData.pending, (state) => {
         state.meLoading = true;
         state.meError = null;
@@ -379,7 +393,6 @@ const authSlice = createSlice({
         state.meData = action.payload;
         state.user = action.payload;
         
-        // Update permissions and role
         if (action.payload?.permissions) {
           state.permissions = action.payload.permissions;
         }
@@ -408,7 +421,16 @@ const authSlice = createSlice({
         state.permissions = [];
         state.userRole = null;
         state.isAuthenticated = false;
-        localStorage.clear();
+        
+        // Make sure rejection also doesn't wipe out global storage
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("tokenExpiry");
+        localStorage.removeItem("loginTimestamp");
+        localStorage.removeItem("userData");
+        localStorage.removeItem("userPermissions");
+        localStorage.removeItem("userRole");
+        localStorage.removeItem("mobile");
       });
   },
 });
