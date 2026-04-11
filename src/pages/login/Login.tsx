@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { Phone } from "lucide-react";
+import { Mail, Phone } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -40,96 +40,170 @@ const extractErrorMessage = (error: any): string => {
   return errorMessage;
 };
 
+// Helper function to validate email
+const isValidEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+// Helper function to validate mobile number
+const isValidMobile = (mobile: string): boolean => {
+  return /^\d{10}$/.test(mobile);
+};
+
+// Helper function to detect input type
+const detectInputType = (value: string): "mobile" | "email" | null => {
+  if (!value) return null;
+  if (value.includes('@')) return "email";
+  if (/^\d+$/.test(value) && value.length >= 10) return "mobile";
+  return null;
+};
+
 const Login = () => {
   const navigate = useNavigate();
   const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
   
   const [loginData, setLoginData] = useState({
-    mobile: "",
+    identifier: "",
   });
 
+  const [loginType, setLoginType] = useState<"mobile" | "email" | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
 
   useEffect(() => {
-    // Check for remembered mobile number
-    const rememberedMobile = localStorage.getItem("rememberedMobile");
-    if (rememberedMobile) {
-      setLoginData({ mobile: rememberedMobile });
+    // Check for remembered identifier
+    const rememberedIdentifier = localStorage.getItem("rememberedIdentifier");
+    if (rememberedIdentifier) {
+      setLoginData({ identifier: rememberedIdentifier });
+      // Detect if remembered identifier is email or mobile
+      if (rememberedIdentifier.includes('@')) {
+        setLoginType("email");
+      } else if (/^\d{10}$/.test(rememberedIdentifier)) {
+        setLoginType("mobile");
+      }
       setRememberMe(true);
     }
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const value = e.target.value;
     setLoginData({
       ...loginData,
-      [e.target.name]: e.target.value,
+      [e.target.name]: value,
     });
     if (error) setError("");
+    
+    // Auto-detect login type based on input
+    const detectedType = detectInputType(value);
+    setLoginType(detectedType);
+  };
+
+  const validateInput = (): boolean => {
+    if (!loginData.identifier.trim()) {
+      setError("Mobile number or email is required");
+      return false;
+    }
+    
+    // Try to detect type if not set
+    const detectedType = detectInputType(loginData.identifier);
+    
+    if (!detectedType) {
+      setError("Please enter a valid mobile number (10 digits) or email address");
+      return false;
+    }
+    
+    if (detectedType === "mobile") {
+      if (!isValidMobile(loginData.identifier)) {
+        setError("Please enter a valid 10-digit mobile number");
+        return false;
+      }
+    } else {
+      if (!isValidEmail(loginData.identifier)) {
+        setError("Please enter a valid email address");
+        return false;
+      }
+    }
+    
+    setLoginType(detectedType);
+    return true;
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Validation
-    if (!loginData.mobile) {
-      setError("Mobile number is required");
-      return;
-    }
-    if (!/^\d{10}$/.test(loginData.mobile)) {
-      setError("Please enter a valid 10-digit mobile number");
-      return;
-    }
+    if (!validateInput()) return;
 
     try {
       setLoading(true);
       setError("");
       const deviceId = getDeviceId();
       console.log("Device ID:", deviceId);
+      console.log("Login type:", loginType);
+      console.log("Identifier:", loginData.identifier);
 
       // Handle remember me
       if (rememberMe) {
-        localStorage.setItem("rememberedMobile", loginData.mobile);
+        localStorage.setItem("rememberedIdentifier", loginData.identifier);
       } else {
-        localStorage.removeItem("rememberedMobile");
+        localStorage.removeItem("rememberedIdentifier");
       }
 
-      const res = await loginAPI(loginData);
+      // Prepare payload based on detected login type
+      const payload = loginType === "mobile" 
+        ? { mobile: loginData.identifier }
+        : { email: loginData.identifier };
+
+      const res = await loginAPI(payload);
       
       if (res?.data?.token) {
         localStorage.setItem("token", res.data.token);
       }
       
-      localStorage.setItem("mobile", loginData.mobile);
+      // Store the identifier and type for OTP page
+      localStorage.setItem("identifier", loginData.identifier);
+      localStorage.setItem("loginType", loginType || "mobile");
 
-      // Extract success message from API and trigger Global Reusable Alert
+      // Extract success message from API
       const successMessage = res?.data?.message || res?.data?.data?.message || "OTP sent successfully";
       
-      // Pass message as 1st arg, button text as 2nd arg
       successAlert(successMessage, "Continue");
 
-      // Delay navigation by 2000ms so the user can see the success popup
+      // Delay navigation to show success popup
       setTimeout(() => {
-        navigate("/otp", { state: { mobile: loginData.mobile, otpData: res?.data?.data } });
+        navigate("/otp", { 
+          state: { 
+            identifier: loginData.identifier, 
+            loginType: loginType,
+            otpData: res?.data?.data 
+          } 
+        });
       }, 2000);
 
     } catch (err: any) {
-      // Extract error message exactly like Create_User does
       const errorMessage = extractErrorMessage(err);
-      
-      // Update inline error & trigger Global Reusable Error Alert
       setError(errorMessage);
-      
-      // Pass message as 1st arg, button text as 2nd arg
       errorAlert(errorMessage, "Retry");
-      
       console.error(err);
-      
-      // Set loading to false ONLY on error. 
-      // If successful, we want the button to stay in the "loading" state during the 2000ms wait.
       setLoading(false);
     }
+  };
+
+  // Dynamic icon based on input
+  const getInputIcon = () => {
+    if (loginType === "mobile") {
+      return <Phone className="w-5 h-5" />;
+    }
+    if (loginType === "email") {
+      return <Mail className="w-5 h-5" />;
+    }
+    return <Phone className="w-5 h-5" />;
+  };
+
+  // Dynamic placeholder
+  const getInputPlaceholder = () => {
+    return "Enter mobile number or email address";
   };
 
   return (
@@ -201,14 +275,14 @@ const Login = () => {
             className="space-y-5"
           >
             <Reusable_Fields
-              type="phone"
-              label="Mobile Number"
-              name="mobile"
-              value={loginData.mobile}
+              type="text"
+              label="Mobile Number or Email"
+              name="identifier"
+              value={loginData.identifier}
               onChange={handleChange}
-              placeholder="Enter your mobile number"
+              placeholder={getInputPlaceholder()}
               required={true}
-              icon={<Phone className="w-5 h-5" />}
+              icon={getInputIcon()}
               error={error}
             />
 
@@ -233,19 +307,18 @@ const Login = () => {
                   Remember me
                 </span>
               </label>
-            
             </motion.div>
 
-            {/* Submit Button - Using Reusable Button */}
+            {/* Submit Button */}
             <Reusable_Button
               type="submit"
-              text={loading ? "Logging in..." : "Login →"}
+              text={loading ? "Sending OTP..." : "Continue →"}
               variant="primary"
               size="lg"
               fullWidth={true}
               isLoading={loading}
               disabled={loading}
-              icon={<Phone className="w-4 h-4" />}
+              icon={loginType === "mobile" ? <Phone className="w-4 h-4" /> : loginType === "email" ? <Mail className="w-4 h-4" /> : <Phone className="w-4 h-4" />}
               iconPosition="left"
             />
 
@@ -283,6 +356,22 @@ const Login = () => {
               style={{ color: primaryColor || '#6366f1' }}
             >
               Create Account
+            </button>
+          </motion.p>
+
+          {/* Forgot Password Link */}
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.65 }}
+            className="text-center text-xs text-gray-500 dark:text-gray-500 mt-3"
+          >
+            <button
+              onClick={() => navigate("/forgot-password")}
+              className="hover:underline transition-colors"
+              style={{ color: primaryColor || '#6366f1' }}
+            >
+              Forgot Password?
             </button>
           </motion.p>
         </motion.div>

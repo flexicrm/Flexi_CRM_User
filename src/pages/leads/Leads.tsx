@@ -175,7 +175,7 @@ const Leads: React.FC = () => {
   const getViewButtonInactiveColor = () => darkMode ? 'text-gray-500 hover:text-gray-300' : 'text-slate-400 hover:text-slate-700';
   
   const getMainBg = () => darkMode ? 'bg-gray-800' : 'bg-white';
-  const getMainBorder = () => darkMode ? 'border-gray-700' : 'border-slate-200/60';
+  const getMainBorder = () => darkMode ? '' : '';
 
   const renderView = () => {
     // Don't show error during initial load or refresh
@@ -366,7 +366,7 @@ const Leads: React.FC = () => {
             className={`transition-all duration-300 ${
               currentView === 'kanban' 
                 ? '' 
-                : `${getMainBg()} rounded-xl md:rounded-2xl shadow-sm  ${getMainBorder()} overflow-hidden`
+                : `${getMainBg()} rounded-xl md:rounded-2xl  ${getMainBorder()} overflow-hidden`
             }`}
           >
             <div className={currentView === 'table' || currentView === 'grid' ? 'p-0 sm:p-0' : ''}>

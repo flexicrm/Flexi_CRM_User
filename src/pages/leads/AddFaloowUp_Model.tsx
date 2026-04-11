@@ -550,7 +550,7 @@ const AddFollowUp_Model = ({ tableId }: { tableId: string | null; selectedData: 
   const dispatch = useDispatch();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
+  const {  darkMode } = useSelector((state: any) => state.theme);
   
   const isOpen = searchParams.get("modal") === "schedule-followup";
   const editFollowUpData = location.state?.followUpData || null;
@@ -566,17 +566,16 @@ const AddFollowUp_Model = ({ tableId }: { tableId: string | null; selectedData: 
   } = useSelector((state: any) => state.leads);
 
   const [formData, setFormData] = useState({
-    leadStatus: '',
-    type: '',
-    priority: 'medium',
-    status: '',
-    assignTo: '',
-    notes: '',
-    dueDate: '',
-    setReminder: false,
-    reminderDateTime: '',
-    reminderType: ''
-  });
+  leadStatus: '',
+  type: '',
+  priority: 'medium',
+  status: '',
+  assignTo: '',
+  notes: '',
+  dueDate: '',
+  setReminder: false,
+  reminderType: ''
+});
 
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -587,7 +586,6 @@ const AddFollowUp_Model = ({ tableId }: { tableId: string | null; selectedData: 
   const getSubtitleColor = () => darkMode ? 'text-gray-400' : 'text-slate-500';
   const getCloseButtonColor = () => darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-slate-500 hover:bg-slate-100';
   const getBorderColor = () => darkMode ? 'border-gray-700' : 'border-slate-100';
-  const getCheckboxBg = () => darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-slate-300';
 
   // Populate form data when editing
   useEffect(() => {
@@ -607,7 +605,6 @@ const AddFollowUp_Model = ({ tableId }: { tableId: string | null; selectedData: 
         notes: editFollowUpData.notes || '',
         dueDate: formatDateForInput(editFollowUpData.dateTime || editFollowUpData.dueDate),
         setReminder: editFollowUpData.isSetTimer || editFollowUpData.setReminder || false,
-        reminderDateTime: formatDateForInput(editFollowUpData.reminderDateTime),
         reminderType: editFollowUpData.reminderType || ''
       });
     }
@@ -636,7 +633,7 @@ const AddFollowUp_Model = ({ tableId }: { tableId: string | null; selectedData: 
   const resetForm = () => {
     setFormData({ 
       leadStatus: '', type: '', priority: 'medium', status: '', assignTo: '', 
-      notes: '', dueDate: '', setReminder: false, reminderDateTime: '', reminderType: ''
+      notes: '', dueDate: '', setReminder: false,  reminderType: ''
     });
     setValidationErrors({});
   };
@@ -686,7 +683,6 @@ const AddFollowUp_Model = ({ tableId }: { tableId: string | null; selectedData: 
     if (!formData.status) errors.status = "Follow-up status is required";
     if (!formData.assignTo) errors.assignTo = "Please select a team member";
     if (!formData.dueDate) errors.dueDate = "Date & time is required";
-    if (formData.setReminder && !formData.reminderDateTime) errors.reminderDateTime = "Reminder time is required";
     
     if (Object.keys(errors).length > 0) {
       setValidationErrors(errors);
@@ -697,21 +693,18 @@ const AddFollowUp_Model = ({ tableId }: { tableId: string | null; selectedData: 
     if (!tableId) return errorAlert("Lead ID missing! Please refresh.", "Retry");
 
     const followUpData: any = {
-      leadStatus: formData.leadStatus,
-      type: formData.type,
-      notes: formData.notes,
-      assignTo: formData.assignTo ? [formData.assignTo] : [],
-      isSetTimer: formData.setReminder,
-      priority: formData.priority,
-      status: formData.status,
-      dateTime: new Date(formData.dueDate).toISOString()
-    };
-    
-    if (formData.setReminder && formData.reminderDateTime) {
-      followUpData.reminderDateTime = new Date(formData.reminderDateTime).toISOString();
-      followUpData.reminderType = formData.reminderType;
-    }
+  leadStatus: formData.leadStatus,
+  type: formData.type,
+  notes: formData.notes,
+  assignTo: formData.assignTo ? [formData.assignTo] : [],
+  priority: formData.priority,
+  status: formData.status,
+  isSetTimer: formData.setReminder
+};
 
+if (formData.setReminder && formData.dueDate) {
+  followUpData.dateTime = new Date(formData.dueDate).toISOString();
+}
     try {
       let resultAction;
       
@@ -868,7 +861,29 @@ const AddFollowUp_Model = ({ tableId }: { tableId: string | null; selectedData: 
                     placeholder="Select Team Member"
                   />
                 </div>
-                <div>
+                
+              </div>
+
+              <div className="flex items-center gap-3 px-1">
+                <input 
+  type="checkbox" 
+  id="reminder" 
+  name="setReminder" 
+  checked={formData.setReminder} 
+  onChange={(e) => setFormData(prev => ({
+    ...prev,
+    setReminder: e.target.checked
+  }))}
+/>
+                <label htmlFor="reminder" className={`text-sm font-bold cursor-pointer select-none ${darkMode ? 'text-gray-300' : 'text-slate-700'}`}>
+                  Set specific reminder alarm time
+                </label>
+              </div>
+
+              {formData.setReminder && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="space-y-6 pl-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4">
+                    <div>
                   <Reusable_Fields
                     type="datetime-local"
                     label="Follow-Up Date & Time"
@@ -880,51 +895,6 @@ const AddFollowUp_Model = ({ tableId }: { tableId: string | null; selectedData: 
                     disabled={isSubmittingFollowUp}
                   />
                 </div>
-              </div>
-
-              <div className="flex items-center gap-3 px-1">
-                <input 
-                  type="checkbox" 
-                  id="reminder" 
-                  name="setReminder" 
-                  checked={formData.setReminder} 
-                  onChange={(e) => setFormData(prev => ({...prev, setReminder: e.target.checked}))} 
-                  className={`w-5 h-5 rounded ${getCheckboxBg()}`}
-                  style={{ accentColor: primaryColor || '#0d1954' }}
-                  disabled={isSubmittingFollowUp}
-                />
-                <label htmlFor="reminder" className={`text-sm font-bold cursor-pointer select-none ${darkMode ? 'text-gray-300' : 'text-slate-700'}`}>
-                  Set specific reminder alarm time
-                </label>
-              </div>
-
-              {formData.setReminder && (
-                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="space-y-6 pl-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4">
-                    <div>
-                      <Reusable_Fields
-                        type="datetime-local"
-                        label="Reminder Date & Time"
-                        name="reminderDateTime"
-                        value={formData.reminderDateTime}
-                        onChange={handleChange}
-                        required
-                        error={validationErrors.reminderDateTime}
-                        disabled={isSubmittingFollowUp}
-                      />
-                    </div>
-                    <div>
-                      <Reusable_Fields
-                        type="select"
-                        label="Reminder Type"
-                        name="reminderType"
-                        value={formData.reminderType}
-                        onChange={handleChange}
-                        options={reminderTypeOptions}
-                        disabled={isSubmittingFollowUp}
-                        placeholder="Select Reminder Type"
-                      />
-                    </div>
                   </div>
                 </motion.div>
               )}

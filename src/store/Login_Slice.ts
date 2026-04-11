@@ -85,11 +85,19 @@ interface AuthState {
   meError: any;
   subdomain: string | null;
 }
+type OtpAPIData = {
+  mobile?: string;
+  email?: string;
+  otp: string;
+  deviceId?: string;
+  deviceType?: string;
+  forceLogin?: boolean;
+};
 
-export const loginAPI = (data: { mobile: string }) =>
+export const loginAPI = (data: { mobile?: string; email?: string }) =>
   Reusable_Service().post("/user/check-user/", data);
 
-export const OtpAPI = (data: { mobile: string; otp: string }) =>
+export const OtpAPI = (data: OtpAPIData) =>
   Reusable_Service().post("/user/verify-otp/", data);
 
 export const RegisterAPI = (data: any) =>

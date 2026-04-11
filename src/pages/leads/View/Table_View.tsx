@@ -57,7 +57,7 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
   const [showNotificationPanel, setShowNotificationPanel] = useState(false);
   const [notifications, setNotifications] = useState<FollowUpReminder[]>([]);
   const [activeAlarms, setActiveAlarms] = useState<Map<string, FollowUpReminder>>(new Map());
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted] = useState(false);
   
   const [alarmTimers, setAlarmTimers] = useState<Map<string, AlarmState>>(new Map());
   
@@ -657,12 +657,6 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
     },
   ];
 
-  const handleBellClick = async () => {
-    if (Notification.permission === 'default') {
-      await Notification.requestPermission();
-    }
-    setShowNotificationPanel(!showNotificationPanel);
-  };
 
   return (
     <div className={`${darkMode ? 'dark' : ''}`}>

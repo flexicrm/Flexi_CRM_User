@@ -347,7 +347,7 @@ const Roles_And_Permissions: React.FC = () => {
                     onClick={handleEdit}
                     icon={<Shield size={16} />}
                     variant="primary"
-                    size="px-5 py-2.5 text-sm mt-6 rounded-lg"
+                    size="px-5 py-3 text-sm mt-6 rounded-lg"
                   />
                 )}
               </motion.div>

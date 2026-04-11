@@ -174,7 +174,7 @@ const Settings: React.FC = () => {
           
           {/* Enhanced Tab Navigation - Compact */}
           <div className={`border-b px-4 pt-2 pb-0 ${getTabBarBg()} ${getTabBarBorder()}`}>
-            <div className="flex overflow-x-auto custom-scrollbar hide-scrollbar gap-1.5 pt-3">
+            <div className="flex overflow-x-auto custom-scrollbar hide-scrollbar gap-1.5 pt-3 mb-2">
               {tabsConfig.map((tab) => {
                 const isActive = activeTab === tab.id;
                 const Icon = tab.icon;

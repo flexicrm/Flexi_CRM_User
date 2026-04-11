@@ -12,7 +12,10 @@ import Auth_Slider from "./Auth_Slider";
 
 // Types
 interface LocationState {
-  mobile: number;
+  mobile?: number;
+  email?: string;
+  identifier?: string;
+  loginType?: "mobile" | "email";
   otp: number;
   deviceId: string;
   deviceType: string;
@@ -46,7 +49,8 @@ const Otp: React.FC = () => {
     const { isLoading, error } = useSelector((state: AuthState) => state.auth);
     const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
     
-    const [mobile, setMobile] = useState<string>("");
+    const [identifier, setIdentifier] = useState<string>("");
+    const [loginType, setLoginType] = useState<"mobile" | "email">("mobile");
     const [otpData, setOtpData] = useState<OtpData | null>(null);
     const [, setDeviceIdData] = useState<DeviceIdData | null>(null);
     const [otp, setOtp] = useState<string[]>(new Array(6).fill(""));
@@ -100,10 +104,30 @@ const Otp: React.FC = () => {
 
     useEffect(() => {
         const state = location.state as LocationState;
-        const { mobile: mobileFromState, otpData: otpDataFromState, deviceIdData: deviceIdFromState } = state || {};
-        const mobileFromStorage = localStorage.getItem("mobile");
-        const finalMobile = mobileFromState || mobileFromStorage;
-
+        
+        // Handle both old and new data structures
+        let finalIdentifier = "";
+        let finalLoginType: "mobile" | "email" = "mobile";
+        
+        if (state?.identifier) {
+            finalIdentifier = state.identifier;
+            finalLoginType = state.loginType || (state.identifier.includes('@') ? "email" : "mobile");
+        } else if (state?.mobile) {
+            finalIdentifier = String(state.mobile);
+            finalLoginType = "mobile";
+        } else if (state?.email) {
+            finalIdentifier = state.email;
+            finalLoginType = "email";
+        }
+        
+        const identifierFromStorage = localStorage.getItem("identifier");
+        const loginTypeFromStorage = localStorage.getItem("loginType") as "mobile" | "email";
+        
+        const finalIdentifierValue = finalIdentifier || identifierFromStorage || "";
+        const finalLoginTypeValue = finalLoginType || loginTypeFromStorage || "mobile";
+        
+        const { otpData: otpDataFromState, deviceIdData: deviceIdFromState } = state || {};
+        
         if (otpDataFromState) {
             setOtpData(otpDataFromState);
         }
@@ -125,10 +149,12 @@ const Otp: React.FC = () => {
             localStorage.setItem("forceLogin", String(forceLogin));
         }
         
-        if (finalMobile) {
-            setMobile(String(finalMobile));
+        if (finalIdentifierValue) {
+            setIdentifier(finalIdentifierValue);
+            setLoginType(finalLoginTypeValue);
+            console.log(`📱 OTP page loaded for ${finalLoginTypeValue}: ${finalIdentifierValue}`);
         } else {
-            setLocalError("Mobile number not found. Please login again.");
+            setLocalError("No identifier found. Please login again.");
             setTimeout(() => {
                 navigate("/login");
             }, 2000);
@@ -189,7 +215,6 @@ const Otp: React.FC = () => {
     // Function to refresh Redux store with latest data
     const refreshReduxStore = async (subdomain: string, userData: any, accessToken: string) => {
         try {
-            // Dispatch action to update Redux store with auth data
             await dispatch(setAuthData({
                 isAuthenticated: true,
                 user: userData,
@@ -206,21 +231,17 @@ const Otp: React.FC = () => {
 
     // Function to ensure localStorage is properly set
     const ensureLocalStorageData = (subdomain: string, userData: any, accessToken: string, refreshToken: string) => {
-        // Double-check and set subdomain
         if (subdomain) {
             localStorage.setItem("subdomain", subdomain);
             console.log("✅ Subdomain saved to localStorage:", subdomain);
         }
         
-        // Verify subdomain was saved
         const savedSubdomain = localStorage.getItem("subdomain");
         if (!savedSubdomain && subdomain) {
-            // Retry saving if failed
             localStorage.setItem("subdomain", subdomain);
             console.log("🔄 Retry saving subdomain:", subdomain);
         }
         
-        // Ensure tokens are saved
         if (accessToken) {
             localStorage.setItem("accessToken", accessToken);
         }
@@ -228,7 +249,6 @@ const Otp: React.FC = () => {
             localStorage.setItem("refreshToken", refreshToken);
         }
         
-        // Ensure user data is saved
         if (userData) {
             localStorage.setItem("userData", JSON.stringify(userData));
         }
@@ -256,128 +276,139 @@ const Otp: React.FC = () => {
     };
 
     const callOtpApi = async (forceLoginValue: boolean) => {
-        const otpValue = otp.join("");
-        
-        const payload = {
-            mobile: mobile,
-            otp: otpValue,
-            deviceId: deviceInfo.deviceId,
-            deviceType: deviceInfo.deviceType,
-            forceLogin: forceLoginValue
-        };
+    const otpValue = otp.join("");
 
-        console.log(`Sending OTP payload (forceLogin: ${forceLoginValue}):`, payload);
+    //  Strongly typed payload
+    type OtpPayload =
+        | {
+              mobile: string;
+              otp: string;
+              deviceId: string;
+              deviceType: string;
+              forceLogin: boolean;
+          }
+        | {
+              email: string;
+              otp: string;
+              deviceId: string;
+              deviceType: string;
+              forceLogin: boolean;
+          };
 
-        try {
-            const actionResult = await dispatch(OtpUser(payload));
-            const responseData = unwrapResult(actionResult); 
+    const payload: OtpPayload =
+        loginType === "mobile"
+            ? {
+                  mobile: identifier,
+                  otp: otpValue,
+                  deviceId: deviceInfo.deviceId,
+                  deviceType: deviceInfo.deviceType,
+                  forceLogin: forceLoginValue,
+              }
+            : {
+                  email: identifier,
+                  otp: otpValue,
+                  deviceId: deviceInfo.deviceId,
+                  deviceType: deviceInfo.deviceType,
+                  forceLogin: forceLoginValue,
+              };
 
-            console.log("API Success Response:", responseData);
-            
-            if (responseData?.requiresConfirmation && responseData?.data?.alreadyLoggedIn) {
-                dispatch(clearError());
-                setLocalError("");
-                
-                setTimeout(() => {
-                    confirmAlert({
-                        title: "Already Logged In",
-                        message: responseData?.errors || "This account is already logged in. Do you want to continue?",
-                        confirmText: "Yes, Force Login",
-                        cancelText: "Cancel",
-                        onConfirm: () => {
-                            console.log("Retrying with forceLogin: true");
-                            callOtpApi(true);
-                        }
-                    });
-                }, 100);
-                return;
-            }
-            
-            const accessToken = responseData?.accessToken || responseData?.data?.accessToken;
-            const refreshToken = responseData?.refreshToken || responseData?.data?.refreshToken;
-            
-            if (accessToken && refreshToken) {
-                const expiresIn = responseData?.expiresIn || responseData?.data?.expiresIn;
-                let subdomain = responseData?.subdomain || responseData?.data?.subdomain;
-                let userData = responseData?.user || responseData?.data?.user;
-                
-                // Save data to localStorage
-                ensureLocalStorageData(subdomain, userData, accessToken, refreshToken);
-                
-                if (expiresIn) localStorage.setItem("tokenExpiry", String(Date.now() + Number(expiresIn)));
-                if (responseData?.isFirstlogin !== undefined) localStorage.setItem("isFirstLogin", String(responseData.isFirstlogin));
-                
-                localStorage.removeItem("mobile");
-                
-                // Wait for subdomain to be properly saved
-                await waitForLocalStorage("subdomain", subdomain);
-                
-                // Refresh Redux store with latest data
-                await refreshReduxStore(subdomain, userData, accessToken);
-                
-                const successMsg = responseData?.message || "Login successful!";
-                successAlert(successMsg, "Continue");
-                setLocalError("");
-                
-                // Get the final subdomain value
-                const finalSubdomain = subdomain || localStorage.getItem("subdomain");
-                console.log(" Final subdomain for navigation:", finalSubdomain);
-                
-                if (!finalSubdomain) {
-                    console.error(" No subdomain found after login!");
-                    errorAlert("Login failed: Missing company subdomain", "Retry");
-                    setIsNavigating(false);
-                    return;
-                }
-                
-                setIsNavigating(true);
-                setIsNavigating(true);
-setTimeout(() => {
-    console.log(` Redirecting to /${finalSubdomain}/dashboard with auto-refresh`);
-    window.location.replace(`/${finalSubdomain}/dashboard`);
-    
-}, 2000);
-                
-            } else {
-                const errorMsg = responseData?.errors || responseData?.message || "OTP verification failed.";
-                errorAlert(errorMsg, "Try Again");
-                setLocalError(errorMsg);
-                setOtp(new Array(6).fill(""));
-                inputRefs.current[0]?.focus();
+    console.log(`Sending OTP payload (${loginType}, forceLogin: ${forceLoginValue}):`, payload);
+
+    try {
+        //  cast ensures Redux accepts union
+        const actionResult = await dispatch(OtpUser(payload as any));
+        const responseData = unwrapResult(actionResult);
+
+        console.log("API Success Response:", responseData);
+
+        if (responseData?.requiresConfirmation && responseData?.data?.alreadyLoggedIn) {
+            dispatch(clearError());
+            setLocalError("");
+
+            setTimeout(() => {
+                confirmAlert({
+                    title: "Already Logged In",
+                    message:
+                        responseData?.errors ||
+                        "This account is already logged in. Do you want to continue?",
+                    confirmText: "Yes, Force Login",
+                    cancelText: "Cancel",
+                    onConfirm: () => {
+                        console.log("Retrying with forceLogin: true");
+                        callOtpApi(true);
+                    },
+                });
+            }, 100);
+            return;
+        }
+
+        const accessToken = responseData?.accessToken || responseData?.data?.accessToken;
+        const refreshToken = responseData?.refreshToken || responseData?.data?.refreshToken;
+
+        if (accessToken && refreshToken) {
+            const expiresIn = responseData?.expiresIn || responseData?.data?.expiresIn;
+            let subdomain = responseData?.subdomain || responseData?.data?.subdomain;
+            let userData = responseData?.user || responseData?.data?.user;
+
+            ensureLocalStorageData(subdomain, userData, accessToken, refreshToken);
+
+            if (expiresIn)
+                localStorage.setItem("tokenExpiry", String(Date.now() + Number(expiresIn)));
+            if (responseData?.isFirstlogin !== undefined)
+                localStorage.setItem("isFirstLogin", String(responseData.isFirstlogin));
+
+            localStorage.removeItem("identifier");
+            localStorage.removeItem("loginType");
+            localStorage.removeItem("mobile");
+            localStorage.removeItem("email");
+
+            await waitForLocalStorage("subdomain", subdomain);
+            await refreshReduxStore(subdomain, userData, accessToken);
+
+            const successMsg = responseData?.message || "Login successful!";
+            successAlert(successMsg, "Continue");
+            setLocalError("");
+
+            const finalSubdomain = subdomain || localStorage.getItem("subdomain");
+
+            if (!finalSubdomain) {
+                errorAlert("Login failed: Missing company subdomain", "Retry");
                 setIsNavigating(false);
-            }
-            
-        } catch (errorData: any) {
-            console.log("API Error Response:", errorData);
-            setIsNavigating(false);
-
-            if (errorData?.data?.alreadyLoggedIn) {
-                dispatch(clearError());
-                setLocalError("");
-                
-                setTimeout(() => {
-                    confirmAlert({
-                        title: "Already Logged In",
-                        message: errorData?.errors || "This account is already logged in. Do you want to logout the previous session?",
-                        confirmText: "Yes, Force Login",
-                        cancelText: "Cancel",
-                        onConfirm: () => {
-                            console.log("Retrying with forceLogin: true");
-                            callOtpApi(true);
-                        }
-                    });
-                }, 100);
                 return;
             }
 
-            const errorMsg = errorData?.errors || errorData?.message || "OTP verification failed. Please try again.";
+            setIsNavigating(true);
+
+            setTimeout(() => {
+                window.location.replace(`/${finalSubdomain}/dashboard`);
+            }, 2000);
+        } else {
+            const errorMsg =
+                responseData?.errors ||
+                responseData?.message ||
+                "OTP verification failed.";
+
             errorAlert(errorMsg, "Try Again");
             setLocalError(errorMsg);
             setOtp(new Array(6).fill(""));
             inputRefs.current[0]?.focus();
+            setIsNavigating(false);
         }
-    };
+    } catch (errorData: any) {
+        console.log("API Error Response:", errorData);
+        setIsNavigating(false);
 
+        const errorMsg =
+            errorData?.errors ||
+            errorData?.message ||
+            "OTP verification failed. Please try again.";
+
+        errorAlert(errorMsg, "Try Again");
+        setLocalError(errorMsg);
+        setOtp(new Array(6).fill(""));
+        inputRefs.current[0]?.focus();
+    }
+};
     const handleVerify = async () => {
         if (isNavigating) {
             console.log("Already navigating, please wait...");
@@ -391,8 +422,8 @@ setTimeout(() => {
             return;
         }
 
-        if (!mobile) {
-            errorAlert("Mobile number not found. Please login again.", "OK");
+        if (!identifier) {
+            errorAlert(`${loginType === "mobile" ? "Mobile number" : "Email"} not found. Please login again.`, "OK");
             setTimeout(() => navigate("/login"), 2000);
             return;
         }
@@ -406,8 +437,8 @@ setTimeout(() => {
     const handleResend = async () => {
         if (isNavigating) return;
         
-        if (!mobile) {
-            errorAlert("Mobile number not found. Please login again.", "OK");
+        if (!identifier) {
+            errorAlert(`${loginType === "mobile" ? "Mobile number" : "Email"} not found. Please login again.`, "OK");
             setTimeout(() => navigate("/login"), 2000);
             return;
         }
@@ -420,11 +451,11 @@ setTimeout(() => {
         
         try {
             const { loginAPI } = await import("../../store/Login_Slice");
-            const payload = {
-                mobile: mobile,
-                deviceId: deviceInfo.deviceId,
-                deviceType: deviceInfo.deviceType
-            };
+            
+            // Prepare payload based on login type
+            const payload = loginType === "mobile"
+                ? { mobile: identifier, deviceId: deviceInfo.deviceId, deviceType: deviceInfo.deviceType }
+                : { email: identifier, deviceId: deviceInfo.deviceId, deviceType: deviceInfo.deviceType };
             
             const res = await loginAPI(payload);
             
@@ -433,12 +464,31 @@ setTimeout(() => {
                 successAlert(successMsg, "OK");
             }
         } catch (err: any) {
-            const errorMsg = err?.response?.data?.errors || err?.response?.data?.message || "Failed to resend OTP. Please try again.";
-            errorAlert(errorMsg, "Try Again");
+            // Handle email/mobile not found during resend
+            if (err?.response?.data?.message?.includes("not found")) {
+                errorAlert(`${loginType === "mobile" ? "Mobile number" : "Email"} not found. Please register.`, "Go to Register");
+                setTimeout(() => {
+                    navigate("/register");
+                }, 2000);
+            } else {
+                const errorMsg = err?.response?.data?.errors || err?.response?.data?.message || "Failed to resend OTP. Please try again.";
+                errorAlert(errorMsg, "Try Again");
+            }
         }
     };
 
     const displayError = localError || (typeof error === "string" ? error : "");
+
+    // Format identifier display (mask email if needed)
+    const getDisplayIdentifier = () => {
+        if (loginType === "email" && identifier.includes('@')) {
+            const [localPart, domain] = identifier.split('@');
+            if (localPart.length > 4) {
+                return `${localPart.substring(0, 3)}...@${domain}`;
+            }
+        }
+        return identifier;
+    };
 
     return (
         <>
@@ -513,7 +563,7 @@ setTimeout(() => {
                         >
                             Enter the 6-digit code sent to{" "}
                             <span className="font-bold" style={{ color: primaryColor || '#05264e' }}>
-                                {mobile || "your mobile"}
+                                {loginType === "mobile" ? getDisplayIdentifier() : getDisplayIdentifier()}
                             </span>
                         </motion.p>
 

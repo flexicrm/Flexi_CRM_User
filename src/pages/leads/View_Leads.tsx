@@ -752,7 +752,7 @@ const View_Leads = () => {
             <Tooltip text="Go Back">
               <button 
                 onClick={() => navigate(-1)}
-                className={`p-2 rounded-lg transition-colors shadow-sm border ${getBackButtonBg()}`}
+                className={`p-2 rounded-lg transition-colors shadow-sm border cursor-pointer ${getBackButtonBg()}`}
               >
                 <ArrowLeft size={18} />
               </button>
@@ -794,17 +794,17 @@ const View_Leads = () => {
                 size="sm"
                 onClick={handleEditLead}
                 icon={<User size={14} />}
-                className="px-3 py-1.5 text-xs"
+                className="px-3 py-3 text-xs"
               />
             </Tooltip>
             <Tooltip text="Schedule New Follow-Up">
               <Reusable_Button
-                text="Schedule Follow-Up"
+                text="Shedule Follow-Up"
                 variant="primary"
                 size="sm"
                 onClick={() => setSearchParams({ modal: "schedule-followup" }, { state: location.state })}
                 icon={<Calendar size={14} />}
-                className="px-3 py-1.5 text-xs"
+                className="px-3 py-3 text-xs"
               />
             </Tooltip>
           </div>
