@@ -325,7 +325,7 @@ const Leads: React.FC = () => {
                   <Reusable_Button
                     variant='secondary'
                     onClick={() => handleViewChange('bulk')}
-                    className={`p-1.5 rounded-md transition-all ${
+                    className={`rounded-md transition-all ${
                       currentView === 'bulk' 
                         ? `${getViewButtonActiveBg()} shadow-sm` 
                         : getViewButtonInactiveColor()

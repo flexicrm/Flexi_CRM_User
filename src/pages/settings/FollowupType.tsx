@@ -245,7 +245,6 @@ const FollowupType = () => {
             text="Add Type"
             icon={<Plus size={16} />}
             onClick={() => setShowCreate(true)}
-            size="px-4 py-2"
             disabled={!Roles?.canCreate || isLoading}
           />
         ) : (
