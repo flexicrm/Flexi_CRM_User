@@ -668,21 +668,6 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
     <div className={`${darkMode ? 'dark' : ''}`}>
       <div className="flex items-center gap-2">
         <div className="relative" ref={notificationRef}>
-          <button
-            onClick={handleBellClick}
-            className={`relative p-2 rounded-lg transition-all duration-200 ${
-              darkMode 
-                ? 'bg-gray-800 hover:bg-gray-700 text-gray-300' 
-                : 'bg-white hover:bg-gray-50 text-gray-600'
-            } shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}
-          >
-            <BellRing className="w-5 h-5" />
-            {getNotificationCount() > 0 && (
-              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center animate-pulse">
-                {getNotificationCount() > 9 ? '9+' : getNotificationCount()}
-              </span>
-            )}
-          </button>
 
           <AnimatePresence>
             {showNotificationPanel && (
@@ -783,18 +768,6 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
           </AnimatePresence>
         </div>
 
-        {/* Mute/Unmute Button */}
-        <button
-          onClick={() => setIsMuted(!isMuted)}
-          className={`p-2 rounded-lg transition-all duration-200 ${
-            darkMode 
-              ? 'bg-gray-800 hover:bg-gray-700 text-gray-300' 
-              : 'bg-white hover:bg-gray-50 text-gray-600'
-          } shadow-sm border ${darkMode ? 'border-gray-700' : 'border-gray-200'}`}
-          title={isMuted ? "Unmute alarms" : "Mute alarms"}
-        >
-          {isMuted ? <VolumeX className="w-5 h-5" /> : <BellRing className="w-5 h-5" />}
-        </button>
       </div>
 
       {data.length === 0 ? (
