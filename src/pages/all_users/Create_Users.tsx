@@ -17,6 +17,7 @@ import {
 
 import { motion } from 'framer-motion';
 import React, { useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import Reusable_Button from '../../component/button/Reusable_Button';
@@ -104,6 +105,27 @@ interface ValidationErrors {
   userRole?: string;
 }
 
+// --- Tooltip Component with Theme Support ---
+const Tooltip = ({ children, text }: { children: React.ReactNode, text: string }) => {
+  const { darkMode } = useSelector((state: any) => state.theme);
+  
+  return (
+    <div className="group relative flex flex-col items-center">
+      {children}
+      <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center z-50 animate-in fade-in zoom-in-95 duration-200">
+        <span className={`relative z-10 px-2 py-1 text-[10px] font-semibold text-white whitespace-nowrap shadow-md rounded-md ${
+          darkMode ? 'bg-gray-800' : 'bg-slate-800'
+        }`}>
+          {text}
+        </span>
+        <div className={`w-2 h-2 -mt-1 rotate-45 rounded-sm ${
+          darkMode ? 'bg-gray-800' : 'bg-slate-800'
+        }`}></div>
+      </div>
+    </div>
+  );
+};
+
 // Helper function to extract error message from API response
 const extractErrorMessage = (error: any): string => {
   let errorMessage = "Error occurred while saving user. Please try again.";
@@ -144,7 +166,6 @@ const extractErrorMessage = (error: any): string => {
     errorMessage = error.message;
   }
   
-  // Clean up specific error messages
   if (errorMessage.toLowerCase().includes('duplicate') || errorMessage.toLowerCase().includes('already exists')) {
     if (errorMessage.toLowerCase().includes('email')) {
       errorMessage = "A user with this email address already exists. Please use a different email.";
@@ -231,6 +252,7 @@ const itemVariants = {
 const Create_Users: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
 
   const { edit, editData, userId } = location.state || {};
 
@@ -258,6 +280,26 @@ const Create_Users: React.FC = () => {
   const [fetchingRoles, setFetchingRoles] = useState(true);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
 
+  // Theme-based styles
+  const getPageBg = () => darkMode ? 'bg-gray-900' : 'bg-[#F8FAFC]';
+  const getCardBg = () => darkMode ? 'bg-gray-800' : 'bg-white';
+  const getCardBorder = () => darkMode ? 'border-gray-700' : 'border-slate-200/60';
+  const getHeaderIconBg = () => darkMode ? 'bg-gray-700' : 'bg-indigo-100';
+  const getHeaderIconColor = () => darkMode ? primaryColor || '#818CF8' : '#6366f1';
+  const getTitleColor = () => darkMode ? 'text-white' : 'text-slate-900';
+  const getSubtitleColor = () => darkMode ? 'text-gray-400' : 'text-slate-500';
+  const getBackButtonBg = () => darkMode ? 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-indigo-600';
+  const getSectionBorder = () => darkMode ? 'border-gray-700' : 'border-slate-100';
+  const getSectionTitleColor = () => darkMode ? 'text-gray-200' : 'text-slate-800';
+  const getSectionIconColor = () => darkMode ? primaryColor || '#818CF8' : '#6366f1';
+  const getPermissionsBg = () => darkMode ? 'bg-gray-700/50' : 'bg-slate-50/50';
+  const getPermissionsBorder = () => darkMode ? 'border-gray-700' : 'border-slate-100';
+  const getEmptyStateBg = () => darkMode ? 'bg-gray-800' : 'bg-slate-50/50';
+  const getEmptyStateBorder = () => darkMode ? 'border-gray-700' : 'border-slate-100';
+  const getEmptyStateIconColor = () => darkMode ? 'text-gray-600' : 'text-slate-300';
+  const getEmptyStateTextColor = () => darkMode ? 'text-gray-400' : 'text-slate-500';
+  const getFormFooterBorder = () => darkMode ? 'border-gray-700' : 'border-slate-100';
+
   // Fetch roles from API
   useEffect(() => {
     const fetchRoles = async () => {
@@ -267,7 +309,6 @@ const Create_Users: React.FC = () => {
         const rolesData = response?.data?.data || [];
         setRoles(rolesData);
         
-        // Set default permissions based on all modules from roles
         const allModules = getAllModulesFromRoles(rolesData);
         if (allModules.length > 0) {
           setPermissions(createDefaultPermissionsFromModules(allModules));
@@ -286,7 +327,6 @@ const Create_Users: React.FC = () => {
     if (edit && editData) {
       const data = editData as EditData;
       
-      // Find the role to get its ID
       const selectedRole = roles.find(role => role.userRole === data.userRole);
       
       setFormData({
@@ -294,7 +334,7 @@ const Create_Users: React.FC = () => {
         lastName: data.lastname || '',
         mobile: data.mobile || '',
         email: data.email || '',
-        password: '', // Don't populate password for security
+        password: '',
         userRole: data.userRole || '',
         userRoleId: data.userRoleId || selectedRole?._id || '',
         companyId: data.company || '',
@@ -306,11 +346,9 @@ const Create_Users: React.FC = () => {
         country: data.address?.country || '',
       });
       
-      // Set permissions from edit data if available
       if (data.permissions && Array.isArray(data.permissions)) {
         setPermissions(convertApiPermissionsToComponentFormat(data.permissions));
       } else if (selectedRole?.permissions) {
-        // If no specific user permissions, use role permissions
         setPermissions(convertApiPermissionsToComponentFormat(selectedRole.permissions));
       }
     }
@@ -320,12 +358,10 @@ const Create_Users: React.FC = () => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     
-    // Clear validation error for this field
     if (validationErrors[name as keyof ValidationErrors]) {
       setValidationErrors(prev => ({ ...prev, [name]: '' }));
     }
     
-    // Handle role change - update permissions based on selected role
     if (name === "userRole") {
       handleRoleChange(value);
     }
@@ -335,14 +371,11 @@ const Create_Users: React.FC = () => {
     const selectedRole = roles.find(r => r.userRole === roleName);
     
     if (selectedRole && selectedRole.permissions) {
-      // If not in edit mode, set permissions based on selected role
       if (!edit) {
         setPermissions(convertApiPermissionsToComponentFormat(selectedRole.permissions));
       }
-      // Store the role ID
       setFormData(prev => ({ ...prev, userRoleId: selectedRole._id }));
     } else {
-      // If no permissions found, use default empty permissions based on all modules
       const allModules = getAllModulesFromRoles(roles);
       if (allModules.length > 0) {
         setPermissions(createDefaultPermissionsFromModules(allModules));
@@ -362,7 +395,6 @@ const Create_Users: React.FC = () => {
   };
 
   const buildFinalPayload = () => {
-    // Convert component permissions to API format
     const apiPermissions = convertComponentPermissionsToApiFormat(permissions);
     
     return {
@@ -453,7 +485,6 @@ const Create_Users: React.FC = () => {
     } catch (err: any) {
       const errorMessage = extractErrorMessage(err);
       
-      // Categorize errors for better UX
       if (errorMessage.toLowerCase().includes('duplicate') || errorMessage.toLowerCase().includes('already exists')) {
         errorAlert(errorMessage, "Try Different Values", "Duplicate Entry");
       } else if (errorMessage.toLowerCase().includes('validation')) {
@@ -479,29 +510,29 @@ const Create_Users: React.FC = () => {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="min-h-screen bg-[#F8FAFC] py-8 px-6 lg:px-10"
+      className={`min-h-screen py-8 px-6 lg:px-10 transition-colors duration-300 ${getPageBg()}`}
     >
       <div className="max-w-[1200px] mx-auto space-y-8">
         
         {/* --- LAYER 1: HERO HEADER --- */}
         <motion.header variants={itemVariants} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-4">
-            <button 
-              onClick={() => navigate(-1)}
-              className="p-2.5 bg-white border border-slate-200 text-slate-500 rounded-xl hover:bg-slate-50 hover:text-indigo-600 transition-colors shadow-sm"
-              title="Go Back"
-              disabled={loading}
-            >
-              <ArrowLeft size={20} />
-            </button>
-            <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center shadow-sm">
-              <UserPlus size={24} strokeWidth={2.5} />
+            <Tooltip text="Go Back">
+              <button 
+                onClick={() => navigate(-1)}
+                className={`p-2 rounded-lg transition-colors shadow-sm disabled:opacity-50 cursor-pointer border ${getBackButtonBg()}`}
+              >
+                <ArrowLeft size={18} />
+              </button>
+            </Tooltip>
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm ${getHeaderIconBg()}`}>
+              <UserPlus size={24} strokeWidth={2.5} style={{ color: getHeaderIconColor() }} />
             </div>
             <div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">
+              <h1 className={`text-2xl lg:text-3xl font-bold tracking-tight ${getTitleColor()}`}>
                 {edit ? "Edit User Profile" : "Create New User"}
               </h1>
-              <p className="text-sm text-slate-500 mt-1">
+              <p className={`text-sm mt-1 ${getSubtitleColor()}`}>
                 {edit ? "Update the details and permissions for this workspace member." : "Fill out the information below to add a new member to your workspace."}
               </p>
             </div>
@@ -509,14 +540,14 @@ const Create_Users: React.FC = () => {
         </motion.header>
 
         {/* --- LAYER 2: UNIFIED FORM CARD --- */}
-        <motion.main variants={itemVariants} className="bg-white rounded-3xl shadow-[0px_4px_24px_rgba(0,0,0,0.02)] border border-slate-200/60 overflow-hidden">
+        <motion.main variants={itemVariants} className={`rounded-3xl shadow-[0px_4px_24px_rgba(0,0,0,0.02)] border overflow-hidden ${getCardBg()} ${getCardBorder()}`}>
           <form onSubmit={handleSubmit} className="p-6 sm:p-10 space-y-12">
             
             {/* PERSONAL DETAILS */}
             <section>
-              <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-6">
-                <User className="text-indigo-500" size={20} />
-                <h3 className="text-lg font-semibold text-slate-800 tracking-tight">Personal Information</h3>
+              <div className={`flex items-center gap-2 border-b pb-3 mb-6 ${getSectionBorder()}`}>
+                <User size={20} style={{ color: getSectionIconColor() }} />
+                <h3 className={`text-lg font-semibold tracking-tight ${getSectionTitleColor()}`}>Personal Information</h3>
               </div>
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div>
@@ -582,9 +613,9 @@ const Create_Users: React.FC = () => {
 
             {/* WORK DETAILS */}
             <section>
-              <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-6">
-                <Briefcase className="text-indigo-500" size={20} />
-                <h3 className="text-lg font-semibold text-slate-800 tracking-tight">Work Details</h3>
+              <div className={`flex items-center gap-2 border-b pb-3 mb-6 ${getSectionBorder()}`}>
+                <Briefcase size={20} style={{ color: getSectionIconColor() }} />
+                <h3 className={`text-lg font-semibold tracking-tight ${getSectionTitleColor()}`}>Work Details</h3>
               </div>
               <div className="grid md:grid-cols-3 gap-6">
                 <div>
@@ -621,40 +652,40 @@ const Create_Users: React.FC = () => {
 
             {/* PERMISSIONS */}
             <section>
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-6">
+              <div className={`flex items-center justify-between border-b pb-3 mb-6 ${getSectionBorder()}`}>
                 <div className="flex items-center gap-2">
-                  <Shield className="text-indigo-500" size={20} />
-                  <h3 className="text-lg font-semibold text-slate-800 tracking-tight">Access Permissions</h3>
+                  <Shield size={20} style={{ color: getSectionIconColor() }} />
+                  <h3 className={`text-lg font-semibold tracking-tight ${getSectionTitleColor()}`}>Access Permissions</h3>
                 </div>
                 <Reusable_Button
                   text="Edit Global Role"
                   type="button"   
                   variant='ghost'
                   onClick={handleEditPermissions}
-                  size='px-3 py-1.5 text-xs font-semibold bg-slate-50 border border-slate-200'
+                  size='px-3 py-1.5 text-xs font-semibold'
                   disabled={!formData.userRole}
                 />
               </div>
               {permissions.length > 0 ? (
-                <div className="bg-slate-50/50 rounded-2xl border border-slate-100 p-2 sm:p-6">
+                <div className={`rounded-2xl border p-2 sm:p-6 ${getPermissionsBg()} ${getPermissionsBorder()}`}>
                   <Overall_Permissions
                     permissionss={permissions}
                     setPermissions={setPermissions}
                   />
                 </div>
               ) : (
-                <div className="bg-slate-50/50 rounded-2xl border border-slate-100 p-8 text-center text-slate-500">
-                  <Shield size={40} className="mx-auto mb-3 text-slate-300" />
-                  <p>No permissions available. Please select a role first.</p>
+                <div className={`rounded-2xl border p-8 text-center ${getEmptyStateBg()} ${getEmptyStateBorder()}`}>
+                  <Shield size={40} className={`mx-auto mb-3 ${getEmptyStateIconColor()}`} />
+                  <p className={getEmptyStateTextColor()}>No permissions available. Please select a role first.</p>
                 </div>
               )}
             </section>
 
             {/* ADDRESS */}
             <section>
-              <div className="flex items-center gap-2 border-b border-slate-100 pb-3 mb-6">
-                <MapPin className="text-indigo-500" size={20} />
-                <h3 className="text-lg font-semibold text-slate-800 tracking-tight">Location</h3>
+              <div className={`flex items-center gap-2 border-b pb-3 mb-6 ${getSectionBorder()}`}>
+                <MapPin size={20} style={{ color: getSectionIconColor() }} />
+                <h3 className={`text-lg font-semibold tracking-tight ${getSectionTitleColor()}`}>Location</h3>
               </div>
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Reusable_Fields 
@@ -692,7 +723,7 @@ const Create_Users: React.FC = () => {
             </section>
 
             {/* FORM FOOTER */}
-            <div className="flex items-center justify-end gap-4 pt-6 border-t border-slate-100">
+            <div className={`flex items-center justify-end gap-4 pt-6 border-t ${getFormFooterBorder()}`}>
               <Reusable_Button
                 text="Cancel"
                 type="button"
@@ -706,7 +737,7 @@ const Create_Users: React.FC = () => {
                 type="submit"
                 variant="primary"
                 icon={loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                size="px-6 py-2.5 font-semibold shadow-lg shadow-indigo-200/50 rounded-xl"
+                size="px-6 py-2.5 font-semibold rounded-xl"
                 disabled={loading}
               />
             </div>

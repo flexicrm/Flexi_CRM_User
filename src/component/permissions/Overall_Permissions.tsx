@@ -4,10 +4,10 @@ import React from "react";
 import { useSelector } from "react-redux";
 import Reusable_Button from "../button/Reusable_Button";
 
-//  Permission fields type
+// Permission fields type
 export type PermissionField = "create" | "view" | "edit" | "delete";
 
-//  Strict Permission type (removed `any`)
+// Strict Permission type
 export interface Permission {
   module: string;
   create: boolean;
@@ -16,7 +16,7 @@ export interface Permission {
   delete: boolean;
 }
 
-//  Props type
+// Props type
 interface OverallPermissionsProps {
   permissionss: Permission[];
   setPermissions: React.Dispatch<React.SetStateAction<Permission[]>>;
@@ -32,7 +32,30 @@ const Overall_Permissions: React.FC<OverallPermissionsProps> = ({
   deleteOnclick,
   editOnclick
 }) => {
-  //  1. Toggle single permission (SAFE immutable update)
+  const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
+  const { permissions } = useSelector((state: any) => state.auth);
+  const Roles = permissions[5];
+
+  // Theme-based styles
+  const getContainerBg = () => darkMode ? 'bg-gray-800' : 'bg-white';
+  const getContainerBorder = () => darkMode ? 'border-gray-700' : 'border-slate-100';
+  const getHeaderBg = () => darkMode ? 'bg-gray-700/30' : 'bg-slate-50/30';
+  const getHeaderBorder = () => darkMode ? 'border-gray-700' : 'border-slate-50';
+  const getHeaderIconBg = () => darkMode ? 'bg-gray-700' : 'bg-blue-50';
+  const getHeaderIconColor = () => darkMode ? primaryColor || '#818CF8' : '#0062a0';
+  const getHeaderTitleColor = () => darkMode ? 'text-gray-200' : 'text-slate-800';
+  const getHeaderSubtitleColor = () => darkMode ? 'text-gray-500' : 'text-slate-400';
+  const getTableHeaderBg = () => darkMode ? 'bg-gray-700/50' : 'bg-slate-50';
+  const getTableHeaderBorder = () => darkMode ? 'border-gray-700' : 'border-gray-200';
+  const getTableHeaderTextColor = () => darkMode ? 'text-gray-300' : 'text-slate-600';
+  const getTableRowBorder = () => darkMode ? 'border-gray-700' : 'border-gray-200';
+  const getTableRowHoverBg = () => darkMode ? 'hover:bg-gray-700/50' : 'hover:bg-slate-50';
+  const getModuleTextColor = () => darkMode ? 'text-gray-200' : 'text-slate-800';
+  const getEmptyStateBg = () => darkMode ? 'bg-gray-800' : 'bg-white';
+  const getEmptyStateBorder = () => darkMode ? 'border-gray-700' : 'border-slate-200';
+  const getEmptyStateTextColor = () => darkMode ? 'text-gray-500' : 'text-slate-400';
+
+  // 1. Toggle single permission (SAFE immutable update)
   const togglePermission = (index: number, field: PermissionField) => {
     setPermissions((prev) =>
       prev.map((item, i) =>
@@ -40,10 +63,8 @@ const Overall_Permissions: React.FC<OverallPermissionsProps> = ({
       )
     );
   };
-     const {permissions} = useSelector((state : any) => state.auth)
-  const Roles = permissions[5]
 
-  //  2. Toggle entire row
+  // 2. Toggle entire row
   const toggleRow = (index: number) => {
     setPermissions((prev) =>
       prev.map((item, i) => {
@@ -63,7 +84,7 @@ const Overall_Permissions: React.FC<OverallPermissionsProps> = ({
     );
   };
 
-  //  3. Toggle ALL permissions
+  // 3. Toggle ALL permissions
   const toggleAllPermissions = () => {
     setPermissions((prev) => {
       const isGloballyChecked = prev.every(
@@ -80,7 +101,7 @@ const Overall_Permissions: React.FC<OverallPermissionsProps> = ({
     });
   };
 
-  //  Format module name
+  // Format module name
   const formatModuleName = (name: string): string => {
     return name
       ?.split("_")
@@ -88,7 +109,7 @@ const Overall_Permissions: React.FC<OverallPermissionsProps> = ({
       ?.join(" ") || "";
   };
 
-  //  Animation
+  // Animation
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
@@ -106,64 +127,63 @@ const Overall_Permissions: React.FC<OverallPermissionsProps> = ({
     },
   };
 
-  //  Master checkbox state
+  // Master checkbox state
   const isGloballyChecked =
     permissionss.length > 0 &&
     permissionss.every(
       (item) => item.create && item.view && item.edit && item.delete
     );
 
-  //  Empty state
+  // Empty state
   if (!permissionss.length) {
     return (
-      <div className="p-10 text-center text-slate-400 italic bg-white rounded-2xl border border-dashed border-slate-200">
+      <div className={`p-10 text-center italic rounded-2xl border border-dashed ${getEmptyStateBg()} ${getEmptyStateBorder()} ${getEmptyStateTextColor()}`}>
         No modules available to display.
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+    <div className={`rounded-2xl border overflow-hidden ${getContainerBg()} ${getContainerBorder()}`}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center gap-3 p-6 border-b border-slate-50 bg-slate-50/30"
-      >
-        <div className="p-2.5 bg-blue-50 rounded-xl">
-          <ShieldCheck className="text-[#0062a0]" size={24} />
-        </div>
-        <div>
-          <h2 className="text-xl font-bold text-slate-800">
-            Module Access Control
-          </h2>
-          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-            Configure permissions
-          </p>
-        </div>
-      </motion.div>
-     {customizeButtom && (
-       <motion.div>
-        <Reusable_Button
-        variant="primary"
-        text="Edit"
-        size="px-4 py-2.5"
-        className="m-2"
-        onClick={editOnclick}
-        disabled={!Roles?.canEdit}
-      />
-
-      <Reusable_Button
-        variant="primary"
-        text="Delete"
-        size="px-4 py-2.5"
-        className="m-2"
-        onClick={deleteOnclick}
-        disabled={!Roles?.canDelete}
-      />
-      </motion.div>
-     )}
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`flex items-center gap-3 p-6 border-b ${getHeaderBg()} ${getHeaderBorder()}`}
+        >
+          <div className={`p-2.5 rounded-xl ${getHeaderIconBg()}`}>
+            <ShieldCheck className={getHeaderIconColor()} size={24} />
+          </div>
+          <div>
+            <h2 className={`text-xl font-bold ${getHeaderTitleColor()}`}>
+              Module Access Control
+            </h2>
+            <p className={`text-[10px] font-bold uppercase tracking-widest ${getHeaderSubtitleColor()}`}>
+              Configure permissions
+            </p>
+          </div>
+        </motion.div>
+        {customizeButtom && (
+          <motion.div className="flex items-center gap-2 mr-4">
+            <Reusable_Button
+              variant="primary"
+              text="Edit"
+              size="px-4 py-2.5"
+              className="m-2"
+              onClick={editOnclick}
+              disabled={!Roles?.canEdit}
+            />
+            <Reusable_Button
+              variant="primary"
+              text="Delete"
+              size="px-4 py-2.5"
+              className="m-2"
+              onClick={deleteOnclick}
+              disabled={!Roles?.canDelete}
+            />
+          </motion.div>
+        )}
       </div>
 
       {/* Table */}
@@ -171,24 +191,24 @@ const Overall_Permissions: React.FC<OverallPermissionsProps> = ({
         <div className="overflow-x-auto">
           <table className="w-full min-w-[800px]">
             <thead>
-              <tr className="bg-slate-50 border-b">
+              <tr className={`border-b ${getTableHeaderBg()} ${getTableHeaderBorder()}`}>
                 {/* MASTER */}
                 <th className="p-5 text-center">
                   <button type="button" onClick={toggleAllPermissions}>
                     {isGloballyChecked ? (
-                      <CheckSquare size={22} className="text-[#0062a0]" />
+                      <CheckSquare size={22} style={{ color: primaryColor || '#0062a0' }} />
                     ) : (
-                      <Square size={22} className="text-slate-300" />
+                      <Square size={22} className={darkMode ? 'text-gray-500' : 'text-slate-300'} />
                     )}
                   </button>
                 </th>
 
-                <th className="p-5 text-left text-xs font-bold uppercase">
+                <th className={`p-5 text-left text-xs font-bold uppercase ${getTableHeaderTextColor()}`}>
                   Module
                 </th>
 
                 {["Create", "View", "Edit", "Delete"].map((head) => (
-                  <th key={head} className="p-5 text-center text-xs font-bold uppercase">
+                  <th key={head} className={`p-5 text-center text-xs font-bold uppercase ${getTableHeaderTextColor()}`}>
                     {head}
                   </th>
                 ))}
@@ -205,21 +225,21 @@ const Overall_Permissions: React.FC<OverallPermissionsProps> = ({
                     <motion.tr
                       key={item.module}
                       variants={rowVariants}
-                      className="border-b hover:bg-slate-50"
+                      className={`border-b transition-colors ${getTableRowBorder()} ${getTableRowHoverBg()}`}
                     >
                       {/* ROW TOGGLE */}
                       <td className="p-4 text-center">
                         <button type="button" onClick={() => toggleRow(index)}>
                           {isRowChecked ? (
-                            <CheckSquare size={22} className="text-[#0062a0]" />
+                            <CheckSquare size={22} style={{ color: primaryColor || '#0062a0' }} />
                           ) : (
-                            <Square size={22} />
+                            <Square size={22} className={darkMode ? 'text-gray-500' : 'text-slate-300'} />
                           )}
                         </button>
                       </td>
 
                       {/* MODULE */}
-                      <td className="p-4 font-semibold">
+                      <td className={`p-4 font-semibold ${getModuleTextColor()}`}>
                         {formatModuleName(item.module)}
                       </td>
 
@@ -229,9 +249,9 @@ const Overall_Permissions: React.FC<OverallPermissionsProps> = ({
                           <td key={field} className="p-4 text-center">
                             <button onClick={() => togglePermission(index, field)}>
                               {item[field] ? (
-                                <CheckSquare size={22} className="text-[#0062a0]" />
+                                <CheckSquare size={22} style={{ color: primaryColor || '#0062a0' }} />
                               ) : (
-                                <Square size={22} className="text-slate-300" />
+                                <Square size={22} className={darkMode ? 'text-gray-500' : 'text-slate-300'} />
                               )}
                             </button>
                           </td>

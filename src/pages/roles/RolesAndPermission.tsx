@@ -7,6 +7,7 @@ import Reusable_Button from "../../component/button/Reusable_Button";
 import RippleLoader from "../../component/Loader/RippleLoader";
 import Table, { type Column } from "../../component/table/Table";
 import { Permissions_getall } from "../../store/homepage_slice/Permissions_Slice";
+
 type RoleItem = {
   Group: string;
   userRole: string;
@@ -33,20 +34,29 @@ const itemVariants = {
   },
 };
 
-// --- Tooltip Component ---
-const Tooltip = ({ children, text }: { children: React.ReactNode, text: string }) => (
-  <div className="group relative flex flex-col items-center">
-    {children}
-    <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center z-50 animate-in fade-in zoom-in-95 duration-200">
-      <span className="relative z-10 px-2 py-1 text-[10px] font-semibold text-white whitespace-nowrap bg-slate-800 shadow-md rounded-md">
-        {text}
-      </span>
-      <div className="w-2 h-2 -mt-1 rotate-45 bg-slate-800 rounded-sm"></div>
+// --- Tooltip Component with Theme Support ---
+const Tooltip = ({ children, text }: { children: React.ReactNode, text: string }) => {
+  const { darkMode } = useSelector((state: any) => state.theme);
+  
+  return (
+    <div className="group relative flex flex-col items-center">
+      {children}
+      <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center z-50 animate-in fade-in zoom-in-95 duration-200">
+        <span className={`relative z-10 px-2 py-1 text-[10px] font-semibold text-white whitespace-nowrap shadow-md rounded-md ${
+          darkMode ? 'bg-gray-800' : 'bg-slate-800'
+        }`}>
+          {text}
+        </span>
+        <div className={`w-2 h-2 -mt-1 rotate-45 rounded-sm ${
+          darkMode ? 'bg-gray-800' : 'bg-slate-800'
+        }`}></div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const RolesAndPermission = () => {
+  const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
   const [permissionss, setPermissions] = useState<RoleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -56,6 +66,24 @@ const RolesAndPermission = () => {
   const { permissions } = useSelector((state: any) => state.auth);
   const Roles = permissions?.[5];
   const navigate = useNavigate();
+
+  // Theme-based styles
+  const getPageBg = () => darkMode ? 'bg-gray-900' : 'bg-[#F8FAFC]';
+  const getCardBg = () => darkMode ? 'bg-gray-800' : 'bg-white';
+  const getCardBorder = () => darkMode ? 'border-gray-700' : 'border-slate-200/60';
+  const getHeaderIconBg = () => darkMode ? 'bg-gray-700' : 'bg-indigo-100';
+  const getHeaderIconColor = () => darkMode ? primaryColor || '#818CF8' : '#6366f1';
+  const getTitleColor = () => darkMode ? 'text-white' : 'text-slate-900';
+  const getSubtitleColor = () => darkMode ? 'text-gray-400' : 'text-slate-500';
+  const getSeparatorColor = () => darkMode ? 'bg-gray-600' : 'bg-slate-300';
+  const getCountColor = () => darkMode ? 'text-gray-500' : 'text-slate-500';
+  const getSearchInputBg = () => darkMode ? 'bg-gray-700 border-gray-600 text-gray-200' : 'bg-white border-slate-200';
+  const getSearchIconColor = () => darkMode ? 'text-gray-500' : 'text-slate-400';
+  const getClearButtonColor = () => darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-slate-400 hover:text-slate-600';
+  const getEmptyStateIconBg = () => darkMode ? 'bg-gray-700' : 'bg-slate-100';
+  const getEmptyStateIconColor = () => darkMode ? 'text-gray-500' : 'text-slate-400';
+  const getEmptyStateTitleColor = () => darkMode ? 'text-gray-200' : 'text-slate-800';
+  const getEmptyStateTextColor = () => darkMode ? 'text-gray-400' : 'text-slate-500';
 
   const handleCreate = () => {
     navigate(`/${localStorage.getItem("subdomain")}/rolesand-permissions/create-role`);
@@ -68,7 +96,7 @@ const RolesAndPermission = () => {
       key: "index",
       width: "70px",
       render: (val: number) => (
-        <span className="text-xs font-medium text-slate-600">
+        <span className={`text-xs font-medium ${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>
           {val + 1}
         </span>
       ),
@@ -78,7 +106,7 @@ const RolesAndPermission = () => {
       dataIndex: "Group",
       key: "Group",
       render: (val: string) => (
-        <span className="text-[11px] font-bold text-indigo-700 uppercase tracking-wider">
+        <span className={`text-[11px] font-bold uppercase tracking-wider ${darkMode ? 'text-indigo-400' : 'text-indigo-700'}`}>
           {val || "-"}
         </span>
       ),
@@ -88,7 +116,7 @@ const RolesAndPermission = () => {
       dataIndex: "userRole",
       key: "userRole",
       render: (val: string) => (
-        <span className="text-xs text-slate-700 font-semibold">
+        <span className={`text-xs font-semibold ${darkMode ? 'text-gray-300' : 'text-slate-700'}`}>
           {val || "-"}
         </span>
       ),
@@ -102,7 +130,6 @@ const RolesAndPermission = () => {
       const response = await Permissions_getall();
       const apiData = response?.data?.data || [];
 
-      // Add index (0, 1, 2...) into every row
       const updatedData = apiData.map((item: RoleItem, index: number) => ({
         ...item,
         index,
@@ -140,14 +167,14 @@ const RolesAndPermission = () => {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="min-h-screen bg-[#F8FAFC] py-6 px-4 md:py-8 md:px-6 lg:px-8"
+      className={`min-h-screen py-6 px-4 md:py-8 md:px-6 lg:px-8 transition-colors duration-300 ${getPageBg()}`}
     >
       <div className="w-full mx-auto space-y-6">
         
         {/* --- LAYER 1: HERO HEADER --- */}
         <motion.header variants={itemVariants} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-indigo-100 text-indigo-600 rounded-xl md:rounded-2xl flex items-center justify-center shadow-sm">
+            <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center shadow-sm ${getHeaderIconBg()}`}>
               <svg 
                 xmlns="http://www.w3.org/2000/svg" 
                 width="20" 
@@ -159,6 +186,7 @@ const RolesAndPermission = () => {
                 strokeLinecap="round" 
                 strokeLinejoin="round"
                 className="md:w-6 md:h-6"
+                style={{ color: getHeaderIconColor() }}
               >
                 <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H5.78a1.65 1.65 0 0 0-1.51 1 1.65 1.65 0 0 0 .33 1.82l.07.08A10 10 0 0 0 12 17.66a10 10 0 0 0 6.33-2.58l.07-.08Z" />
@@ -166,11 +194,11 @@ const RolesAndPermission = () => {
               </svg>
             </div>
             <div>
-              <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">Roles & Permissions</h1>
+              <h1 className={`text-xl md:text-2xl lg:text-3xl font-bold tracking-tight ${getTitleColor()}`}>Roles & Permissions</h1>
               <div className="flex items-center gap-2 mt-0.5">
-                <p className="text-xs md:text-sm text-slate-500">Manage user roles and their access permissions</p>
-                <span className="w-1 h-1 rounded-full bg-slate-300 hidden sm:block"></span>
-                <p className="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-wider hidden sm:block">
+                <p className={`text-xs md:text-sm ${getSubtitleColor()}`}>Manage user roles and their access permissions</p>
+                <span className={`w-1 h-1 rounded-full hidden sm:block ${getSeparatorColor()}`}></span>
+                <p className={`text-[10px] md:text-xs font-bold uppercase tracking-wider hidden sm:block ${getCountColor()}`}>
                   {filteredData.length} Total
                 </p>
               </div>
@@ -183,18 +211,18 @@ const RolesAndPermission = () => {
               onClick={handleCreate}
               icon={<Plus size={16} />}
               disabled={!Roles?.canCreate}
-              size="px-4 py-2 text-sm font-medium rounded-lg shadow-md shadow-indigo-200/50"
+              size="px-4 py-2 text-sm font-medium rounded-lg"
             />
           </Tooltip>
         </motion.header>
 
         {/* --- LAYER 2: UNIFIED DATA CARD --- */}
-        <motion.main variants={itemVariants} className="bg-white rounded-xl md:rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden flex flex-col">
+        <motion.main variants={itemVariants} className={`rounded-xl md:rounded-2xl shadow-sm border overflow-hidden flex flex-col ${getCardBg()} ${getCardBorder()}`}>
           
           {/* Search Bar */}
-          <div className="p-4 border-b border-slate-100">
+          <div className={`p-4 border-b ${darkMode ? 'border-gray-700' : 'border-slate-100'}`}>
             <div className="relative max-w-sm">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
+              <Search className={`absolute left-3 top-1/2 -translate-y-1/2 ${getSearchIconColor()}`} size={14} />
               <input
                 type="text"
                 placeholder="Search by role or group..."
@@ -203,12 +231,17 @@ const RolesAndPermission = () => {
                   setSearchTerm(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="w-full pl-9 pr-8 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white"
+                className={`w-full pl-9 pr-8 py-2 text-sm rounded-lg focus:outline-none focus:ring-2 transition-all ${getSearchInputBg()}`}
+                style={
+  {
+    '--tw-ring-color': `${primaryColor}20`
+  } as React.CSSProperties
+}
               />
               {searchTerm && (
                 <button
                   onClick={clearSearch}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className={`absolute right-2 top-1/2 -translate-y-1/2 ${getClearButtonColor()}`}
                 >
                   <X size={14} />
                 </button>
@@ -217,10 +250,10 @@ const RolesAndPermission = () => {
           </div>
 
           {/* Table Container */}
-          <div className="p-0 sm:p-4">
+          <div className="p-0 sm:p-0">
             {filteredData.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${getEmptyStateIconBg()}`}>
                   <svg 
                     xmlns="http://www.w3.org/2000/svg" 
                     width="32" 
@@ -231,15 +264,15 @@ const RolesAndPermission = () => {
                     strokeWidth="1.5" 
                     strokeLinecap="round" 
                     strokeLinejoin="round"
-                    className="text-slate-400"
+                    className={getEmptyStateIconColor()}
                   >
                     <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
                     <path d="M19.4 15a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H5.78a1.65 1.65 0 0 0-1.51 1 1.65 1.65 0 0 0 .33 1.82l.07.08A10 10 0 0 0 12 17.66a10 10 0 0 0 6.33-2.58l.07-.08Z" />
                     <path d="M5.78 9a1.65 1.65 0 0 1-.33-1.82A1.65 1.65 0 0 1 6.96 6h10.08a1.65 1.65 0 0 1 1.51 1 1.65 1.65 0 0 1-.33 1.82l-.07.08A10 10 0 0 1 12 12.34a10 10 0 0 1-6.33-2.58l-.07-.08Z" />
                   </svg>
                 </div>
-                <h3 className="text-base font-semibold text-slate-800 mb-1">No Roles Found</h3>
-                <p className="text-xs text-slate-500">
+                <h3 className={`text-base font-semibold mb-1 ${getEmptyStateTitleColor()}`}>No Roles Found</h3>
+                <p className={`text-xs ${getEmptyStateTextColor()}`}>
                   {searchTerm ? "No roles match your search criteria." : "No roles have been created yet."}
                 </p>
                 {searchTerm && (
@@ -289,6 +322,7 @@ const RolesAndPermission = () => {
                   },
                 }}
                 rowClickable={!!Roles?.canRead}
+                theme={{ darkMode, primaryColor }}
               />
             )}
           </div>

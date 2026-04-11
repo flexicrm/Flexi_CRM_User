@@ -44,18 +44,26 @@ const itemVariants = {
   },
 };
 
-// --- Tooltip Component ---
-const Tooltip = ({ children, text }: { children: React.ReactNode, text: string }) => (
-  <div className="group relative flex flex-col items-center">
-    {children}
-    <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center z-50 animate-in fade-in zoom-in-95 duration-200">
-      <span className="relative z-10 px-2 py-1 text-[10px] font-semibold text-white whitespace-nowrap bg-slate-800 shadow-md rounded-md">
-        {text}
-      </span>
-      <div className="w-2 h-2 -mt-1 rotate-45 bg-slate-800 rounded-sm"></div>
+// --- Tooltip Component with Theme Support ---
+const Tooltip = ({ children, text }: { children: React.ReactNode, text: string }) => {
+  const { darkMode } = useSelector((state: any) => state.theme);
+  
+  return (
+    <div className="group relative flex flex-col items-center">
+      {children}
+      <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center z-50 animate-in fade-in zoom-in-95 duration-200">
+        <span className={`relative z-10 px-2 py-1 text-[10px] font-semibold text-white whitespace-nowrap shadow-md rounded-md ${
+          darkMode ? 'bg-gray-800' : 'bg-slate-800'
+        }`}>
+          {text}
+        </span>
+        <div className={`w-2 h-2 -mt-1 rotate-45 rounded-sm ${
+          darkMode ? 'bg-gray-800' : 'bg-slate-800'
+        }`}></div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // Helper function to extract error message
 const extractErrorMessage = (error: any): string => {
@@ -107,6 +115,7 @@ const formatPermissions = (permissionsArray: any[]): PermissionItem[] => {
 
 const Roles_And_Permissions: React.FC = () => {
   const navigate = useNavigate();
+  const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
 
   const [getPermission, setGetPermission] = useState<any>(null);
   const [permissionss, setPermissions] = useState<PermissionItem[]>([]);
@@ -117,6 +126,23 @@ const Roles_And_Permissions: React.FC = () => {
   const Roles = permissions?.[5] || {};
   const location = useLocation();
   const { tableId } = location.state || {};
+
+  // Theme-based styles
+  const getPageBg = () => darkMode ? 'bg-gray-900' : 'bg-[#F8FAFC]';
+  const getCardBg = () => darkMode ? 'bg-gray-800' : 'bg-white';
+  const getCardBorder = () => darkMode ? 'border-gray-700' : 'border-slate-200/60';
+  const getHeaderIconBg = () => darkMode ? 'bg-gray-700' : 'bg-indigo-100';
+  const getHeaderIconColor = () => darkMode ? primaryColor || '#818CF8' : '#6366f1';
+  const getTitleColor = () => darkMode ? 'text-white' : 'text-slate-900';
+  const getSubtitleColor = () => darkMode ? 'text-gray-400' : 'text-slate-500';
+  const getBackButtonBg = () => darkMode ? 'hover:bg-gray-700' : 'hover:bg-slate-100';
+  const getBackButtonColor = () => darkMode ? 'text-gray-400' : 'text-slate-600';
+  const getGroupTextColor = () => darkMode ? 'text-gray-300' : 'text-slate-700';
+  const getPermissionCountColor = () => darkMode ? 'text-gray-500' : 'text-slate-500';
+  const getEmptyStateIconBg = () => darkMode ? 'bg-amber-900/20' : 'bg-amber-50';
+  const getEmptyStateIconColor = () => darkMode ? 'text-amber-400' : 'text-amber-500';
+  const getEmptyStateTitleColor = () => darkMode ? 'text-gray-200' : 'text-slate-800';
+  const getEmptyStateTextColor = () => darkMode ? 'text-gray-400' : 'text-slate-500';
 
   const fetchPermissions = async () => {
     try {
@@ -211,7 +237,7 @@ const Roles_And_Permissions: React.FC = () => {
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="min-h-screen bg-[#F8FAFC] py-6 px-4 md:py-8 md:px-6 lg:px-8"
+      className={`min-h-screen py-6 px-4 md:py-8 md:px-6 lg:px-8 transition-colors duration-300 ${getPageBg()}`}
     >
       <div className="w-full mx-auto space-y-6">
         
@@ -220,28 +246,28 @@ const Roles_And_Permissions: React.FC = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={handleBack}
-              className="p-2 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              className={`p-2 rounded-lg transition-colors cursor-pointer ${getBackButtonBg()}`}
               disabled={deleting}
             >
-              <ArrowLeft size={20} className="text-slate-600" />
+              <ArrowLeft size={20} className={getBackButtonColor()} />
             </button>
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-indigo-100 text-indigo-600 rounded-xl md:rounded-2xl flex items-center justify-center shadow-sm">
-              <Shield size={20} strokeWidth={2.5} className="md:w-6 md:h-6" />
+            <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center shadow-sm ${getHeaderIconBg()}`}>
+              <Shield size={20} strokeWidth={2.5} className="md:w-6 md:h-6" style={{ color: getHeaderIconColor() }} />
             </div>
             <div>
-              <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">
+              <h1 className={`text-xl md:text-2xl lg:text-3xl font-bold tracking-tight ${getTitleColor()}`}>
                 {getPermission?.userRole || "Role Details"}
               </h1>
               <div className="flex items-center gap-2 mt-0.5">
                 {getPermission?.Group && (
                   <>
-                    <p className="text-xs md:text-sm text-slate-500">
-                      Group: <span className="font-semibold text-slate-700">{getPermission.Group}</span>
+                    <p className={`text-xs md:text-sm ${getSubtitleColor()}`}>
+                      Group: <span className={`font-semibold ${getGroupTextColor()}`}>{getPermission.Group}</span>
                     </p>
-                    <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                    <span className={`w-1 h-1 rounded-full ${darkMode ? 'bg-gray-600' : 'bg-slate-300'}`}></span>
                   </>
                 )}
-                <p className="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <p className={`text-[10px] md:text-xs font-bold uppercase tracking-wider ${getPermissionCountColor()}`}>
                   {permissionss.length} Permission{permissionss.length !== 1 ? 's' : ''}
                 </p>
               </div>
@@ -278,7 +304,7 @@ const Roles_And_Permissions: React.FC = () => {
         </motion.header>
 
         {/* --- LAYER 2: UNIFIED DATA CARD --- */}
-        <motion.main variants={itemVariants} className="bg-white rounded-xl md:rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+        <motion.main variants={itemVariants} className={`rounded-xl md:rounded-2xl shadow-sm border overflow-hidden ${getCardBg()} ${getCardBorder()}`}>
           
           {/* Content */}
           <AnimatePresence mode="wait">
@@ -308,11 +334,11 @@ const Roles_And_Permissions: React.FC = () => {
                 transition={{ duration: 0.3 }}
                 className="flex flex-col items-center justify-center py-20 text-center"
               >
-                <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mb-4">
-                  <ShieldAlert size={40} className="text-amber-500" />
+                <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-4 ${getEmptyStateIconBg()}`}>
+                  <ShieldAlert size={40} className={getEmptyStateIconColor()} />
                 </div>
-                <h3 className="text-lg font-semibold text-slate-800 mb-2">No Permissions Found</h3>
-                <p className="text-sm text-slate-500 max-w-md">
+                <h3 className={`text-lg font-semibold mb-2 ${getEmptyStateTitleColor()}`}>No Permissions Found</h3>
+                <p className={`text-sm max-w-md ${getEmptyStateTextColor()}`}>
                   This role doesn't have any permissions configured yet.
                 </p>
                 {Roles?.canEdit && (

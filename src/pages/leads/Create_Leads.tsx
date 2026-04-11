@@ -118,25 +118,34 @@ const itemVariants = {
     },
 };
 
-// --- Tooltip Component ---
-const Tooltip = ({ children, text }: { children: React.ReactNode, text: string }) => (
-  <div className="group relative flex flex-col items-center">
-    {children}
-    <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center z-50 animate-in fade-in zoom-in-95 duration-200">
-      <span className="relative z-10 px-2 py-1 text-[10px] font-semibold text-white whitespace-nowrap bg-slate-800 shadow-md rounded-md">
-        {text}
-      </span>
-      <div className="w-2 h-2 -mt-1 rotate-45 bg-slate-800 rounded-sm"></div>
-    </div>
-  </div>
-);
+// --- Tooltip Component with Theme Support ---
+const Tooltip = ({ children, text }: { children: React.ReactNode, text: string }) => {
+    const { darkMode } = useSelector((state: any) => state.theme);
+    
+    return (
+        <div className="group relative flex flex-col items-center">
+            {children}
+            <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center z-50 animate-in fade-in zoom-in-95 duration-200">
+                <span className={`relative z-10 px-2 py-1 text-[10px] font-semibold text-white whitespace-nowrap shadow-md rounded-md ${
+                    darkMode ? 'bg-gray-800' : 'bg-slate-800'
+                }`}>
+                    {text}
+                </span>
+                <div className={`w-2 h-2 -mt-1 rotate-45 rounded-sm ${
+                    darkMode ? 'bg-gray-800' : 'bg-slate-800'
+                }`}></div>
+            </div>
+        </div>
+    );
+};
 
-// Custom Status Select Component with Color and Create Option
+// Custom Status Select Component with Color and Create Option (with Theme Support)
 const StatusSelect = ({ value, onChange, options, error, disabled, label, onCreateStatus }: any) => {
+    const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
     const [isOpen, setIsOpen] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [newStatusName, setNewStatusName] = useState('');
-    const [newStatusColor, setNewStatusColor] = useState('#6366F1');
+    const [newStatusColor, setNewStatusColor] = useState(primaryColor || '#6366F1');
     const [isCreating, setIsCreating] = useState(false);
     const selectRef = React.useRef<HTMLDivElement>(null);
 
@@ -165,7 +174,7 @@ const StatusSelect = ({ value, onChange, options, error, disabled, label, onCrea
                 successAlert("Status created successfully!", "Done", "Success!");
                 setShowCreateModal(false);
                 setNewStatusName('');
-                setNewStatusColor('#6366F1');
+                setNewStatusColor(primaryColor || '#6366F1');
                 onChange({ target: { name: 'status', value: result._id } });
             }
         } catch (error: any) {
@@ -176,49 +185,58 @@ const StatusSelect = ({ value, onChange, options, error, disabled, label, onCrea
         }
     };
 
+    const getButtonBg = () => {
+        if (disabled) return darkMode ? 'bg-gray-800' : 'bg-white';
+        return darkMode ? 'bg-gray-800' : 'bg-white';
+    };
+    const getButtonBorder = () => {
+        if (error) return 'border-red-500';
+        return darkMode ? 'border-gray-600 hover:border-gray-500' : 'border-slate-200 hover:border-slate-300';
+    };
+    const getLabelColor = () => darkMode ? 'text-gray-400' : 'text-slate-500';
+    const getDropdownBg = () => darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-slate-200';
+    const getDropdownItemHover = () => darkMode ? 'hover:bg-gray-700' : 'hover:bg-slate-50';
+    const getModalBg = () => darkMode ? 'bg-gray-800' : 'bg-white';
+    const getModalTextColor = () => darkMode ? 'text-gray-200' : 'text-slate-900';
+    const getInputBg = () => darkMode ? 'bg-gray-700 border-gray-600 text-gray-200' : 'bg-white border-slate-200';
+
     return (
         <div className="w-full" ref={selectRef}>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">
+            <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${getLabelColor()}`}>
                 {label} <span className="text-red-500">*</span>
             </label>
             <div className="relative">
                 <button
                     type="button"
                     onClick={() => !disabled && setIsOpen(!isOpen)}
-                    className={`w-full px-3 py-2 text-left border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all flex items-center justify-between text-sm ${
-                        error ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-white hover:border-slate-300'
-                    } ${disabled ? 'opacity-60 cursor-not-allowed bg-slate-50' : 'cursor-pointer'}`}
+                    className={`w-full px-3 py-2 text-left border rounded-lg focus:outline-none focus:ring-2 transition-all flex items-center justify-between text-sm ${
+                        error ? 'border-red-500 bg-red-50' : `${getButtonBorder()} ${getButtonBg()}`
+                    } ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+                    style={
+  {
+    '--tw-ring-color': `${primaryColor}20`
+  } as React.CSSProperties
+}
                     disabled={disabled}
                 >
                     <div className="flex items-center gap-2">
                         {selectedStatus?.color && (
-                            <div 
-                                className="w-2.5 h-2.5 rounded-full" 
-                                style={{ backgroundColor: selectedStatus.color }}
-                            />
+                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: selectedStatus.color }} />
                         )}
-                        <span 
-                            className="text-sm"
-                            style={{ 
-                                color: selectedStatus?.color || "#1F2937",
-                                fontWeight: selectedStatus ? 500 : 400
-                            }}
-                        >
+                        <span className="text-sm" style={{ 
+                            color: selectedStatus?.color || (darkMode ? '#e5e7eb' : '#1F2937'),
+                            fontWeight: selectedStatus ? 500 : 400
+                        }}>
                             {selectedStatus?.label || "Select Status"}
                         </span>
                     </div>
-                    <svg 
-                        className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                    >
+                    <svg className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''} ${darkMode ? 'text-gray-400' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                 </button>
                 
                 {isOpen && !disabled && (
-                    <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    <div className={`absolute z-50 w-full mt-1 rounded-lg shadow-lg max-h-60 overflow-y-auto ${getDropdownBg()}`}>
                         {options?.map((option: any) => (
                             <button
                                 key={option.value}
@@ -227,22 +245,14 @@ const StatusSelect = ({ value, onChange, options, error, disabled, label, onCrea
                                     onChange({ target: { name: 'status', value: option.value } });
                                     setIsOpen(false);
                                 }}
-                                className="w-full px-3 py-2 text-left hover:bg-slate-50 transition-colors flex items-center gap-2"
+                                className={`w-full px-3 py-2 text-left transition-colors flex items-center gap-2 ${getDropdownItemHover()}`}
                             >
-                                {option.color && (
-                                    <div 
-                                        className="w-2.5 h-2.5 rounded-full" 
-                                        style={{ backgroundColor: option.color }}
-                                    />
-                                )}
-                                <span 
-                                    className="text-sm"
-                                    style={{ color: option.color || "#1F2937" }}
-                                >
+                                {option.color && <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: option.color }} />}
+                                <span className="text-sm" style={{ color: option.color || (darkMode ? '#e5e7eb' : '#1F2937') }}>
                                     {option.label}
                                 </span>
                                 {value === option.value && (
-                                    <svg className="w-4 h-4 ml-auto text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-4 h-4 ml-auto" style={{ color: primaryColor || '#6366f1' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                     </svg>
                                 )}
@@ -251,7 +261,7 @@ const StatusSelect = ({ value, onChange, options, error, disabled, label, onCrea
                         <button
                             type="button"
                             onClick={() => setShowCreateModal(true)}
-                            className="w-full px-3 py-2 text-left hover:bg-indigo-50 transition-colors flex items-center gap-2 border-t border-slate-100 text-indigo-600"
+                            className={`w-full px-3 py-2 text-left transition-colors flex items-center gap-2 border-t ${darkMode ? 'border-gray-700 text-indigo-400 hover:bg-gray-700' : 'border-slate-100 text-indigo-600 hover:bg-indigo-50'}`}
                         >
                             <Plus size={14} />
                             <span className="text-xs font-medium">Create New Status</span>
@@ -264,38 +274,48 @@ const StatusSelect = ({ value, onChange, options, error, disabled, label, onCrea
             {/* Create Status Modal */}
             {showCreateModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200]" onClick={() => setShowCreateModal(false)}>
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
+                    <div className={`rounded-xl shadow-xl w-full max-w-md p-5 ${getModalBg()}`} onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-base font-semibold text-slate-900">Create New Status</h3>
-                            <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-slate-600">
+                            <h3 className={`text-base font-semibold ${getModalTextColor()}`}>Create New Status</h3>
+                            <button onClick={() => setShowCreateModal(false)} className={darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-slate-400 hover:text-slate-600'}>
                                 <X size={18} />
                             </button>
                         </div>
                         <div className="space-y-3">
                             <div>
-                                <label className="block text-xs font-medium text-slate-700 mb-1">Status Name</label>
+                                <label className={`block text-xs font-medium mb-1 ${darkMode ? 'text-gray-300' : 'text-slate-700'}`}>Status Name</label>
                                 <input
                                     type="text"
                                     value={newStatusName}
                                     onChange={(e) => setNewStatusName(e.target.value)}
-                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm"
+                                    className={`w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 text-sm ${getInputBg()}`}
+                                    style={
+  {
+    '--tw-ring-color': `${primaryColor}20`
+  } as React.CSSProperties
+}
                                     placeholder="e.g., Hot Lead, Cold Lead"
                                 />
                             </div>
                             <div>
-                                <label className="block text-xs font-medium text-slate-700 mb-1">Status Color</label>
+                                <label className={`block text-xs font-medium mb-1 ${darkMode ? 'text-gray-300' : 'text-slate-700'}`}>Status Color</label>
                                 <div className="flex gap-2 items-center">
                                     <input
                                         type="color"
                                         value={newStatusColor}
                                         onChange={(e) => setNewStatusColor(e.target.value)}
-                                        className="w-10 h-9 border border-slate-200 rounded cursor-pointer"
+                                        className="w-10 h-9 border rounded cursor-pointer"
                                     />
                                     <input
                                         type="text"
                                         value={newStatusColor}
                                         onChange={(e) => setNewStatusColor(e.target.value)}
-                                        className="flex-1 px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm"
+                                        className={`flex-1 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 text-sm ${getInputBg()}`}
+                                        style={
+  {
+    '--tw-ring-color': `${primaryColor}20`
+  } as React.CSSProperties
+}
                                         placeholder="#6366F1"
                                     />
                                 </div>
@@ -325,8 +345,9 @@ const StatusSelect = ({ value, onChange, options, error, disabled, label, onCrea
     );
 };
 
-// Custom Source Select Component with Create Option
+// Custom Source Select Component with Create Option (with Theme Support)
 const SourceSelect = ({ value, onChange, options, error, disabled, label, onCreateSource }: any) => {
+    const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
     const [isOpen, setIsOpen] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [newSourceName, setNewSourceName] = useState('');
@@ -368,33 +389,48 @@ const SourceSelect = ({ value, onChange, options, error, disabled, label, onCrea
         }
     };
 
+    const getButtonBg = () => {
+        if (disabled) return darkMode ? 'bg-gray-800' : 'bg-white';
+        return darkMode ? 'bg-gray-800' : 'bg-white';
+    };
+    const getButtonBorder = () => {
+        if (error) return 'border-red-500';
+        return darkMode ? 'border-gray-600 hover:border-gray-500' : 'border-slate-200 hover:border-slate-300';
+    };
+    const getLabelColor = () => darkMode ? 'text-gray-400' : 'text-slate-500';
+    const getDropdownBg = () => darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-slate-200';
+    const getDropdownItemHover = () => darkMode ? 'hover:bg-gray-700' : 'hover:bg-slate-50';
+    const getModalBg = () => darkMode ? 'bg-gray-800' : 'bg-white';
+    const getModalTextColor = () => darkMode ? 'text-gray-200' : 'text-slate-900';
+    const getInputBg = () => darkMode ? 'bg-gray-700 border-gray-600 text-gray-200' : 'bg-white border-slate-200';
+
     return (
         <div className="w-full" ref={selectRef}>
-            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5">{label}</label>
+            <label className={`block text-xs font-bold uppercase tracking-wider mb-1.5 ${getLabelColor()}`}>{label}</label>
             <div className="relative">
                 <button
                     type="button"
                     onClick={() => !disabled && setIsOpen(!isOpen)}
-                    className={`w-full px-3 py-2 text-left border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all flex items-center justify-between text-sm ${
-                        error ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-white hover:border-slate-300'
-                    } ${disabled ? 'opacity-60 cursor-not-allowed bg-slate-50' : 'cursor-pointer'}`}
+                    className={`w-full px-3 py-2 text-left border rounded-lg focus:outline-none focus:ring-2 transition-all flex items-center justify-between text-sm ${
+                        error ? 'border-red-500 bg-red-50' : `${getButtonBorder()} ${getButtonBg()}`
+                    } ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+                    style={
+  {
+    '--tw-ring-color': `${primaryColor}20`
+  } as React.CSSProperties
+}
                     disabled={disabled}
                 >
-                    <span className={`text-sm ${!selectedSource ? 'text-slate-400' : 'text-slate-700'}`}>
+                    <span className={`text-sm ${!selectedSource ? (darkMode ? 'text-gray-500' : 'text-slate-400') : (darkMode ? 'text-gray-200' : 'text-slate-700')}`}>
                         {selectedSource?.label || "Select Source"}
                     </span>
-                    <svg 
-                        className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
-                        fill="none" 
-                        stroke="currentColor" 
-                        viewBox="0 0 24 24"
-                    >
+                    <svg className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''} ${darkMode ? 'text-gray-400' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                 </button>
                 
                 {isOpen && !disabled && (
-                    <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    <div className={`absolute z-50 w-full mt-1 rounded-lg shadow-lg max-h-60 overflow-y-auto ${getDropdownBg()}`}>
                         {options?.map((option: any) => (
                             <button
                                 key={option.value}
@@ -403,11 +439,11 @@ const SourceSelect = ({ value, onChange, options, error, disabled, label, onCrea
                                     onChange({ target: { name: 'source', value: option.value } });
                                     setIsOpen(false);
                                 }}
-                                className="w-full px-3 py-2 text-left hover:bg-slate-50 transition-colors flex items-center justify-between"
+                                className={`w-full px-3 py-2 text-left transition-colors flex items-center justify-between ${getDropdownItemHover()}`}
                             >
-                                <span className="text-sm text-slate-700">{option.label}</span>
+                                <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-slate-700'}`}>{option.label}</span>
                                 {value === option.value && (
-                                    <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <svg className="w-4 h-4" style={{ color: primaryColor || '#6366f1' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                     </svg>
                                 )}
@@ -416,7 +452,7 @@ const SourceSelect = ({ value, onChange, options, error, disabled, label, onCrea
                         <button
                             type="button"
                             onClick={() => setShowCreateModal(true)}
-                            className="w-full px-3 py-2 text-left hover:bg-indigo-50 transition-colors flex items-center gap-2 border-t border-slate-100 text-indigo-600"
+                            className={`w-full px-3 py-2 text-left transition-colors flex items-center gap-2 border-t ${darkMode ? 'border-gray-700 text-indigo-400 hover:bg-gray-700' : 'border-slate-100 text-indigo-600 hover:bg-indigo-50'}`}
                         >
                             <Plus size={14} />
                             <span className="text-xs font-medium">Create New Source</span>
@@ -429,21 +465,26 @@ const SourceSelect = ({ value, onChange, options, error, disabled, label, onCrea
             {/* Create Source Modal */}
             {showCreateModal && (
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200]" onClick={() => setShowCreateModal(false)}>
-                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
+                    <div className={`rounded-xl shadow-xl w-full max-w-md p-5 ${getModalBg()}`} onClick={(e) => e.stopPropagation()}>
                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-base font-semibold text-slate-900">Create New Source</h3>
-                            <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-slate-600">
+                            <h3 className={`text-base font-semibold ${getModalTextColor()}`}>Create New Source</h3>
+                            <button onClick={() => setShowCreateModal(false)} className={darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-slate-400 hover:text-slate-600'}>
                                 <X size={18} />
                             </button>
                         </div>
                         <div className="space-y-3">
                             <div>
-                                <label className="block text-xs font-medium text-slate-700 mb-1">Source Name</label>
+                                <label className={`block text-xs font-medium mb-1 ${darkMode ? 'text-gray-300' : 'text-slate-700'}`}>Source Name</label>
                                 <input
                                     type="text"
                                     value={newSourceName}
                                     onChange={(e) => setNewSourceName(e.target.value)}
-                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-sm"
+                                    className={`w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 text-sm ${getInputBg()}`}
+                                    style={
+  {
+    '--tw-ring-color': `${primaryColor}20`
+  } as React.CSSProperties
+}
                                     placeholder="e.g., Website, Referral, Social Media"
                                 />
                             </div>
@@ -476,6 +517,7 @@ const Create_Leads = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const dispatch = useDispatch<any>();
+    const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
     
     const editData = location.state?.tableData;
     const editId = location.state?.tableId;
@@ -500,13 +542,27 @@ const Create_Leads = () => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [selectedUser, setSelectedUser] = useState('');
 
+    // Theme-based styles
+    const getPageBg = () => darkMode ? 'bg-gray-900' : 'bg-[#F8FAFC]';
+    const getCardBg = () => darkMode ? 'bg-gray-800' : 'bg-white';
+    const getCardBorder = () => darkMode ? 'border-gray-700' : 'border-slate-200/60';
+    const getHeaderIconBg = () => darkMode ? 'bg-gray-700' : 'bg-indigo-100';
+    const getHeaderIconColor = () => darkMode ? primaryColor || '#818CF8' : '#6366f1';
+    const getTitleColor = () => darkMode ? 'text-white' : 'text-slate-900';
+    const getSubtitleColor = () => darkMode ? 'text-gray-400' : 'text-slate-500';
+    const getBackButtonBg = () => darkMode ? 'bg-gray-800 border-gray-700 text-gray-400 hover:bg-gray-700' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-indigo-600';
+    const getSectionBorder = () => darkMode ? 'border-gray-700' : 'border-slate-100';
+    const getSectionTitleColor = () => darkMode ? 'text-gray-200' : 'text-slate-800';
+    const getSectionIconColor = () => darkMode ? primaryColor || '#818CF8' : '#6366f1';
+    const getAssignedUserBg = () => darkMode ? 'bg-indigo-900/30 text-indigo-400' : 'bg-indigo-50 text-indigo-700';
+    const getWarningTextColor = () => darkMode ? 'text-amber-400' : 'text-amber-600';
+    const getFormFooterBorder = () => darkMode ? 'border-gray-700' : 'border-slate-100';
+
     useEffect(() => {
-        // Fetch dropdown data
         dispatch(fetchStatuses());
         dispatch(fetchSources());
         dispatch(fetchUsers());
 
-        // Populate form for edit mode
         if (editData) {
             console.log("Edit Data Received:", editData);
             
@@ -715,7 +771,7 @@ const Create_Leads = () => {
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="min-h-screen bg-[#F8FAFC] py-6 px-4 md:py-8 md:px-6 lg:px-8"
+            className={`min-h-screen py-6 px-4 md:py-8 md:px-6 lg:px-8 transition-colors duration-300 ${getPageBg()}`}
         >
             <div className="w-full max-w-[1200px] mx-auto space-y-6">
                 
@@ -725,20 +781,20 @@ const Create_Leads = () => {
                         <Tooltip text="Go Back">
                             <button 
                                 onClick={() => navigate(-1)}
-                                className="p-2 bg-white border border-slate-200 text-slate-500 rounded-lg hover:bg-slate-50 hover:text-indigo-600 transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                className={`p-2 rounded-lg transition-colors shadow-sm disabled:opacity-50 cursor-pointer border ${getBackButtonBg()}`}
                                 disabled={isProcessing}
                             >
                                 <ArrowLeft size={18} />
                             </button>
                         </Tooltip>
-                        <div className="w-10 h-10 md:w-12 md:h-12 bg-indigo-100 text-indigo-600 rounded-xl md:rounded-2xl flex items-center justify-center shadow-sm">
-                            <Target size={20} strokeWidth={2.5} className="md:w-6 md:h-6" />
+                        <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center shadow-sm ${getHeaderIconBg()}`}>
+                            <Target size={20} strokeWidth={2.5} className="md:w-6 md:h-6" style={{ color: getHeaderIconColor() }} />
                         </div>
                         <div>
-                            <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">
+                            <h1 className={`text-xl md:text-2xl lg:text-3xl font-bold tracking-tight ${getTitleColor()}`}>
                                 {editData ? "Edit Prospect" : "Add New Prospect"}
                             </h1>
-                            <p className="text-xs md:text-sm text-slate-500 mt-0.5">
+                            <p className={`text-xs md:text-sm mt-0.5 ${getSubtitleColor()}`}>
                                 {editData ? "Update the details and pipeline status of this lead." : "Fill out the information below to add a new lead to your pipeline."}
                             </p>
                         </div>
@@ -759,14 +815,14 @@ const Create_Leads = () => {
                 </motion.header>
 
                 {/* --- LAYER 2: UNIFIED FORM CARD --- */}
-                <motion.main variants={itemVariants} className="bg-white rounded-xl md:rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+                <motion.main variants={itemVariants} className={`rounded-xl md:rounded-2xl shadow-sm border overflow-hidden ${getCardBg()} ${getCardBorder()}`}>
                     <form onSubmit={handleSubmit} className="p-5 md:p-6 space-y-6">
                         
                         {/* SECTION 1: CONTACT INFO */}
                         <section>
-                            <div className="flex items-center gap-2 border-b border-slate-100 pb-2 mb-4">
-                                <User className="text-indigo-500" size={16} />
-                                <h3 className="text-sm font-bold text-slate-800 tracking-tight">Contact Information</h3>
+                            <div className={`flex items-center gap-2 border-b pb-2 mb-4 ${getSectionBorder()}`}>
+                                <User size={16} style={{ color: getSectionIconColor() }} />
+                                <h3 className={`text-sm font-bold tracking-tight ${getSectionTitleColor()}`}>Contact Information</h3>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 <Reusable_Fields 
@@ -830,9 +886,9 @@ const Create_Leads = () => {
 
                         {/* SECTION 2: LEAD DETAILS */}
                         <section>
-                            <div className="flex items-center gap-2 border-b border-slate-100 pb-2 mb-4">
-                                <Network className="text-indigo-500" size={16} />
-                                <h3 className="text-sm font-bold text-slate-800 tracking-tight">Pipeline Details</h3>
+                            <div className={`flex items-center gap-2 border-b pb-2 mb-4 ${getSectionBorder()}`}>
+                                <Network size={16} style={{ color: getSectionIconColor() }} />
+                                <h3 className={`text-sm font-bold tracking-tight ${getSectionTitleColor()}`}>Pipeline Details</h3>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <StatusSelect 
@@ -871,9 +927,9 @@ const Create_Leads = () => {
 
                         {/* SECTION 3: ASSIGN TO USERS (MULTI-SELECT) */}
                         <section>
-                            <div className="flex items-center gap-2 border-b border-slate-100 pb-2 mb-4">
-                                <Users className="text-indigo-500" size={16} />
-                                <h3 className="text-sm font-bold text-slate-800 tracking-tight">Assign To Users</h3>
+                            <div className={`flex items-center gap-2 border-b pb-2 mb-4 ${getSectionBorder()}`}>
+                                <Users size={16} style={{ color: getSectionIconColor() }} />
+                                <h3 className={`text-sm font-bold tracking-tight ${getSectionTitleColor()}`}>Assign To Users</h3>
                                 {validationErrors.assignedTo && (
                                     <span className="text-xs text-red-500 ml-2">{validationErrors.assignedTo}</span>
                                 )}
@@ -881,7 +937,7 @@ const Create_Leads = () => {
                             
                             {formData.assignedTo.length > 0 && (
                                 <div className="mb-3">
-                                    <label className="block text-xs font-medium text-slate-700 mb-1.5">
+                                    <label className={`block text-xs font-medium mb-1.5 ${darkMode ? 'text-gray-300' : 'text-slate-700'}`}>
                                         Assigned Users ({formData.assignedTo.length})
                                     </label>
                                     <div className="flex flex-wrap gap-1.5">
@@ -891,7 +947,7 @@ const Create_Leads = () => {
                                             return (
                                                 <div
                                                     key={userId}
-                                                    className="inline-flex items-center gap-1.5 px-2 py-1 bg-indigo-50 text-indigo-700 rounded-md text-xs font-medium"
+                                                    className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium ${getAssignedUserBg()}`}
                                                 >
                                                     <span>{userName}</span>
                                                     <button
@@ -927,7 +983,8 @@ const Create_Leads = () => {
                                         type="button"
                                         onClick={handleAddUser}
                                         disabled={isProcessing || !selectedUser}
-                                        className="mb-0.5 px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 text-sm"
+                                        className="mb-0.5 px-3 py-2 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 text-sm"
+                                        style={{ backgroundColor: primaryColor || '#6366f1' }}
                                     >
                                         <Plus size={14} />
                                         Add
@@ -936,7 +993,7 @@ const Create_Leads = () => {
                             </div>
                             
                             {formData.assignedTo.length === 0 && (
-                                <p className="text-xs text-amber-600 mt-2">
+                                <p className={`text-xs mt-2 ${getWarningTextColor()}`}>
                                     ⚠️ Please assign at least one user to this lead
                                 </p>
                             )}
@@ -944,9 +1001,9 @@ const Create_Leads = () => {
 
                         {/* SECTION 4: NOTES */}
                         <section>
-                            <div className="flex items-center gap-2 border-b border-slate-100 pb-2 mb-4">
-                                <StickyNote className="text-indigo-500" size={16} />
-                                <h3 className="text-sm font-bold text-slate-800 tracking-tight">Additional Notes</h3>
+                            <div className={`flex items-center gap-2 border-b pb-2 mb-4 ${getSectionBorder()}`}>
+                                <StickyNote size={16} style={{ color: getSectionIconColor() }} />
+                                <h3 className={`text-sm font-bold tracking-tight ${getSectionTitleColor()}`}>Additional Notes</h3>
                             </div>
                             <Reusable_Fields 
                                 type="textarea" 
@@ -961,7 +1018,7 @@ const Create_Leads = () => {
                         </section>
 
                         {/* FORM FOOTER */}
-                        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                        <div className={`flex items-center justify-end gap-3 pt-4 border-t ${getFormFooterBorder()}`}>
                             <Reusable_Button
                                 text="Cancel"
                                 type="button"
@@ -975,7 +1032,7 @@ const Create_Leads = () => {
                                 type="submit"
                                 variant="primary"
                                 icon={isProcessing ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                                size="px-5 py-2 text-sm font-semibold shadow-md shadow-indigo-200/50 rounded-lg"
+                                size="px-5 py-2 text-sm font-semibold rounded-lg"
                                 disabled={isProcessing}
                             />
                         </div>

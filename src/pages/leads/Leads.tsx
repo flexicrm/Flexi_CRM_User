@@ -42,18 +42,26 @@ const itemVariants = {
   },
 };
 
-// --- Tooltip Component ---
-const Tooltip = ({ children, text }: { children: React.ReactNode, text: string }) => (
-  <div className="group relative flex flex-col items-center">
-    {children}
-    <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center z-50 animate-in fade-in zoom-in-95 duration-200">
-      <span className="relative z-10 px-2 py-1 text-[10px] font-semibold text-white whitespace-nowrap bg-slate-800 shadow-md rounded-md">
-        {text}
-      </span>
-      <div className="w-2 h-2 -mt-1 rotate-45 bg-slate-800 rounded-sm"></div>
+// --- Tooltip Component with Theme Support ---
+const Tooltip = ({ children, text }: { children: React.ReactNode, text: string }) => {
+  const { darkMode } = useSelector((state: any) => state.theme);
+  
+  return (
+    <div className="group relative flex flex-col items-center">
+      {children}
+      <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center z-50 animate-in fade-in zoom-in-95 duration-200">
+        <span className={`relative z-10 px-2 py-1 text-[10px] font-semibold text-white whitespace-nowrap shadow-md rounded-md ${
+          darkMode ? 'bg-gray-800' : 'bg-slate-800'
+        }`}>
+          {text}
+        </span>
+        <div className={`w-2 h-2 -mt-1 rotate-45 rounded-sm ${
+          darkMode ? 'bg-gray-800' : 'bg-slate-800'
+        }`}></div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 // Helper function to extract error message
 const extractErrorMessage = (error: any): string => {
@@ -104,6 +112,7 @@ const Leads: React.FC = () => {
   const currentView = searchParams.get('view') || 'table';
   const { leadsData, loading, error } = useSelector((state: any) => state.leads);
   const { permissions } = useSelector((state: any) => state.auth);
+  const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
   const Roles = permissions[1];
 
   // Fetch leads data
@@ -145,19 +154,49 @@ const Leads: React.FC = () => {
     fetchLeadsData(true);
   };
 
+  // Get theme-based styles
+  const getPageBg = () => darkMode ? 'bg-gray-900' : 'bg-[#F8FAFC]';
+  const getHeaderIconBg = () => darkMode ? 'bg-gray-700' : 'bg-indigo-100';
+  const getHeaderIconColor = () => darkMode ? primaryColor || '#818CF8' : '#6366f1';
+  const getTitleColor = () => darkMode ? 'text-white' : 'text-slate-900';
+  const getSubtitleColor = () => darkMode ? 'text-gray-400' : 'text-slate-500';
+  const getSeparatorColor = () => darkMode ? 'bg-gray-600' : 'bg-slate-300';
+  const getCountColor = () => darkMode ? 'text-gray-500' : 'text-slate-500';
+  
+  const getButtonBg = () => darkMode ? 'bg-gray-800' : 'bg-white';
+  const getButtonBorder = () => darkMode ? 'border-gray-700' : 'border-slate-200';
+  const getButtonTextColor = () => darkMode ? 'text-gray-400 hover:text-indigo-400' : 'text-slate-500 hover:text-indigo-600';
+  const getButtonHoverBg = () => darkMode ? 'hover:bg-gray-700' : 'hover:bg-slate-50';
+  
+  const getViewSwitcherBg = () => darkMode ? 'bg-gray-800' : 'bg-white';
+  const getViewSwitcherBorder = () => darkMode ? 'border-gray-700' : 'border-slate-200';
+  const getViewButtonActiveBg = () => darkMode ? 'bg-gray-700' : 'bg-indigo-50';
+  const getViewButtonActiveColor = () => darkMode ? primaryColor || '#818CF8' : '#6366f1';
+  const getViewButtonInactiveColor = () => darkMode ? 'text-gray-500 hover:text-gray-300' : 'text-slate-400 hover:text-slate-700';
+  
+  const getMainBg = () => darkMode ? 'bg-gray-800' : 'bg-white';
+  const getMainBorder = () => darkMode ? 'border-gray-700' : 'border-slate-200/60';
+
   const renderView = () => {
     // Don't show error during initial load or refresh
     if (error && !isInitialLoad && !isRefreshing) {
       return (
         <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center mb-4">
-            <AlertCircle className="text-rose-500" size={32} />
+          <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${
+            darkMode ? 'bg-red-900/20' : 'bg-rose-50'
+          }`}>
+            <AlertCircle className={darkMode ? 'text-red-400' : 'text-rose-500'} size={32} />
           </div>
-          <h3 className="text-lg font-semibold text-slate-800">Failed to load leads</h3>
-          <p className="text-sm text-slate-500 mt-1 max-w-md">{error}</p>
+          <h3 className={`text-lg font-semibold ${darkMode ? 'text-gray-200' : 'text-slate-800'}`}>
+            Failed to load leads
+          </h3>
+          <p className={`text-sm mt-1 max-w-md ${darkMode ? 'text-gray-400' : 'text-slate-500'}`}>
+            {error}
+          </p>
           <button 
             onClick={handleRefresh} 
-            className="mt-6 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            className="mt-6 px-4 py-2 rounded-lg transition-colors text-white"
+            style={{ backgroundColor: primaryColor || '#6366f1' }}
             disabled={isRefreshing}
           >
             {isRefreshing ? "Retrying..." : "Try Again"}
@@ -194,22 +233,26 @@ const Leads: React.FC = () => {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="min-h-screen bg-[#F8FAFC] py-6 px-4 md:py-8 md:px-6 lg:px-8"
+        className={`min-h-screen py-6 px-4 md:py-8 md:px-6 lg:px-8 transition-colors duration-300 ${getPageBg()}`}
       >
         <div className="w-full mx-auto space-y-6">
           
           {/* --- LAYER 1: HERO HEADER --- */}
           <motion.header variants={itemVariants} className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-indigo-100 text-indigo-600 rounded-xl md:rounded-2xl flex items-center justify-center shadow-sm">
-                <Target size={20} strokeWidth={2.5} className="md:w-6 md:h-6" />
+              <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center shadow-sm ${getHeaderIconBg()}`}>
+                <Target size={20} strokeWidth={2.5} className="md:w-6 md:h-6" style={{ color: getHeaderIconColor() }} />
               </div>
               <div>
-                <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">Lead Pipeline</h1>
+                <h1 className={`text-xl md:text-2xl lg:text-3xl font-bold tracking-tight ${getTitleColor()}`}>
+                  Lead Pipeline
+                </h1>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <p className="text-xs md:text-sm text-slate-500">Track, convert, and manage your prospects.</p>
-                  <span className="w-1 h-1 rounded-full bg-slate-300"></span>
-                  <p className="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  <p className={`text-xs md:text-sm ${getSubtitleColor()}`}>
+                    Track, convert, and manage your prospects.
+                  </p>
+                  <span className={`w-1 h-1 rounded-full ${getSeparatorColor()}`}></span>
+                  <p className={`text-[10px] md:text-xs font-bold uppercase tracking-wider ${getCountColor()}`}>
                     {leadsData?.leadsCount || 0} Total
                   </p>
                 </div>
@@ -224,18 +267,23 @@ const Leads: React.FC = () => {
                 <button
                   onClick={handleRefresh}
                   disabled={isRefreshing}
-                  className="p-2 bg-white rounded-lg shadow-sm border border-slate-200 text-slate-500 hover:text-indigo-600 hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`p-2 rounded-lg shadow-sm border transition-all disabled:opacity-50 disabled:cursor-not-allowed ${getButtonBg()} ${getButtonBorder()} ${getButtonTextColor()} ${getButtonHoverBg()}`}
                 >
                   <Loader2 size={16} className={isRefreshing ? "animate-spin" : ""} />
                 </button>
               </Tooltip>
 
               {/* View Switchers */}
-              <div className="flex items-center p-1 bg-white rounded-lg shadow-sm border border-slate-200">
+              <div className={`flex items-center p-1 rounded-lg shadow-sm border ${getViewSwitcherBg()} ${getViewSwitcherBorder()}`}>
                 <Tooltip text="Table View">
                   <button
                     onClick={() => handleViewChange('table')}
-                    className={`p-1.5 rounded-md transition-all ${currentView === 'table' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'}`}
+                    className={`p-1.5 rounded-md transition-all ${
+                      currentView === 'table' 
+                        ? `${getViewButtonActiveBg()} shadow-sm` 
+                        : getViewButtonInactiveColor()
+                    }`}
+                    style={currentView === 'table' ? { color: getViewButtonActiveColor() } : {}}
                     disabled={isRefreshing}
                   >
                     <List size={16} />
@@ -244,7 +292,12 @@ const Leads: React.FC = () => {
                 <Tooltip text="Grid View">
                   <button
                     onClick={() => handleViewChange('grid')}
-                    className={`p-1.5 rounded-md transition-all ${currentView === 'grid' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'}`}
+                    className={`p-1.5 rounded-md transition-all ${
+                      currentView === 'grid' 
+                        ? `${getViewButtonActiveBg()} shadow-sm` 
+                        : getViewButtonInactiveColor()
+                    }`}
+                    style={currentView === 'grid' ? { color: getViewButtonActiveColor() } : {}}
                     disabled={isRefreshing}
                   >
                     <LayoutGrid size={16} />
@@ -253,7 +306,12 @@ const Leads: React.FC = () => {
                 <Tooltip text="Kanban Board">
                   <button
                     onClick={() => handleViewChange('kanban')}
-                    className={`p-1.5 rounded-md transition-all ${currentView === 'kanban' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'}`}
+                    className={`p-1.5 rounded-md transition-all ${
+                      currentView === 'kanban' 
+                        ? `${getViewButtonActiveBg()} shadow-sm` 
+                        : getViewButtonInactiveColor()
+                    }`}
+                    style={currentView === 'kanban' ? { color: getViewButtonActiveColor() } : {}}
                     disabled={isRefreshing}
                   >
                     <Kanban size={16} />
@@ -262,12 +320,16 @@ const Leads: React.FC = () => {
               </div>
 
               {/* Utility Actions */}
-              <div className="flex items-center p-1 bg-white rounded-lg shadow-sm border border-slate-200 gap-0.5">
+              <div className={`flex items-center p-1 rounded-lg shadow-sm border gap-0.5 ${getViewSwitcherBg()} ${getViewSwitcherBorder()}`}>
                 <Tooltip text="Bulk Upload">
                   <Reusable_Button
                     variant='secondary'
                     onClick={() => handleViewChange('bulk')}
-                    className={`p-1.5 rounded-md transition-all ${currentView === 'bulk' ? 'bg-indigo-50 text-indigo-600 shadow-sm' : 'text-slate-400 hover:text-slate-700 hover:bg-slate-50'}`}
+                    className={`p-1.5 rounded-md transition-all ${
+                      currentView === 'bulk' 
+                        ? `${getViewButtonActiveBg()} shadow-sm` 
+                        : getViewButtonInactiveColor()
+                    }`}
                     icon={<Upload size={16} />}
                     disabled={!Roles?.canCreate || isRefreshing}
                   />
@@ -276,7 +338,7 @@ const Leads: React.FC = () => {
                   <Reusable_Button
                     variant='secondary'
                     onClick={() => setIsExportModalOpen(true)}
-                    className="p-1.5 rounded-md transition-all text-slate-400 hover:text-slate-700 hover:bg-slate-50"
+                    className={`p-1.5 rounded-md transition-all ${getViewButtonInactiveColor()}`}
                     icon={<ArrowUpFromLine size={16} />}
                     disabled={!Roles?.canEdit || isRefreshing}
                   />
@@ -289,7 +351,7 @@ const Leads: React.FC = () => {
                   text='Add New Lead'
                   variant="primary"
                   icon={<Plus size={16} />}
-                  size='px-4 py-2 text-sm font-medium shadow-md shadow-indigo-200/50 rounded-lg'
+                  size='px-4 py-2 text-sm font-medium shadow-md rounded-lg'
                   onClick={() => navigate(`/${localStorage.getItem('subdomain')}/leads/create-leads/`)}
                   disabled={!Roles?.canCreate || isRefreshing}
                   className="w-full sm:w-auto"
@@ -304,10 +366,10 @@ const Leads: React.FC = () => {
             className={`transition-all duration-300 ${
               currentView === 'kanban' 
                 ? '' 
-                : 'bg-white rounded-xl md:rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden'
+                : `${getMainBg()} rounded-xl md:rounded-2xl shadow-sm  ${getMainBorder()} overflow-hidden`
             }`}
           >
-            <div className={currentView === 'table' || currentView === 'grid' ? 'p-0 sm:p-4' : ''}>
+            <div className={currentView === 'table' || currentView === 'grid' ? 'p-0 sm:p-0' : ''}>
               {renderView()}
             </div>
           </motion.main>

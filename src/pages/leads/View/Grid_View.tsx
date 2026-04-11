@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Building2, Calendar, Eye, Mail, MoreVertical, Pencil, Phone, Search, Users, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useSelector } from 'react-redux';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 interface GridViewProps {
@@ -11,6 +12,7 @@ interface GridViewProps {
 }
 
 const Grid_View = ({ data, selectedIds, setSelectedIds }: GridViewProps) => {
+  const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const [selectedLead, setSelectedLead] = useState<any>(null);
@@ -46,13 +48,44 @@ const Grid_View = ({ data, selectedIds, setSelectedIds }: GridViewProps) => {
     }));
   };
 
+  // Get theme-based styles
+  const getPageBg = () => darkMode ? 'bg-gray-900' : 'bg-[#F8FAFC]';
+  const getSearchInputBg = () => darkMode ? 'bg-gray-800 border-gray-700 text-gray-200' : 'bg-white border-slate-200';
+  const getSearchTextColor = () => darkMode ? 'text-gray-400' : 'text-slate-400';
+  const getResultTextColor = () => darkMode ? 'text-gray-500' : 'text-slate-500';
+  const getCardBg = () => darkMode ? 'bg-gray-800' : 'bg-white';
+  const getCardBorder = () => darkMode ? 'border-gray-700' : 'border-slate-200';
+  const getCardHoverShadow = () => darkMode ? 'hover:shadow-gray-800' : 'hover:shadow-md';
+  const getCardSelectedBorder = () => darkMode ? `ring-1 ring-${primaryColor}-500` : `border-${primaryColor}-500 ring-1 ring-${primaryColor}-500`;
+  const getAvatarBg = () => darkMode ? 'bg-gray-700' : 'bg-slate-100';
+  const getAvatarTextColor = () => darkMode ? 'text-gray-200' : 'text-[#0d1954]';
+  const getNameColor = () => darkMode ? 'text-gray-200' : 'text-slate-800';
+  const getIconColor = () => darkMode ? 'text-gray-500' : 'text-slate-400';
+  const getTextColor = () => darkMode ? 'text-gray-300' : 'text-slate-500';
+  const getSourceBg = () => darkMode ? 'bg-gray-700 text-gray-300' : 'bg-slate-100 text-slate-600';
+  const getBorderTop = () => darkMode ? 'border-gray-700' : 'border-slate-100';
+  const getStatusDotColor = (color: string) => color || '#3b82f6';
+  const getPriorityColor = (priority: string) => {
+    if (darkMode) {
+      return priority === 'high' ? 'text-red-400' : priority === 'low' ? 'text-green-400' : 'text-orange-400';
+    }
+    return priority === 'high' ? 'text-red-500' : priority === 'low' ? 'text-green-500' : 'text-orange-500';
+  };
+  const getPriorityDotColor = (priority: string) => {
+    return priority === 'high' ? 'bg-red-500' : priority === 'low' ? 'bg-green-500' : 'bg-orange-500';
+  };
+  const getAssigneeBg = () => darkMode ? 'bg-gray-700 text-gray-400 hover:bg-gray-600' : 'bg-slate-200 text-slate-600 hover:bg-indigo-100 hover:text-indigo-600';
+  const getMenuBg = () => darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-slate-100';
+  const getMenuTextColor = () => darkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-slate-700 hover:bg-slate-50';
+  const getMenuIconColor = () => darkMode ? 'text-gray-500' : 'text-slate-400';
+  const getDividerColor = () => darkMode ? 'border-gray-700' : 'border-slate-100';
+
   // Global search filter
   const filteredData = data.filter((lead) => {
     if (!searchTerm.trim()) return true;
     
     const searchLower = searchTerm.toLowerCase().trim();
     
-    // Search in various fields
     const searchableFields = [
       lead.manualData?.name,
       lead.manualData?.email,
@@ -70,38 +103,41 @@ const Grid_View = ({ data, selectedIds, setSelectedIds }: GridViewProps) => {
     );
   });
 
-  // Clear search
   const clearSearch = () => {
     setSearchTerm('');
   };
 
-  // Get current visible data (limited to 2 rows for demo - adjust as needed)
   const visibleData = filteredData;
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${getPageBg()}`}>
       {/* Global Search Bar */}
-      <div className="sticky top-0 z-20 bg-[#F8FAFC] py-3">
+      <div className="sticky top-0 z-20 py-3" style={{ backgroundColor: darkMode ? '#111827' : '#F8FAFC' }}>
         <div className="relative max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+          <Search className={`absolute left-3 top-1/2 -translate-y-1/2 ${getSearchTextColor()}`} size={18} />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search by name, email, phone, company, source, status, priority, assignee..."
-            className="w-full pl-10 pr-10 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white"
+            className={`w-full pl-10 pr-10 py-2.5 rounded-xl text-sm focus:outline-none focus:ring-2 transition-all ${getSearchInputBg()}`}
+            style={
+  {
+    '--tw-ring-color': `${primaryColor}20`
+  } as React.CSSProperties
+}
           />
           {searchTerm && (
             <button
               onClick={clearSearch}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              className={`absolute right-3 top-1/2 -translate-y-1/2 ${getSearchTextColor()} hover:${darkMode ? 'text-gray-300' : 'text-slate-600'}`}
             >
               <X size={16} />
             </button>
           )}
         </div>
         {searchTerm && (
-          <div className="text-xs text-slate-500 mt-2">
+          <div className={`text-xs mt-2 ${getResultTextColor()}`}>
             Found {visibleData.length} result{visibleData.length !== 1 ? 's' : ''}
           </div>
         )}
@@ -113,11 +149,9 @@ const Grid_View = ({ data, selectedIds, setSelectedIds }: GridViewProps) => {
           {visibleData.map((lead, idx) => {
             const isSelected = selectedIds.includes(lead.LeadId);
             
-            // Extracting Data Safely
             const firstLetter = lead.manualData?.name?.charAt(0) || 'L';
             const source = lead.leadsource || 'Offline';
             const status = lead.leadstatus?.statusName || 'Unknown';
-            const priorityColor = lead.followUps?.slice(-1)[0]?.priority === 'high' ? 'bg-red-500' : lead.followUps?.slice(-1)[0]?.priority === 'low' ? 'bg-green-500' : 'bg-orange-500';
             const priority = lead.followUps?.slice(-1)[0]?.priority || 'Medium';
             
             const assignees = getAssignees(lead);
@@ -129,8 +163,8 @@ const Grid_View = ({ data, selectedIds, setSelectedIds }: GridViewProps) => {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: idx * 0.03 }}
                 onClick={() => toggleSelection(lead.LeadId)}
-                className={`bg-white rounded-xl p-3 border cursor-pointer shadow-sm hover:shadow-md transition-all group relative h-[180px] flex flex-col ${
-                  isSelected ? 'border-indigo-500 ring-1 ring-indigo-500' : 'border-slate-200'
+                className={`${getCardBg()} rounded-xl p-3 cursor-pointer shadow-sm transition-all group relative h-[180px] flex flex-col ${getCardHoverShadow()} ${
+                  isSelected ? getCardSelectedBorder() : getCardBorder()
                 }`}
               >
                 {/* Checkbox Overlay */}
@@ -139,7 +173,8 @@ const Grid_View = ({ data, selectedIds, setSelectedIds }: GridViewProps) => {
                     type="checkbox" 
                     checked={isSelected} 
                     onChange={() => toggleSelection(lead.LeadId)}
-                    className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600 cursor-pointer" 
+                    className="w-4 h-4 rounded focus:ring-offset-0 cursor-pointer"
+                    style={{ accentColor: primaryColor || '#6366f1' }}
                     onClick={(e) => e.stopPropagation()}
                   />
                 </div>
@@ -147,16 +182,16 @@ const Grid_View = ({ data, selectedIds, setSelectedIds }: GridViewProps) => {
                 {/* Header: Avatar, Name, Options */}
                 <div className="flex items-center justify-between mb-2 pl-6">
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-slate-100 text-[#0d1954] font-black text-sm">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm ${getAvatarBg()} ${getAvatarTextColor()}`}>
                       {firstLetter}
                     </div>
-                    <h3 className="font-bold text-slate-800 text-sm truncate max-w-[120px]">
+                    <h3 className={`font-bold text-sm truncate max-w-[120px] ${getNameColor()}`}>
                       {lead.manualData?.name || 'Unknown Name'}
                     </h3>
                   </div>
                   <button 
                     onClick={(e) => handleOpenMenu(e, lead)}
-                    className="p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-all"
+                    className={`p-1 rounded-full transition-all ${getIconColor()} ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-slate-100'}`}
                   >
                     <MoreVertical size={16} />
                   </button>
@@ -165,48 +200,46 @@ const Grid_View = ({ data, selectedIds, setSelectedIds }: GridViewProps) => {
                 {/* Body: Details aligned to screenshot - Compact */}
                 <div className="space-y-1.5 mb-2 pl-6 flex-1">
                   {/* Company & Source */}
-                  <div className="flex items-center gap-2 text-slate-500 text-xs">
-                    <Building2 size={12} className="text-slate-400 flex-shrink-0" />
+                  <div className={`flex items-center gap-2 text-xs ${getTextColor()}`}>
+                    <Building2 size={12} className={`flex-shrink-0 ${getIconColor()}`} />
                     <span className="truncate">{lead.manualData?.company || 'No Company'}</span>
-                    <span className="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap">
+                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap ${getSourceBg()}`}>
                       {source}
                     </span>
                   </div>
                   
                   {/* Email */}
-                  <div className="flex items-center gap-2 text-slate-500 text-xs">
-                    <Mail size={12} className="text-slate-400 flex-shrink-0" />
+                  <div className={`flex items-center gap-2 text-xs ${getTextColor()}`}>
+                    <Mail size={12} className={`flex-shrink-0 ${getIconColor()}`} />
                     <span className="truncate">{lead.manualData?.email || 'No Email'}</span>
                   </div>
 
                   {/* Phone */}
-                  <div className="flex items-center gap-2 text-slate-500 text-xs">
-                    <Phone size={12} className="text-slate-400 flex-shrink-0" />
+                  <div className={`flex items-center gap-2 text-xs ${getTextColor()}`}>
+                    <Phone size={12} className={`flex-shrink-0 ${getIconColor()}`} />
                     <span className="truncate">{lead.manualData?.mobileNo || 'No Mobile'}</span>
                   </div>
                 </div>
 
                 {/* Footer tags area - Compact */}
-                <div className="flex items-center justify-between pt-2 border-t border-slate-100 mt-auto">
+                <div className={`flex items-center justify-between pt-2 border-t mt-auto ${getBorderTop()}`}>
                   <div className="flex items-center gap-3">
                     {/* Lead Status */}
                     <div className="flex flex-col gap-0.5">
                       <div className="flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: lead.leadstatus?.color || '#3b82f6' }}></span>
-                        <span className="text-[9px] font-bold" style={{ color: lead.leadstatus?.color || '#3b82f6' }}>{status}</span>
+                        <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: getStatusDotColor(lead.leadstatus?.color) }}></span>
+                        <span className="text-[9px] font-bold" style={{ color: getStatusDotColor(lead.leadstatus?.color) }}>{status}</span>
                       </div>
-                      <span className="text-[8px] text-slate-400 font-medium">Status</span>
+                      <span className="text-[8px] font-medium" style={{ color: darkMode ? '#6b7280' : '#94a3b8' }}>Status</span>
                     </div>
 
                     {/* Priority */}
                     <div className="flex flex-col gap-0.5">
                       <div className="flex items-center gap-1">
-                        <span className={`w-1.5 h-1.5 rounded-full ${priorityColor}`}></span>
-                        <span className={`text-[9px] font-bold capitalize ${
-                          priority === 'high' ? 'text-red-500' : priority === 'low' ? 'text-green-500' : 'text-orange-500'
-                        }`}>{priority}</span>
+                        <span className={`w-1.5 h-1.5 rounded-full ${getPriorityDotColor(priority)}`}></span>
+                        <span className={`text-[9px] font-bold capitalize ${getPriorityColor(priority)}`}>{priority}</span>
                       </div>
-                      <span className="text-[8px] text-slate-400 font-medium">Priority</span>
+                      <span className="text-[8px] font-medium" style={{ color: darkMode ? '#6b7280' : '#94a3b8' }}>Priority</span>
                     </div>
                   </div>
                   
@@ -215,15 +248,11 @@ const Grid_View = ({ data, selectedIds, setSelectedIds }: GridViewProps) => {
                     <div className="flex flex-col items-end gap-0.5">
                       <div className="flex items-center gap-0.5">
                         {assignees.slice(0, 2).map((assignee: any, index: number) => (
-                          <div
-                            key={index}
-                            className="relative group/assignee-item"
-                          >
-                            <div className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 text-[9px] font-bold hover:bg-indigo-100 hover:text-indigo-600 transition-colors cursor-help">
+                          <div key={index} className="relative group/assignee-item">
+                            <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold transition-colors cursor-help ${getAssigneeBg()}`}>
                               {assignee.firstLetter}
                             </div>
                             
-                            {/* Tooltip for each assignee */}
                             {assignee.fullName && (
                               <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-1.5 py-0.5 bg-gray-900 text-white text-[10px] rounded whitespace-nowrap opacity-0 invisible group-hover/assignee-item:opacity-100 group-hover/assignee-item:visible transition-all duration-200 z-10 pointer-events-none">
                                 {assignee.fullName}
@@ -233,10 +262,9 @@ const Grid_View = ({ data, selectedIds, setSelectedIds }: GridViewProps) => {
                           </div>
                         ))}
                         
-                        {/* Show +X for more assignees */}
                         {assignees.length > 2 && (
                           <div className="relative group/assignee-item">
-                            <div className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 text-[8px] font-bold hover:bg-indigo-100 hover:text-indigo-600 transition-colors cursor-help">
+                            <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold transition-colors cursor-help ${getAssigneeBg()}`}>
                               +{assignees.length - 2}
                             </div>
                             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-1.5 py-0.5 bg-gray-900 text-white text-[10px] rounded whitespace-nowrap opacity-0 invisible group-hover/assignee-item:opacity-100 group-hover/assignee-item:visible transition-all duration-200 z-10 pointer-events-none">
@@ -246,7 +274,7 @@ const Grid_View = ({ data, selectedIds, setSelectedIds }: GridViewProps) => {
                           </div>
                         )}
                       </div>
-                      <span className="text-[8px] text-slate-400 font-medium">
+                      <span className="text-[8px] font-medium" style={{ color: darkMode ? '#6b7280' : '#94a3b8' }}>
                         {assignees.length === 1 ? 'Assigned' : `Assigned (${assignees.length})`}
                       </span>
                     </div>
@@ -260,17 +288,20 @@ const Grid_View = ({ data, selectedIds, setSelectedIds }: GridViewProps) => {
         {/* Empty State */}
         {visibleData.length === 0 && (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-              <Search size={32} className="text-slate-400" />
+            <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-4 ${darkMode ? 'bg-gray-800' : 'bg-slate-100'}`}>
+              <Search size={32} className={darkMode ? 'text-gray-600' : 'text-slate-400'} />
             </div>
-            <h3 className="text-lg font-semibold text-slate-700 mb-2">No leads found</h3>
-            <p className="text-sm text-slate-500">
+            <h3 className={`text-lg font-semibold mb-2 ${darkMode ? 'text-gray-300' : 'text-slate-700'}`}>
+              No leads found
+            </h3>
+            <p className={`text-sm ${darkMode ? 'text-gray-500' : 'text-slate-500'}`}>
               {searchTerm ? `No results matching "${searchTerm}"` : 'No leads available'}
             </p>
             {searchTerm && (
               <button
                 onClick={clearSearch}
-                className="mt-4 text-indigo-600 text-sm font-medium hover:text-indigo-700"
+                className="mt-4 text-sm font-medium transition-colors"
+                style={{ color: primaryColor || '#6366f1' }}
               >
                 Clear search
               </button>
@@ -290,7 +321,7 @@ const Grid_View = ({ data, selectedIds, setSelectedIds }: GridViewProps) => {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: -10 }}
                 style={{ position: 'fixed', top: menuPosition.top, left: menuPosition.left, zIndex: 9999 }}
-                className="w-[200px] bg-white rounded-xl shadow-xl border border-slate-100 p-1 py-2"
+                className={`w-[200px] rounded-xl shadow-xl border p-1 py-2 ${getMenuBg()}`}
               >
                 <button 
                   onClick={() => { 
@@ -299,18 +330,18 @@ const Grid_View = ({ data, selectedIds, setSelectedIds }: GridViewProps) => {
                     }); 
                     setActiveMenuId(null); 
                   }} 
-                  className="w-full flex items-center gap-2 px-3 py-2 text-slate-700 hover:bg-slate-50 rounded-lg transition-all text-xs font-semibold text-left"
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-xs font-semibold text-left ${getMenuTextColor()}`}
                 >
-                  <Pencil size={14} className="text-slate-400" /> Edit lead
+                  <Pencil size={14} className={getMenuIconColor()} /> Edit lead
                 </button>
                 <button 
                   onClick={() => { 
                     setSearchParams({ modal: "schedule-followup", LeadId: selectedLead.LeadId }); 
                     setActiveMenuId(null); 
                   }} 
-                  className="w-full flex items-center gap-2 px-3 py-2 text-slate-700 hover:bg-slate-50 rounded-lg transition-all text-xs font-semibold text-left"
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-xs font-semibold text-left ${getMenuTextColor()}`}
                 >
-                  <Calendar size={14} className="text-slate-400" /> Add Follow-Up
+                  <Calendar size={14} className={getMenuIconColor()} /> Add Follow-Up
                 </button>
                 <button 
                   onClick={() => { 
@@ -319,19 +350,19 @@ const Grid_View = ({ data, selectedIds, setSelectedIds }: GridViewProps) => {
                     }); 
                     setActiveMenuId(null); 
                   }} 
-                  className="w-full flex items-center gap-2 px-3 py-2 text-slate-700 hover:bg-slate-50 rounded-lg transition-all text-xs font-semibold text-left"
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-xs font-semibold text-left ${getMenuTextColor()}`}
                 >
-                  <Eye size={14} className="text-slate-400" /> View Lead
+                  <Eye size={14} className={getMenuIconColor()} /> View Lead
                 </button>
-                <div className="my-1 mx-2 border-t border-slate-100" />
+                <div className={`my-1 mx-2 border-t ${getDividerColor()}`} />
                 <button 
                   onClick={() => { 
                     setSearchParams({ modal: "convert-customer", LeadId: selectedLead.LeadId }); 
                     setActiveMenuId(null); 
                   }} 
-                  className="w-full flex items-center gap-2 px-3 py-2 text-[#0f172a] hover:bg-slate-50 rounded-lg transition-all text-xs font-black text-left"
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg transition-all text-xs font-bold text-left ${darkMode ? 'text-gray-200 hover:bg-gray-700' : 'text-slate-800 hover:bg-slate-50'}`}
                 >
-                  <Users size={14} className="text-slate-400" /> Convert Customer
+                  <Users size={14} className={getMenuIconColor()} /> Convert Customer
                 </button>
               </motion.div>
             </>

@@ -19,12 +19,13 @@ import { createFollowUpStatus } from '../../store/settingFollowStatus';
 import { createFollowUpType } from '../../store/settingFollowtypeSlice';
 import { createLeadStatus } from '../../store/settingLeadeStatus';
 
-// Custom Select Component with Create Option for Lead Status
+// Custom Select Component with Create Option for Lead Status (with Theme Support)
 const LeadStatusSelect = ({ value, onChange, options, error, disabled, label, onCreateStatus }: any) => {
+  const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
   const [isOpen, setIsOpen] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newStatusName, setNewStatusName] = useState('');
-  const [newStatusColor, setNewStatusColor] = useState('#6366F1');
+  const [newStatusColor, setNewStatusColor] = useState(primaryColor || '#6366F1');
   const [isCreating, setIsCreating] = useState(false);
   const selectRef = React.useRef<HTMLDivElement>(null);
 
@@ -53,7 +54,7 @@ const LeadStatusSelect = ({ value, onChange, options, error, disabled, label, on
         successAlert("Lead status created successfully!", "Done", "Success!");
         setShowCreateModal(false);
         setNewStatusName('');
-        setNewStatusColor('#6366F1');
+        setNewStatusColor(primaryColor || '#6366F1');
         onChange({ target: { name: 'leadStatus', value: result._id } });
       }
     } catch (error: any) {
@@ -63,35 +64,51 @@ const LeadStatusSelect = ({ value, onChange, options, error, disabled, label, on
     }
   };
 
+  const getButtonBg = () => {
+    if (disabled) return darkMode ? 'bg-gray-800' : 'bg-slate-50';
+    return darkMode ? 'bg-gray-800' : 'bg-white';
+  };
+
+  const getButtonBorder = () => {
+    if (error) return 'border-red-500';
+    return darkMode ? 'border-gray-600 hover:border-gray-500' : 'border-slate-200 hover:border-slate-400';
+  };
+
+  const getTextColor = () => darkMode ? 'text-gray-200' : 'text-slate-700';
+  const getPlaceholderColor = () => darkMode ? 'text-gray-500' : 'text-slate-400';
+  const getDropdownBg = () => darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-slate-200';
+  const getDropdownItemHover = () => darkMode ? 'hover:bg-gray-700' : 'hover:bg-slate-50';
+  const getModalBg = () => darkMode ? 'bg-gray-800' : 'bg-white';
+  const getModalTextColor = () => darkMode ? 'text-gray-200' : 'text-slate-900';
+  const getInputBg = () => darkMode ? 'bg-gray-700 border-gray-600 text-gray-200' : 'bg-white border-slate-300';
+
   return (
     <div className="w-full" ref={selectRef}>
-      <label className="block text-sm font-bold text-slate-700 mb-2">
+      <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-gray-300' : 'text-slate-700'}`}>
         {label} <span className="text-red-500">*</span>
       </label>
       <div className="relative">
         <button
           type="button"
           onClick={() => !disabled && setIsOpen(!isOpen)}
-          className={`w-full px-4 py-3 text-left border rounded-xl transition-all flex items-center justify-between ${
-            error ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-white hover:border-slate-400'
-          } ${disabled ? 'opacity-60 cursor-not-allowed bg-slate-50' : 'cursor-pointer'}`}
+          className={`w-full px-4 py-3 text-left border rounded-xl transition-all flex items-center justify-between ${getButtonBorder()} ${getButtonBg()} ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
           disabled={disabled}
         >
           <div className="flex items-center gap-2">
             {selectedStatus?.color && (
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: selectedStatus.color }} />
             )}
-            <span className="text-sm" style={{ color: selectedStatus?.color || "#1F2937" }}>
+            <span className={`text-sm ${!selectedStatus ? getPlaceholderColor() : getTextColor()}`}>
               {selectedStatus?.label || "Select Lead Status"}
             </span>
           </div>
-          <svg className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''} ${darkMode ? 'text-gray-400' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </button>
         
         {isOpen && !disabled && (
-          <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          <div className={`absolute z-50 w-full mt-1 rounded-lg shadow-lg max-h-60 overflow-y-auto ${getDropdownBg()}`}>
             {options?.map((option: any) => (
               <button
                 key={option.value}
@@ -100,12 +117,12 @@ const LeadStatusSelect = ({ value, onChange, options, error, disabled, label, on
                   onChange({ target: { name: 'leadStatus', value: option.value } });
                   setIsOpen(false);
                 }}
-                className="w-full px-3 py-2 text-left hover:bg-slate-50 transition-colors flex items-center gap-2"
+                className={`w-full px-3 py-2 text-left transition-colors flex items-center gap-2 ${getDropdownItemHover()}`}
               >
                 {option.color && <div className="w-3 h-3 rounded-full" style={{ backgroundColor: option.color }} />}
-                <span className="text-sm">{option.label}</span>
+                <span className={`text-sm ${getTextColor()}`}>{option.label}</span>
                 {value === option.value && (
-                  <svg className="w-4 h-4 ml-auto text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 ml-auto" style={{ color: primaryColor || '#6366f1' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 )}
@@ -114,7 +131,7 @@ const LeadStatusSelect = ({ value, onChange, options, error, disabled, label, on
             <button
               type="button"
               onClick={() => setShowCreateModal(true)}
-              className="w-full px-3 py-2 text-left hover:bg-indigo-50 transition-colors flex items-center gap-2 border-t border-slate-100 text-indigo-600"
+              className={`w-full px-3 py-2 text-left transition-colors flex items-center gap-2 border-t ${darkMode ? 'border-gray-700 text-indigo-400 hover:bg-gray-700' : 'border-slate-100 text-indigo-600 hover:bg-indigo-50'}`}
             >
               <Plus size={16} />
               <span className="text-sm font-medium">Create New Lead Status</span>
@@ -127,38 +144,38 @@ const LeadStatusSelect = ({ value, onChange, options, error, disabled, label, on
       {/* Create Lead Status Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200]" onClick={() => setShowCreateModal(false)}>
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+          <div className={`rounded-xl shadow-xl w-full max-w-md p-6 ${getModalBg()}`} onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-slate-900">Create New Lead Status</h3>
-              <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-slate-600">
+              <h3 className={`text-lg font-semibold ${getModalTextColor()}`}>Create New Lead Status</h3>
+              <button onClick={() => setShowCreateModal(false)} className={darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-slate-400 hover:text-slate-600'}>
                 <X size={20} />
               </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Status Name</label>
+                <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-gray-300' : 'text-slate-700'}`}>Status Name</label>
                 <input
                   type="text"
                   value={newStatusName}
                   onChange={(e) => setNewStatusName(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                  className={`w-full px-3 py-2 rounded-lg ${getInputBg()}`}
                   placeholder="e.g., Hot Lead, Cold Lead"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Status Color</label>
+                <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-gray-300' : 'text-slate-700'}`}>Status Color</label>
                 <div className="flex gap-3 items-center">
                   <input
                     type="color"
                     value={newStatusColor}
                     onChange={(e) => setNewStatusColor(e.target.value)}
-                    className="w-12 h-10 border border-slate-300 rounded cursor-pointer"
+                    className="w-12 h-10 border rounded cursor-pointer"
                   />
                   <input
                     type="text"
                     value={newStatusColor}
                     onChange={(e) => setNewStatusColor(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg"
+                    className={`flex-1 px-3 py-2 rounded-lg ${getInputBg()}`}
                     placeholder="#6366F1"
                   />
                 </div>
@@ -186,8 +203,9 @@ const LeadStatusSelect = ({ value, onChange, options, error, disabled, label, on
   );
 };
 
-// Custom Select Component with Create Option for Interaction Type
+// Custom Select Component with Create Option for Interaction Type (with Theme Support)
 const InteractionTypeSelect = ({ value, onChange, options, error, disabled, label, onCreateType }: any) => {
+  const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
   const [isOpen, setIsOpen] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newTypeName, setNewTypeName] = useState('');
@@ -228,30 +246,46 @@ const InteractionTypeSelect = ({ value, onChange, options, error, disabled, labe
     }
   };
 
+  const getButtonBg = () => {
+    if (disabled) return darkMode ? 'bg-gray-800' : 'bg-slate-50';
+    return darkMode ? 'bg-gray-800' : 'bg-white';
+  };
+
+  const getButtonBorder = () => {
+    if (error) return 'border-red-500';
+    return darkMode ? 'border-gray-600 hover:border-gray-500' : 'border-slate-200 hover:border-slate-400';
+  };
+
+  const getTextColor = () => darkMode ? 'text-gray-200' : 'text-slate-700';
+  const getPlaceholderColor = () => darkMode ? 'text-gray-500' : 'text-slate-400';
+  const getDropdownBg = () => darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-slate-200';
+  const getDropdownItemHover = () => darkMode ? 'hover:bg-gray-700' : 'hover:bg-slate-50';
+  const getModalBg = () => darkMode ? 'bg-gray-800' : 'bg-white';
+  const getModalTextColor = () => darkMode ? 'text-gray-200' : 'text-slate-900';
+  const getInputBg = () => darkMode ? 'bg-gray-700 border-gray-600 text-gray-200' : 'bg-white border-slate-300';
+
   return (
     <div className="w-full" ref={selectRef}>
-      <label className="block text-sm font-bold text-slate-700 mb-2">
+      <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-gray-300' : 'text-slate-700'}`}>
         {label} <span className="text-red-500">*</span>
       </label>
       <div className="relative">
         <button
           type="button"
           onClick={() => !disabled && setIsOpen(!isOpen)}
-          className={`w-full px-4 py-3 text-left border rounded-xl transition-all flex items-center justify-between ${
-            error ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-white hover:border-slate-400'
-          } ${disabled ? 'opacity-60 cursor-not-allowed bg-slate-50' : 'cursor-pointer'}`}
+          className={`w-full px-4 py-3 text-left border rounded-xl transition-all flex items-center justify-between ${getButtonBorder()} ${getButtonBg()} ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
           disabled={disabled}
         >
-          <span className={`text-sm ${!selectedType ? 'text-slate-400' : 'text-slate-700'}`}>
+          <span className={`text-sm ${!selectedType ? getPlaceholderColor() : getTextColor()}`}>
             {selectedType?.label || "Select Interaction Type"}
           </span>
-          <svg className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''} ${darkMode ? 'text-gray-400' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </button>
         
         {isOpen && !disabled && (
-          <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          <div className={`absolute z-50 w-full mt-1 rounded-lg shadow-lg max-h-60 overflow-y-auto ${getDropdownBg()}`}>
             {options?.map((option: any) => (
               <button
                 key={option.value}
@@ -260,11 +294,11 @@ const InteractionTypeSelect = ({ value, onChange, options, error, disabled, labe
                   onChange({ target: { name: 'type', value: option.value } });
                   setIsOpen(false);
                 }}
-                className="w-full px-3 py-2 text-left hover:bg-slate-50 transition-colors flex items-center justify-between"
+                className={`w-full px-3 py-2 text-left transition-colors flex items-center justify-between ${getDropdownItemHover()}`}
               >
-                <span className="text-sm text-slate-700">{option.label}</span>
+                <span className={`text-sm ${getTextColor()}`}>{option.label}</span>
                 {value === option.value && (
-                  <svg className="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" style={{ color: primaryColor || '#6366f1' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 )}
@@ -273,7 +307,7 @@ const InteractionTypeSelect = ({ value, onChange, options, error, disabled, labe
             <button
               type="button"
               onClick={() => setShowCreateModal(true)}
-              className="w-full px-3 py-2 text-left hover:bg-indigo-50 transition-colors flex items-center gap-2 border-t border-slate-100 text-indigo-600"
+              className={`w-full px-3 py-2 text-left transition-colors flex items-center gap-2 border-t ${darkMode ? 'border-gray-700 text-indigo-400 hover:bg-gray-700' : 'border-slate-100 text-indigo-600 hover:bg-indigo-50'}`}
             >
               <Plus size={16} />
               <span className="text-sm font-medium">Create New Interaction Type</span>
@@ -286,21 +320,21 @@ const InteractionTypeSelect = ({ value, onChange, options, error, disabled, labe
       {/* Create Interaction Type Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200]" onClick={() => setShowCreateModal(false)}>
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+          <div className={`rounded-xl shadow-xl w-full max-w-md p-6 ${getModalBg()}`} onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-slate-900">Create New Interaction Type</h3>
-              <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-slate-600">
+              <h3 className={`text-lg font-semibold ${getModalTextColor()}`}>Create New Interaction Type</h3>
+              <button onClick={() => setShowCreateModal(false)} className={darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-slate-400 hover:text-slate-600'}>
                 <X size={20} />
               </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Type Name</label>
+                <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-gray-300' : 'text-slate-700'}`}>Type Name</label>
                 <input
                   type="text"
                   value={newTypeName}
                   onChange={(e) => setNewTypeName(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                  className={`w-full px-3 py-2 rounded-lg ${getInputBg()}`}
                   placeholder="e.g., Call, Meeting, Email"
                 />
               </div>
@@ -327,12 +361,13 @@ const InteractionTypeSelect = ({ value, onChange, options, error, disabled, labe
   );
 };
 
-// Custom Select Component with Create Option for Follow-up Status
+// Custom Select Component with Create Option for Follow-up Status (with Theme Support)
 const FollowUpStatusSelect = ({ value, onChange, options, error, disabled, label, onCreateStatus }: any) => {
+  const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
   const [isOpen, setIsOpen] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newStatusName, setNewStatusName] = useState('');
-  const [newStatusColor, setNewStatusColor] = useState('#6366F1');
+  const [newStatusColor, setNewStatusColor] = useState(primaryColor || '#6366F1');
   const [isCreating, setIsCreating] = useState(false);
   const selectRef = React.useRef<HTMLDivElement>(null);
 
@@ -361,7 +396,7 @@ const FollowUpStatusSelect = ({ value, onChange, options, error, disabled, label
         successAlert("Follow-up status created successfully!", "Done", "Success!");
         setShowCreateModal(false);
         setNewStatusName('');
-        setNewStatusColor('#6366F1');
+        setNewStatusColor(primaryColor || '#6366F1');
         onChange({ target: { name: 'status', value: result._id } });
       }
     } catch (error: any) {
@@ -371,35 +406,51 @@ const FollowUpStatusSelect = ({ value, onChange, options, error, disabled, label
     }
   };
 
+  const getButtonBg = () => {
+    if (disabled) return darkMode ? 'bg-gray-800' : 'bg-slate-50';
+    return darkMode ? 'bg-gray-800' : 'bg-white';
+  };
+
+  const getButtonBorder = () => {
+    if (error) return 'border-red-500';
+    return darkMode ? 'border-gray-600 hover:border-gray-500' : 'border-slate-200 hover:border-slate-400';
+  };
+
+  const getTextColor = () => darkMode ? 'text-gray-200' : 'text-slate-700';
+  const getPlaceholderColor = () => darkMode ? 'text-gray-500' : 'text-slate-400';
+  const getDropdownBg = () => darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-slate-200';
+  const getDropdownItemHover = () => darkMode ? 'hover:bg-gray-700' : 'hover:bg-slate-50';
+  const getModalBg = () => darkMode ? 'bg-gray-800' : 'bg-white';
+  const getModalTextColor = () => darkMode ? 'text-gray-200' : 'text-slate-900';
+  const getInputBg = () => darkMode ? 'bg-gray-700 border-gray-600 text-gray-200' : 'bg-white border-slate-300';
+
   return (
     <div className="w-full" ref={selectRef}>
-      <label className="block text-sm font-bold text-slate-700 mb-2">
+      <label className={`block text-sm font-bold mb-2 ${darkMode ? 'text-gray-300' : 'text-slate-700'}`}>
         {label} <span className="text-red-500">*</span>
       </label>
       <div className="relative">
         <button
           type="button"
           onClick={() => !disabled && setIsOpen(!isOpen)}
-          className={`w-full px-4 py-3 text-left border rounded-xl transition-all flex items-center justify-between ${
-            error ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-white hover:border-slate-400'
-          } ${disabled ? 'opacity-60 cursor-not-allowed bg-slate-50' : 'cursor-pointer'}`}
+          className={`w-full px-4 py-3 text-left border rounded-xl transition-all flex items-center justify-between ${getButtonBorder()} ${getButtonBg()} ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
           disabled={disabled}
         >
           <div className="flex items-center gap-2">
             {selectedStatus?.color && (
               <div className="w-3 h-3 rounded-full" style={{ backgroundColor: selectedStatus.color }} />
             )}
-            <span className="text-sm" style={{ color: selectedStatus?.color || "#1F2937" }}>
+            <span className={`text-sm ${!selectedStatus ? getPlaceholderColor() : getTextColor()}`}>
               {selectedStatus?.label || "Select Follow-up Status"}
             </span>
           </div>
-          <svg className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''} ${darkMode ? 'text-gray-400' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </button>
         
         {isOpen && !disabled && (
-          <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          <div className={`absolute z-50 w-full mt-1 rounded-lg shadow-lg max-h-60 overflow-y-auto ${getDropdownBg()}`}>
             {options?.map((option: any) => (
               <button
                 key={option.value}
@@ -408,12 +459,12 @@ const FollowUpStatusSelect = ({ value, onChange, options, error, disabled, label
                   onChange({ target: { name: 'status', value: option.value } });
                   setIsOpen(false);
                 }}
-                className="w-full px-3 py-2 text-left hover:bg-slate-50 transition-colors flex items-center gap-2"
+                className={`w-full px-3 py-2 text-left transition-colors flex items-center gap-2 ${getDropdownItemHover()}`}
               >
                 {option.color && <div className="w-3 h-3 rounded-full" style={{ backgroundColor: option.color }} />}
-                <span className="text-sm">{option.label}</span>
+                <span className={`text-sm ${getTextColor()}`}>{option.label}</span>
                 {value === option.value && (
-                  <svg className="w-4 h-4 ml-auto text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 ml-auto" style={{ color: primaryColor || '#6366f1' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 )}
@@ -422,7 +473,7 @@ const FollowUpStatusSelect = ({ value, onChange, options, error, disabled, label
             <button
               type="button"
               onClick={() => setShowCreateModal(true)}
-              className="w-full px-3 py-2 text-left hover:bg-indigo-50 transition-colors flex items-center gap-2 border-t border-slate-100 text-indigo-600"
+              className={`w-full px-3 py-2 text-left transition-colors flex items-center gap-2 border-t ${darkMode ? 'border-gray-700 text-indigo-400 hover:bg-gray-700' : 'border-slate-100 text-indigo-600 hover:bg-indigo-50'}`}
             >
               <Plus size={16} />
               <span className="text-sm font-medium">Create New Follow-up Status</span>
@@ -435,38 +486,38 @@ const FollowUpStatusSelect = ({ value, onChange, options, error, disabled, label
       {/* Create Follow-up Status Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[200]" onClick={() => setShowCreateModal(false)}>
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+          <div className={`rounded-xl shadow-xl w-full max-w-md p-6 ${getModalBg()}`} onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-slate-900">Create New Follow-up Status</h3>
-              <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-slate-600">
+              <h3 className={`text-lg font-semibold ${getModalTextColor()}`}>Create New Follow-up Status</h3>
+              <button onClick={() => setShowCreateModal(false)} className={darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-slate-400 hover:text-slate-600'}>
                 <X size={20} />
               </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Status Name</label>
+                <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-gray-300' : 'text-slate-700'}`}>Status Name</label>
                 <input
                   type="text"
                   value={newStatusName}
                   onChange={(e) => setNewStatusName(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg"
+                  className={`w-full px-3 py-2 rounded-lg ${getInputBg()}`}
                   placeholder="e.g., Pending, Completed, Overdue"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Status Color</label>
+                <label className={`block text-sm font-medium mb-1 ${darkMode ? 'text-gray-300' : 'text-slate-700'}`}>Status Color</label>
                 <div className="flex gap-3 items-center">
                   <input
                     type="color"
                     value={newStatusColor}
                     onChange={(e) => setNewStatusColor(e.target.value)}
-                    className="w-12 h-10 border border-slate-300 rounded cursor-pointer"
+                    className="w-12 h-10 border rounded cursor-pointer"
                   />
                   <input
                     type="text"
                     value={newStatusColor}
                     onChange={(e) => setNewStatusColor(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-slate-300 rounded-lg"
+                    className={`flex-1 px-3 py-2 rounded-lg ${getInputBg()}`}
                     placeholder="#6366F1"
                   />
                 </div>
@@ -494,14 +545,14 @@ const FollowUpStatusSelect = ({ value, onChange, options, error, disabled, label
   );
 };
 
+// For brevity, I'll show the main component with theme support
 const AddFollowUp_Model = ({ tableId }: { tableId: string | null; selectedData: any }) => {
   const dispatch = useDispatch();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
   
   const isOpen = searchParams.get("modal") === "schedule-followup";
-  
-  // Get edit data from location state
   const editFollowUpData = location.state?.followUpData || null;
   const editFollowUpId = location.state?.followUpId || null;
   const isEditMode = !!editFollowUpData;
@@ -530,10 +581,17 @@ const AddFollowUp_Model = ({ tableId }: { tableId: string | null; selectedData: 
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
 
+  // Get theme-based styles
+  const getModalBg = () => darkMode ? 'bg-gray-800' : 'bg-white';
+  const getModalTextColor = () => darkMode ? 'text-white' : 'text-[#0d1954]';
+  const getSubtitleColor = () => darkMode ? 'text-gray-400' : 'text-slate-500';
+  const getCloseButtonColor = () => darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-slate-500 hover:bg-slate-100';
+  const getBorderColor = () => darkMode ? 'border-gray-700' : 'border-slate-100';
+  const getCheckboxBg = () => darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-slate-300';
+
   // Populate form data when editing
   useEffect(() => {
     if (isOpen && isEditMode && editFollowUpData) {
-      // Format date for datetime-local input
       const formatDateForInput = (dateString: string) => {
         if (!dateString) return '';
         const date = new Date(dateString);
@@ -568,7 +626,6 @@ const AddFollowUp_Model = ({ tableId }: { tableId: string | null; selectedData: 
     return () => { 
       if (!isOpen) {
         resetForm();
-        // Clear location state when modal closes
         if (location.state?.followUpData) {
           window.history.replaceState({}, document.title);
         }
@@ -659,7 +716,6 @@ const AddFollowUp_Model = ({ tableId }: { tableId: string | null; selectedData: 
       let resultAction;
       
       if (isEditMode && editFollowUpId) {
-        // Update existing follow-up
         resultAction = await dispatch(UpdateFollowUp({ 
           tableId: tableId, 
           data: followUpData, 
@@ -667,7 +723,6 @@ const AddFollowUp_Model = ({ tableId }: { tableId: string | null; selectedData: 
         }) as any).unwrap();
         successAlert(resultAction?.message || "Follow-up updated successfully!", "Done", "Success!");
       } else {
-        // Create new follow-up
         resultAction = await dispatch(createFollowUp({ 
           tableId: tableId, 
           data: { followUps: [followUpData] } 
@@ -682,40 +737,35 @@ const AddFollowUp_Model = ({ tableId }: { tableId: string | null; selectedData: 
     }
   };
 
-  // Prepare options with colors for lead statuses
+  // Prepare options
   const leadStatusOptions: SelectOption[] = followUpLeadStatuses?.map((item: any) => ({
     label: item.statusName || item.StatusName,
     value: item._id,
     color: item.color
   })) || [];
 
-  // Prepare options for interaction types
   const interactionTypeOptions: SelectOption[] = followUpTypes?.map((item: any) => ({
     label: item.typeName || item.TypeName,
     value: item._id
   })) || [];
 
-  // Prepare options with colors for follow-up statuses
   const followUpStatusOptions: SelectOption[] = followUpStatuses?.map((item: any) => ({
     label: item.StatusName || item.statusName,
     value: item._id,
     color: item.color
   })) || [];
 
-  // Prepare assign to users options
   const assignToOptions: SelectOption[] = assignToUsers?.map((user: any) => ({
     label: `${user.firstname || ''} ${user.lastname || ''}`.trim() || user.email,
     value: user._id
   })) || [];
 
-  // Priority options
   const priorityOptions: SelectOption[] = [
     { label: 'High', value: 'high' },
     { label: 'Medium', value: 'medium' },
     { label: 'Low', value: 'low' }
   ];
 
-  // Reminder type options
   const reminderTypeOptions: SelectOption[] = [
     { label: 'Email', value: 'email' },
     { label: 'SMS', value: 'sms' },
@@ -736,18 +786,20 @@ const AddFollowUp_Model = ({ tableId }: { tableId: string | null; selectedData: 
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={closeModal} className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" />
 
-        <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-3xl bg-white rounded-[40px] shadow-2xl overflow-hidden z-[101]">
+        <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className={`relative w-full max-w-3xl rounded-[40px] shadow-2xl overflow-hidden z-[101] ${getModalBg()}`}>
           <div className="p-8 md:p-12 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-10">
               <div>
-                <h2 className="text-2xl font-black text-[#0d1954] tracking-tight">
+                <h2 className={`text-2xl font-black tracking-tight ${getModalTextColor()}`}>
                   {isEditMode ? "Edit Follow-Up" : "Add New Follow-Up"}
                 </h2>
-                <p className="text-sm text-slate-500 mt-1">
+                <p className={`text-sm mt-1 ${getSubtitleColor()}`}>
                   {isEditMode ? "Update follow-up details for this lead" : "Schedule and manage follow-up activities for this lead"}
                 </p>
               </div>
-              <button onClick={closeModal} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500"><X size={24} /></button>
+              <button onClick={closeModal} className={`p-2 rounded-full transition-colors ${getCloseButtonColor()}`}>
+                <X size={24} />
+              </button>
             </div>
 
             <form className="space-y-8" onSubmit={handleSubmit}>
@@ -837,10 +889,13 @@ const AddFollowUp_Model = ({ tableId }: { tableId: string | null; selectedData: 
                   name="setReminder" 
                   checked={formData.setReminder} 
                   onChange={(e) => setFormData(prev => ({...prev, setReminder: e.target.checked}))} 
-                  className="w-5 h-5 rounded border-slate-300 text-[#0d1954]" 
+                  className={`w-5 h-5 rounded ${getCheckboxBg()}`}
+                  style={{ accentColor: primaryColor || '#0d1954' }}
                   disabled={isSubmittingFollowUp}
                 />
-                <label htmlFor="reminder" className="text-sm font-bold text-slate-700 cursor-pointer select-none">Set specific reminder alarm time</label>
+                <label htmlFor="reminder" className={`text-sm font-bold cursor-pointer select-none ${darkMode ? 'text-gray-300' : 'text-slate-700'}`}>
+                  Set specific reminder alarm time
+                </label>
               </div>
 
               {formData.setReminder && (
@@ -887,7 +942,7 @@ const AddFollowUp_Model = ({ tableId }: { tableId: string | null; selectedData: 
                 />
               </div>
 
-              <div className="flex justify-end items-center gap-6 pt-4 border-t border-slate-100">
+              <div className={`flex justify-end items-center gap-6 pt-4 border-t ${getBorderColor()}`}>
                 <Reusable_Button
                   text="Cancel"
                   variant="ghost"

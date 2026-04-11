@@ -23,6 +23,7 @@ const Convert_custommer_Model: React.FC<ConvertCustomerModalProps> = ({
 }) => {
   const dispatch = useDispatch<AppDispatch>();
   const [searchParams, setSearchParams] = useSearchParams();
+  const {  darkMode } = useSelector((state: any) => state.theme);
 
   const { statusOptions, loading: statusLoading } = useSelector(
     (state: any) => state.leads
@@ -41,21 +42,18 @@ const Convert_custommer_Model: React.FC<ConvertCustomerModalProps> = ({
     }
   );
 
-  // Debug: Log available statuses
-  useEffect(() => {
-    if (leadStatusArray.length > 0) {
-      console.log("Available statuses:", leadStatusArray.map(s => s.statusName || s.name));
-      console.log("Conversion status found:", conversionStatus);
-    }
-  }, [leadStatusArray, conversionStatus]);
-
-  // Prefilled values for display only
-  const values = {
-    companyName: selectedData?.manualData?.company || selectedData?.Company || "",
-    email: selectedData?.manualData?.email || selectedData?.Email || "",
-    phone: selectedData?.manualData?.mobileNo || selectedData?.Phone || "",
-    name: selectedData?.manualData?.name || selectedData?.Name || "",
-  };
+  // Get theme-based styles
+  const getModalBg = () => darkMode ? 'bg-gray-800' : 'bg-white';
+  const getModalTextColor = () => darkMode ? 'text-gray-200' : 'text-gray-800';
+  const getBorderColor = () => darkMode ? 'border-gray-700' : 'border-gray-200';
+  const getInputBg = () => darkMode ? 'bg-gray-700 border-gray-600 text-gray-200' : 'bg-gray-50 border-gray-300 text-gray-600';
+  const getLabelColor = () => darkMode ? 'text-gray-300' : 'text-gray-700';
+  const getInfoBoxBg = () => darkMode ? 'bg-blue-900/20 border-blue-800' : 'bg-blue-50 border-blue-100';
+  const getInfoTextColor = () => darkMode ? 'text-blue-400' : 'text-blue-600';
+  const getSuccessBoxBg = () => darkMode ? 'bg-green-900/20 border-green-800' : 'bg-green-50 border-green-100';
+  const getSuccessTextColor = () => darkMode ? 'text-green-400' : 'text-green-700';
+  const getErrorBoxBg = () => darkMode ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-200';
+  const getErrorTextColor = () => darkMode ? 'text-red-400' : 'text-red-700';
 
   useEffect(() => {
     if (!statusOptions?.length) {
@@ -70,21 +68,17 @@ const Convert_custommer_Model: React.FC<ConvertCustomerModalProps> = ({
     if (onSuccess) onSuccess();
   };
 
-  // ✅ Enhanced function to extract error message from API response
+  // Enhanced function to extract error message from API response
   const extractErrorMessage = (err: any): string => {
     console.log("Full error object:", err);
     
-    // Check for response.data (axios error response)
     if (err?.response?.data) {
       const responseData = err.response.data;
       
-      // Handle your API response structure: { success: false, errors: "...", statusCode: 500 }
       if (responseData.errors) {
         if (typeof responseData.errors === 'string') {
-          // Check for duplicate key error
           if (responseData.errors.includes("E11000 duplicate key") || 
               responseData.errors.includes("duplicate key error")) {
-            // Extract email from error message
             const emailMatch = responseData.errors.match(/email: \"([^\"]+)\"/);
             if (emailMatch) {
               return `Customer with email "${emailMatch[1]}" already exists.`;
@@ -119,7 +113,6 @@ const Convert_custommer_Model: React.FC<ConvertCustomerModalProps> = ({
       }
     }
     
-    // Check for errors field directly
     if (err?.errors) {
       if (typeof err.errors === 'string') {
         if (err.errors.includes("E11000 duplicate key")) {
@@ -137,7 +130,6 @@ const Convert_custommer_Model: React.FC<ConvertCustomerModalProps> = ({
       }
     }
     
-    // Check for message field
     if (err?.message) {
       if (typeof err.message === 'string') {
         if (err.message.includes("E11000 duplicate key")) {
@@ -151,7 +143,6 @@ const Convert_custommer_Model: React.FC<ConvertCustomerModalProps> = ({
       }
     }
     
-    // Check for string error
     if (typeof err === 'string') {
       if (err.includes("E11000 duplicate key")) {
         const emailMatch = err.match(/email: \"([^\"]+)\"/);
@@ -166,10 +157,17 @@ const Convert_custommer_Model: React.FC<ConvertCustomerModalProps> = ({
     return "Conversion failed. Please try again.";
   };
 
+  // Prefilled values for display only
+  const values = {
+    companyName: selectedData?.manualData?.company || selectedData?.Company || "",
+    email: selectedData?.manualData?.email || selectedData?.Email || "",
+    phone: selectedData?.manualData?.mobileNo || selectedData?.Phone || "",
+    name: selectedData?.manualData?.name || selectedData?.Name || "",
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation
     if (!tableId) {
       errorAlert("Lead ID is missing", "OK", "Error");
       return;
@@ -190,7 +188,6 @@ const Convert_custommer_Model: React.FC<ConvertCustomerModalProps> = ({
     try {
       const subdomain = localStorage.getItem("subdomain") || "default";
 
-      // Call convertCustomer API
       const convertData = {
         subdomain: subdomain,
         leadId: tableId,
@@ -203,7 +200,6 @@ const Convert_custommer_Model: React.FC<ConvertCustomerModalProps> = ({
       
       console.log("Conversion result:", convertResult);
       
-      // Success message
       if (convertResult?.data?.message) {
         successAlert(convertResult.data.message, "Done", "Conversion Successful");
       } else if (convertResult?.message) {
@@ -212,7 +208,6 @@ const Convert_custommer_Model: React.FC<ConvertCustomerModalProps> = ({
         successAlert("Lead converted to customer successfully!", "Done", "Conversion Successful");
       }
 
-      // Close modal after successful conversion
       setTimeout(() => {
         handleClose();
       }, 1500);
@@ -220,7 +215,6 @@ const Convert_custommer_Model: React.FC<ConvertCustomerModalProps> = ({
     } catch (err: any) {
       console.error("Conversion error details:", err);
       const errorMessage = extractErrorMessage(err);
-      // Show the extracted error message in the alert
       errorAlert(errorMessage, "Try Again", "Conversion Failed");
     } finally {
       setLoading(false);
@@ -232,14 +226,14 @@ const Convert_custommer_Model: React.FC<ConvertCustomerModalProps> = ({
       {(loading || statusLoading) && <RippleLoader />}
       
       <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
-        <div className="bg-white w-[450px] rounded-lg shadow-lg">
-          <div className="flex justify-between items-center p-4 border-b">
-            <h2 className="text-lg font-semibold text-gray-800">
+        <div className={`w-[450px] rounded-lg shadow-lg ${getModalBg()}`}>
+          <div className={`flex justify-between items-center p-4 border-b ${getBorderColor()}`}>
+            <h2 className={`text-lg font-semibold ${getModalTextColor()}`}>
               Convert Lead to Customer
             </h2>
             <button
               onClick={handleClose}
-              className="text-gray-500 hover:text-gray-700 text-2xl leading-none"
+              className={`text-2xl leading-none transition-colors ${darkMode ? 'text-gray-400 hover:text-gray-300' : 'text-gray-500 hover:text-gray-700'}`}
               disabled={loading}
             >
               &times;
@@ -247,63 +241,63 @@ const Convert_custommer_Model: React.FC<ConvertCustomerModalProps> = ({
           </div>
 
           <form onSubmit={handleSubmit} className="p-4 space-y-4">
-            <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
-              <p className="text-xs text-blue-600 font-semibold mb-1">
+            <div className={`mb-4 p-3 rounded-lg border ${getInfoBoxBg()}`}>
+              <p className={`text-xs font-semibold mb-1 ${getInfoTextColor()}`}>
                 Converting Lead:
               </p>
-              <p className="text-sm text-gray-700 font-medium">
+              <p className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                 {values.name || "Unnamed Lead"}
-                <span className="text-gray-500 text-xs ml-2">
+                <span className={`text-xs ml-2 ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
                   (ID: {tableId})
                 </span>
               </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className={`block text-sm font-medium mb-1 ${getLabelColor()}`}>
                 Lead Name *
               </label>
               <input
                 value={values.name}
                 disabled
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                className={`w-full px-3 py-2 border rounded-lg ${getInputBg()}`}
                 placeholder="Lead Name"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className={`block text-sm font-medium mb-1 ${getLabelColor()}`}>
                 Company Name *
               </label>
               <input
                 value={values.companyName}
                 disabled
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                className={`w-full px-3 py-2 border rounded-lg ${getInputBg()}`}
                 placeholder="Company Name"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className={`block text-sm font-medium mb-1 ${getLabelColor()}`}>
                 Email *
               </label>
               <input
                 value={values.email}
                 disabled
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                className={`w-full px-3 py-2 border rounded-lg ${getInputBg()}`}
                 placeholder="Email"
                 type="email"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className={`block text-sm font-medium mb-1 ${getLabelColor()}`}>
                 Phone Number *
               </label>
               <input
                 value={values.phone}
                 disabled
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+                className={`w-full px-3 py-2 border rounded-lg ${getInputBg()}`}
                 placeholder="Phone Number"
                 type="tel"
               />
@@ -311,22 +305,22 @@ const Convert_custommer_Model: React.FC<ConvertCustomerModalProps> = ({
 
             {/* Show conversion status info */}
             {conversionStatus && (
-              <div className="mb-4 p-3 bg-green-50 rounded-lg border border-green-100">
-                <p className="text-xs text-green-700 font-semibold mb-1">
+              <div className={`mb-4 p-3 rounded-lg border ${getSuccessBoxBg()}`}>
+                <p className={`text-xs font-semibold mb-1 ${getSuccessTextColor()}`}>
                   ✓ Ready to Convert:
                 </p>
-                <p className="text-xs text-green-600">
+                <p className={`text-xs ${getSuccessTextColor()}`}>
                   Lead will be marked as "{conversionStatus.statusName || conversionStatus.name}"
                 </p>
               </div>
             )}
 
             {!conversionStatus && leadStatusArray.length > 0 && (
-              <div className="mb-4 p-3 bg-red-50 rounded-lg border border-red-200">
-                <p className="text-xs text-red-700 font-semibold mb-1">
+              <div className={`mb-4 p-3 rounded-lg border ${getErrorBoxBg()}`}>
+                <p className={`text-xs font-semibold mb-1 ${getErrorTextColor()}`}>
                   ⚠️ Status Issue:
                 </p>
-                <p className="text-xs text-red-600">
+                <p className={`text-xs ${getErrorTextColor()}`}>
                   No "Won" or "Converted" status found. Available statuses:{" "}
                   {leadStatusArray.map(s => s.statusName || s.name).join(", ")}
                 </p>

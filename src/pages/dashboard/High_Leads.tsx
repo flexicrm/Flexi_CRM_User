@@ -17,6 +17,7 @@ const High_Leads = () => {
   const { highValueLeads, isLoading } = useSelector(
     (state: RootState) => state.dashboard
   );
+  const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
 
   useEffect(() => {
     dispatch(fetchDashboardData());
@@ -38,9 +39,38 @@ const High_Leads = () => {
     }));
   }, [leads]);
 
-  // Helper function to get priority styles
+  // Helper function to get priority styles with theme support
   const getPriorityStyles = (priority: string) => {
     const priorityLower = priority?.toLowerCase() || 'medium';
+    
+    if (darkMode) {
+      switch (priorityLower) {
+        case 'high':
+          return {
+            backgroundColor: '#dc262620',
+            color: '#f87171',
+            border: '1px solid #dc262640'
+          };
+        case 'medium':
+          return {
+            backgroundColor: '#f59e0b20',
+            color: '#fbbf24',
+            border: '1px solid #f59e0b40'
+          };
+        case 'low':
+          return {
+            backgroundColor: '#10b98120',
+            color: '#34d399',
+            border: '1px solid #10b98140'
+          };
+        default:
+          return {
+            backgroundColor: '#64748b20',
+            color: '#94a3b8',
+            border: '1px solid #64748b40'
+          };
+      }
+    }
     
     switch (priorityLower) {
       case 'high':
@@ -70,7 +100,51 @@ const High_Leads = () => {
     }
   };
 
-  // Define columns for the Table component
+  // Get card background based on dark mode
+  const getCardBg = () => {
+    return darkMode ? 'bg-gray-800' : 'bg-white';
+  };
+
+  // Get border color based on dark mode
+  const getBorderColor = () => {
+    return darkMode ? 'border-gray-700' : 'border-slate-200';
+  };
+
+  // Get header background
+  const getHeaderBg = () => {
+    if (darkMode) {
+      return 'bg-gradient-to-r from-gray-800 to-gray-800/50';
+    }
+    return 'bg-gradient-to-r from-white to-slate-50/30';
+  };
+
+  // Get header border
+  const getHeaderBorder = () => {
+    return darkMode ? 'border-gray-700' : 'border-slate-100';
+  };
+
+  // Get title color
+  const getTitleColor = () => {
+    return darkMode ? 'text-white' : 'text-slate-800';
+  };
+
+  // Get subtitle color
+  const getSubtitleColor = () => {
+    return darkMode ? 'text-gray-400' : 'text-slate-500';
+  };
+
+  // Get icon background
+  const getIconBg = () => {
+    return darkMode ? 'bg-gray-700' : 'bg-amber-50';
+  };
+
+  // Get icon color
+  const getIconColor = () => {
+    return darkMode ? '#fbbf24' : '#d97706';
+  };
+
+
+  // Define columns for the Table component with theme support
   const columns = useMemo(() => [
     {
       title: 'Lead Name',
@@ -81,10 +155,18 @@ const High_Leads = () => {
       sortable: true,
       render: (name: string) => (
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center">
-            <TrendingUp size={16} className="text-indigo-600" />
+          <div 
+            className="w-8 h-8 rounded-lg flex items-center justify-center"
+            style={{ 
+              backgroundColor: darkMode ? '#374151' : '#EEF2FF',
+              color: primaryColor || '#6366f1'
+            }}
+          >
+            <TrendingUp size={16} />
           </div>
-          <span className="font-semibold text-slate-800 capitalize">{name}</span>
+          <span className={`font-semibold capitalize ${darkMode ? 'text-gray-200' : 'text-slate-800'}`}>
+            {name}
+          </span>
         </div>
       ),
     },
@@ -122,8 +204,10 @@ const High_Leads = () => {
       sortable: true,
       render: (company: string) => (
         <div className="flex items-center gap-2">
-          <Building2 size={14} className="text-slate-400" />
-          <span className="text-sm text-slate-700">{company}</span>
+          <Building2 size={14} className={darkMode ? 'text-gray-500' : 'text-slate-400'} />
+          <span className={`text-sm ${darkMode ? 'text-gray-300' : 'text-slate-700'}`}>
+            {company}
+          </span>
         </div>
       ),
     },
@@ -136,8 +220,13 @@ const High_Leads = () => {
       sortable: true,
       render: (email: string) => (
         <div className="flex items-center gap-2">
-          <Mail size={14} className="text-slate-400" />
-          <span className="text-sm text-indigo-600 truncate">{email}</span>
+          <Mail size={14} className={darkMode ? 'text-gray-500' : 'text-slate-400'} />
+          <span 
+            className="text-sm truncate"
+            style={{ color: primaryColor || '#6366f1' }}
+          >
+            {email}
+          </span>
         </div>
       ),
     },
@@ -150,23 +239,26 @@ const High_Leads = () => {
       sortable: true,
       render: (mobile: string) => (
         <div className="flex items-center gap-2">
-          <Phone size={14} className="text-slate-400" />
-          <span className="text-sm text-slate-700 font-medium">{mobile}</span>
+          <Phone size={14} className={darkMode ? 'text-gray-500' : 'text-slate-400'} />
+          <span className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-slate-700'}`}>
+            {mobile}
+          </span>
         </div>
       ),
     },
-  ], []);
+  ], [darkMode, primaryColor]);
 
+  // Loading skeleton with dark mode support
   if (isLoading) {
     return (
-      <div className="bg-white rounded-xl border border-slate-200 p-8">
+      <div className={`${getCardBg()} rounded-xl border ${getBorderColor()} p-8`}>
         <div className="flex items-center justify-center">
-          <div className="animate-pulse flex space-x-4">
+          <div className="animate-pulse flex space-x-4 w-full">
             <div className="flex-1 space-y-4 py-1">
-              <div className="h-4 bg-slate-200 rounded w-3/4"></div>
+              <div className={`h-4 rounded w-3/4 ${darkMode ? 'bg-gray-700' : 'bg-slate-200'}`}></div>
               <div className="space-y-2">
-                <div className="h-4 bg-slate-200 rounded"></div>
-                <div className="h-4 bg-slate-200 rounded w-5/6"></div>
+                <div className={`h-4 rounded ${darkMode ? 'bg-gray-700' : 'bg-slate-200'}`}></div>
+                <div className={`h-4 rounded w-5/6 ${darkMode ? 'bg-gray-700' : 'bg-slate-200'}`}></div>
               </div>
             </div>
           </div>
@@ -176,21 +268,31 @@ const High_Leads = () => {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+    <div className={`${getCardBg()} rounded-xl border ${getBorderColor()} overflow-hidden shadow-sm`}>
       {/* Card Header */}
-      <div className="flex justify-between items-center p-5 border-b border-slate-100 bg-gradient-to-r from-white to-slate-50/30">
+      <div className={`flex justify-between items-center p-5 border-b ${getHeaderBorder()} ${getHeaderBg()}`}>
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
-            <TrendingUp size={16} className="text-amber-600" strokeWidth={2.5} />
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${getIconBg()}`}>
+            <TrendingUp size={16} style={{ color: getIconColor() }} strokeWidth={2.5} />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-slate-800 tracking-tight">High Value Leads</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Top priority prospects with high potential</p>
+            <h2 className={`text-lg font-bold tracking-tight ${getTitleColor()}`}>High Value Leads</h2>
+            <p className={`text-xs ${getSubtitleColor()} mt-0.5`}>Top priority prospects with high potential</p>
           </div>
         </div>
         <button 
           onClick={() => window.location.href = `/${localStorage.getItem("subdomain")}/leads`}
-          className="text-sm font-semibold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition-all"
+          className="text-sm font-semibold px-3 py-1.5 rounded-lg transition-all hover:bg-opacity-10"
+          style={{ 
+            color: primaryColor || '#6366f1',
+            backgroundColor: 'transparent'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = darkMode ? '#374151' : `${primaryColor}10`;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+          }}
         >
           View All →
         </button>
@@ -215,6 +317,10 @@ const High_Leads = () => {
         }}
         emptyMessage="No high value leads found"
         className="border-0 rounded-none"
+        theme={{
+          darkMode,
+          primaryColor
+        }}
       />
     </div>
   );

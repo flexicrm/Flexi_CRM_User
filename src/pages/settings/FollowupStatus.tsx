@@ -78,6 +78,7 @@ const extractErrorMessage = (error: any): string => {
 
 const FollowupStatus = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
 
   const {
     status,
@@ -87,7 +88,7 @@ const FollowupStatus = () => {
 
   const [showCreate, setShowCreate] = useState(false);
   const [statusName, setStatusName] = useState("");
-  const [color, setColor] = useState("#0000FF");
+  const [color, setColor] = useState(primaryColor || "#0000FF");
   const [isEditMode, setIsEditMode] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [page, setPage] = useState<number>(1);
@@ -97,6 +98,10 @@ const FollowupStatus = () => {
   
   const { permissions } = useSelector((state: any) => state.auth);
   const Roles = permissions[4];
+
+  // Theme-based styles
+  const getLabelColor = () => darkMode ? 'text-gray-300' : 'text-slate-700';
+  const getColorPickerBorder = () => darkMode ? 'border-gray-600' : 'border-gray-300';
 
   useEffect(() => {
     dispatch(getFollowUpStatus());
@@ -135,9 +140,10 @@ const FollowupStatus = () => {
               width: 20,
               height: 20,
               borderRadius: 4,
+              border: darkMode ? '1px solid #374151' : 'none'
             }}
           />
-          {color}
+          <span className={darkMode ? 'text-gray-300' : 'text-slate-700'}>{color}</span>
         </div>
       ),
     },
@@ -183,7 +189,7 @@ const FollowupStatus = () => {
         
         setShowCreate(false);
         setStatusName("");
-        setColor("#0000FF");
+        setColor(primaryColor || "#0000FF");
         setIsEditMode(false);
         setEditId(null);
       } else {
@@ -199,7 +205,7 @@ const FollowupStatus = () => {
         
         setShowCreate(false);
         setStatusName("");
-        setColor("#0000FF");
+        setColor(primaryColor || "#0000FF");
       }
       
       dispatch(getFollowUpStatus());
@@ -250,7 +256,7 @@ const FollowupStatus = () => {
         onConfirm: () => {
           setShowCreate(false);
           setStatusName("");
-          setColor("#0000FF");
+          setColor(primaryColor || "#0000FF");
           setIsEditMode(false);
           setEditId(null);
           setValidationErrors({});
@@ -259,7 +265,7 @@ const FollowupStatus = () => {
     } else {
       setShowCreate(false);
       setStatusName("");
-      setColor("#0000FF");
+      setColor(primaryColor || "#0000FF");
       setIsEditMode(false);
       setEditId(null);
       setValidationErrors({});
@@ -302,12 +308,12 @@ const FollowupStatus = () => {
             </div>
 
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-slate-700">Color:</label>
+              <label className={`text-sm font-medium ${getLabelColor()}`}>Color:</label>
               <input
                 type="color"
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
-                className="w-12 h-10 border rounded cursor-pointer"
+                className={`w-12 h-10 border rounded cursor-pointer ${getColorPickerBorder()}`}
                 disabled={isLoading}
               />
             </div>
@@ -342,6 +348,7 @@ const FollowupStatus = () => {
           onEdit: Roles?.canRead ? handleEditClick : undefined,
           onDelete: Roles?.canDelete ? handleDeleteClick : undefined,
         }}
+        theme={{ darkMode, primaryColor }}
       />
     </>
   );

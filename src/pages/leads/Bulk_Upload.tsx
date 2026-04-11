@@ -70,7 +70,6 @@ const extractErrorMessage = (error: any): string => {
     errorMessage = error.message;
   }
   
-  // Clean up specific error messages
   if (errorMessage.toLowerCase().includes('duplicate') || errorMessage.toLowerCase().includes('already exists')) {
     errorMessage = "Some leads already exist in the system. Please check and try again.";
   }
@@ -87,6 +86,7 @@ const extractErrorMessage = (error: any): string => {
 const Bulk_Upload: React.FC<BulkUploadProps> = ({ onClose, onSuccess }) => {
   const dispatch = useDispatch();
   const { isCreating } = useSelector((state: any) => state.leads);
+  const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
   
   const [files, setFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -98,6 +98,38 @@ const Bulk_Upload: React.FC<BulkUploadProps> = ({ onClose, onSuccess }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Theme-based styles
+  const getModalBg = () => darkMode ? 'bg-gray-800' : 'bg-white';
+  const getModalBorder = () => darkMode ? 'border-gray-700' : 'border-slate-200';
+  const getTitleColor = () => darkMode ? 'text-white' : 'text-[#0d1954]';
+  const getSubtitleColor = () => darkMode ? 'text-gray-400' : 'text-slate-500';
+  const getIconBg = () => darkMode ? 'bg-gray-700' : 'bg-indigo-50';
+  const getIconColor = () => darkMode ? primaryColor || '#818CF8' : '#6366f1';
+  const getCloseButtonColor = () => darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-slate-400 hover:bg-slate-100';
+  const getCardBg = () => darkMode ? 'bg-gray-700' : 'bg-slate-50';
+  const getCardTextColor = () => darkMode ? 'text-gray-300' : 'text-slate-700';
+  const getCardSubtextColor = () => darkMode ? 'text-gray-500' : 'text-slate-400';
+  const getDragDropBorder = () => {
+    if (isDragging) return `border-${primaryColor}-500 bg-${primaryColor}/10`;
+    return darkMode ? 'border-gray-600 hover:border-gray-500' : 'border-gray-300 hover:border-indigo-400';
+  };
+  const getDragDropTextColor = () => darkMode ? 'text-gray-400' : 'text-gray-600';
+  const getProgressBg = () => darkMode ? 'bg-gray-700' : 'bg-gray-200';
+  const getProgressFillColor = () => primaryColor || '#6366f1';
+  const getSuccessBg = () => darkMode ? 'bg-green-900/20 border-green-800' : 'bg-green-50 border-green-200';
+  const getSuccessTextColor = () => darkMode ? 'text-green-400' : 'text-green-700';
+  const getErrorBg = () => darkMode ? 'bg-red-900/20 border-red-800' : 'bg-red-50 border-red-200';
+  const getErrorTextColor = () => darkMode ? 'text-red-400' : 'text-red-700';
+  const getValidationBg = () => darkMode ? 'bg-yellow-900/20 border-yellow-800' : 'bg-yellow-50 border-yellow-200';
+  const getValidationTextColor = () => darkMode ? 'text-yellow-400' : 'text-yellow-700';
+  const getTableHeaderBg = () => darkMode ? 'bg-gray-700' : 'bg-gray-50';
+  const getTableHeaderTextColor = () => darkMode ? 'text-gray-300' : 'text-gray-500';
+  const getTableRowBg = () => darkMode ? 'bg-gray-800' : 'bg-white';
+  const getTableRowHover = () => darkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-50';
+  const getTableBorderColor = () => darkMode ? 'border-gray-700' : 'border-gray-200';
+  const getTableCellTextColor = () => darkMode ? 'text-gray-300' : 'text-gray-900';
+  const getTableCellSubColor = () => darkMode ? 'text-gray-400' : 'text-gray-600';
 
   const acceptedFileTypes = [
     'application/vnd.ms-excel',
@@ -180,7 +212,6 @@ const Bulk_Upload: React.FC<BulkUploadProps> = ({ onClose, onSuccess }) => {
   const validateRecord = (record: UploadedData, index: number): ValidationError[] => {
     const errors: ValidationError[] = [];
     
-    // Validate name
     if (!record.name || record.name.trim() === '') {
       errors.push({
         row: index + 1,
@@ -197,7 +228,6 @@ const Bulk_Upload: React.FC<BulkUploadProps> = ({ onClose, onSuccess }) => {
       });
     }
     
-    // Validate email
     if (!record.email || record.email.trim() === '') {
       errors.push({
         row: index + 1,
@@ -217,7 +247,6 @@ const Bulk_Upload: React.FC<BulkUploadProps> = ({ onClose, onSuccess }) => {
       }
     }
     
-    // Validate mobile number
     if (!record.mobileNo || record.mobileNo.trim() === '') {
       errors.push({
         row: index + 1,
@@ -263,7 +292,6 @@ const Bulk_Upload: React.FC<BulkUploadProps> = ({ onClose, onSuccess }) => {
             return;
           }
           
-          // Validate and map data
           const validatedData = jsonData.map(row => ({
             name: row.name || row.Name || '',
             email: row.email || row.Email || '',
@@ -346,7 +374,6 @@ const Bulk_Upload: React.FC<BulkUploadProps> = ({ onClose, onSuccess }) => {
         return;
       }
       
-      // Validate all records
       const allValidationErrors: ValidationError[] = [];
       allData.forEach((record, index) => {
         const recordErrors = validateRecord(record, index);
@@ -367,7 +394,6 @@ const Bulk_Upload: React.FC<BulkUploadProps> = ({ onClose, onSuccess }) => {
       setSuccess(successMsg);
       successAlert(successMsg, 'Great!', 'Data Loaded');
       
-      // Clear success message after 3 seconds
       setTimeout(() => setSuccess(null), 3000);
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Error processing files';
@@ -387,7 +413,6 @@ const Bulk_Upload: React.FC<BulkUploadProps> = ({ onClose, onSuccess }) => {
       confirmText: 'Remove',
       cancelText: 'Cancel',
       onConfirm: () => {
-        // Calculate how many records belong to this file
         let recordsToRemove = 0;
         let recordStartIndex = 0;
         
@@ -416,7 +441,6 @@ const Bulk_Upload: React.FC<BulkUploadProps> = ({ onClose, onSuccess }) => {
       cancelText: 'Cancel',
       onConfirm: () => {
         setUploadedData((prev) => prev.filter((_, i) => i !== index));
-        // Re-validate remaining records
         const remainingErrors: ValidationError[] = [];
         uploadedData.forEach((record, idx) => {
           if (idx !== index) {
@@ -481,10 +505,8 @@ const Bulk_Upload: React.FC<BulkUploadProps> = ({ onClose, onSuccess }) => {
     setError(null);
     setSuccess(null);
 
-    // Prepare the leads array for bulk upload
     const leadsArray: any[] = [];
 
-    // Prepare each record
     for (let i = 0; i < uploadedData.length; i++) {
       const record = uploadedData[i];
       
@@ -500,35 +522,27 @@ const Bulk_Upload: React.FC<BulkUploadProps> = ({ onClose, onSuccess }) => {
     }
 
     try {
-      // Prepare the payload with leads array
-      const payload = {
-        leads: leadsArray
-      };
+      const payload = { leads: leadsArray };
 
       console.log('Upload Payload:', payload);
 
-      // Simulate progress for better UX
       for (let i = 0; i <= 100; i += 10) {
         setUploadProgress(i);
         await new Promise(resolve => setTimeout(resolve, 50));
       }
 
-      // Dispatch the upload action
       const result = await dispatch(ImportLead(payload) as any).unwrap();
       
       setUploadProgress(100);
       
-      // Extract success message from API response
       const successMsg = result?.message || 
                         result?.data?.message || 
                         `${leadsArray.length} lead(s) uploaded successfully!`;
       
       successAlert(successMsg, 'Great!', 'Upload Complete');
       
-      // Refresh leads list
       dispatch(fetchLeads() as any);
       
-      // Clear data after successful upload
       setTimeout(() => {
         clearAll();
         if (onSuccess) onSuccess();
@@ -538,7 +552,6 @@ const Bulk_Upload: React.FC<BulkUploadProps> = ({ onClose, onSuccess }) => {
     } catch (err: any) {
       const errorMessage = extractErrorMessage(err);
       
-      // Categorize errors for better UX
       if (errorMessage.toLowerCase().includes('duplicate')) {
         errorAlert(errorMessage, 'Remove Duplicates', 'Duplicate Records');
       } else if (errorMessage.toLowerCase().includes('validation')) {
@@ -552,12 +565,10 @@ const Bulk_Upload: React.FC<BulkUploadProps> = ({ onClose, onSuccess }) => {
       console.error('Upload error:', err);
     } finally {
       setIsUploading(false);
-      // Reset progress after a delay
       setTimeout(() => setUploadProgress(0), 1000);
     }
   };
 
-  // Trigger file input
   const triggerFileInput = () => {
     if (!isUploading && !isProcessing) {
       fileInputRef.current?.click();
@@ -568,18 +579,17 @@ const Bulk_Upload: React.FC<BulkUploadProps> = ({ onClose, onSuccess }) => {
 
   return (
     <>
-      {/* Global Loader */}
       {isLoading && <RippleLoader />}
       
-      <div className="max-w-4xl mx-auto bg-white rounded-[2rem] p-8 border-2 border-dashed border-slate-200 flex flex-col shadow-2xl shadow-slate-100">
+      <div className={`max-w-4xl mx-auto rounded-[2rem] p-8  flex flex-col ${getModalBg()} ${getModalBorder()}`}>
         {/* Header */}
         <div className="flex justify-between items-start mb-6">
           <div className="flex-1">
-            <div className="w-16 h-16 bg-indigo-50 rounded-3xl flex items-center justify-center text-indigo-600 mb-4">
-              <UploadCloud size={32} />
+            <div className={`w-16 h-16 rounded-3xl flex items-center justify-center mb-4 ${getIconBg()}`}>
+              <UploadCloud size={32} style={{ color: getIconColor() }} />
             </div>
-            <h2 className="text-2xl font-black text-[#0d1954] mb-2">Bulk Upload Leads</h2>
-            <p className="text-slate-500">
+            <h2 className={`text-2xl font-black mb-2 ${getTitleColor()}`}>Bulk Upload Leads</h2>
+            <p className={getSubtitleColor()}>
               Upload your Excel file to import multiple leads at once.
               <br />
               <span className="text-xs">Supported formats: .xls, .xlsx</span>
@@ -589,10 +599,10 @@ const Bulk_Upload: React.FC<BulkUploadProps> = ({ onClose, onSuccess }) => {
           {onClose && (
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50"
+              className={`p-2 rounded-full transition-colors disabled:opacity-50 ${getCloseButtonColor()}`}
               disabled={isLoading}
             >
-              <X size={20} className="text-gray-500" />
+              <X size={20} />
             </button>
           )}
         </div>
@@ -601,20 +611,20 @@ const Bulk_Upload: React.FC<BulkUploadProps> = ({ onClose, onSuccess }) => {
         <div className="grid grid-cols-2 gap-4 mb-8">
           <button
             onClick={handleDownloadSample}
-            className="p-4 bg-slate-50 rounded-2xl flex items-center gap-3 text-left hover:bg-slate-100 transition-colors group disabled:opacity-50"
+            className={`p-4 rounded-2xl flex items-center gap-3 text-left transition-colors group disabled:opacity-50 ${getCardBg()}`}
             disabled={isLoading}
           >
             <FileType className="text-emerald-500 group-hover:scale-110 transition-transform" size={24} />
             <div>
-              <p className="text-xs font-bold text-slate-700">Download Template</p>
-              <p className="text-[10px] text-slate-400">Sample Excel File</p>
+              <p className={`text-xs font-bold ${getCardTextColor()}`}>Download Template</p>
+              <p className={`text-[10px] ${getCardSubtextColor()}`}>Sample Excel File</p>
             </div>
           </button>
-          <div className="p-4 bg-slate-50 rounded-2xl flex items-center gap-3 text-left">
+          <div className={`p-4 rounded-2xl flex items-center gap-3 text-left ${getCardBg()}`}>
             <CheckCircle2 className="text-indigo-500" size={24} />
             <div>
-              <p className="text-xs font-bold text-slate-700">Auto Validation</p>
-              <p className="text-[10px] text-slate-400">Data format checking</p>
+              <p className={`text-xs font-bold ${getCardTextColor()}`}>Auto Validation</p>
+              <p className={`text-[10px] ${getCardSubtextColor()}`}>Data format checking</p>
             </div>
           </div>
         </div>
@@ -630,11 +640,9 @@ const Bulk_Upload: React.FC<BulkUploadProps> = ({ onClose, onSuccess }) => {
             relative border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer
             transition-all duration-200
             ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}
-            ${isDragging 
-              ? 'border-indigo-500 bg-indigo-50' 
-              : 'border-gray-300 hover:border-indigo-400 hover:bg-gray-50'
-            }
+            ${getDragDropBorder()}
           `}
+          style={{ backgroundColor: darkMode ? '#1f2937' : 'white' }}
         >
           <input
             ref={fileInputRef}
@@ -648,27 +656,27 @@ const Bulk_Upload: React.FC<BulkUploadProps> = ({ onClose, onSuccess }) => {
           
           <UploadCloud 
             size={48} 
-            className={`mx-auto mb-4 transition-colors ${isDragging ? 'text-indigo-600' : 'text-gray-400'}`} 
+            className={`mx-auto mb-4 transition-colors ${isDragging ? 'text-indigo-600' : getDragDropTextColor()}`} 
           />
           
-          <p className="text-gray-600 mb-2">
+          <p className={`mb-2 ${getDragDropTextColor()}`}>
             {isDragging ? 'Drop your files here' : 'Drag and drop Excel files here'}
           </p>
-          <p className="text-sm text-gray-400">or click to browse</p>
-          <p className="text-xs text-gray-400 mt-2">Supports: .xls, .xlsx (max 10MB per file)</p>
+          <p className={`text-sm ${getCardSubtextColor()}`}>or click to browse</p>
+          <p className={`text-xs mt-2 ${getCardSubtextColor()}`}>Supports: .xls, .xlsx (max 10MB per file)</p>
         </div>
 
         {/* Upload Progress */}
         {isUploading && uploadProgress > 0 && (
           <div className="mt-4">
-            <div className="flex justify-between text-sm text-gray-600 mb-1">
+            <div className={`flex justify-between text-sm mb-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
               <span>Uploading...</span>
               <span>{Math.round(uploadProgress)}%</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+            <div className={`w-full rounded-full h-2 overflow-hidden ${getProgressBg()}`}>
               <div
-                className="bg-indigo-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${uploadProgress}%` }}
+                className="h-2 rounded-full transition-all duration-300"
+                style={{ width: `${uploadProgress}%`, backgroundColor: getProgressFillColor() }}
               />
             </div>
           </div>
@@ -676,40 +684,40 @@ const Bulk_Upload: React.FC<BulkUploadProps> = ({ onClose, onSuccess }) => {
 
         {/* Success Message */}
         {success && !isUploading && (
-          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2">
-            <CheckCircle2 size={18} className="text-green-600" />
-            <p className="text-sm text-green-700">{success}</p>
+          <div className={`mt-4 p-3 rounded-lg flex items-center gap-2 ${getSuccessBg()}`}>
+            <CheckCircle2 size={18} className={getSuccessTextColor()} />
+            <p className={`text-sm ${getSuccessTextColor()}`}>{success}</p>
           </div>
         )}
 
         {/* Error Message */}
         {error && !isUploading && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <div className={`mt-4 p-3 rounded-lg ${getErrorBg()}`}>
             <div className="flex items-center gap-2 mb-1">
-              <AlertCircle size={18} className="text-red-600" />
-              <p className="text-sm font-medium text-red-700">Upload Error</p>
+              <AlertCircle size={18} className={getErrorTextColor()} />
+              <p className={`text-sm font-medium ${getErrorTextColor()}`}>Upload Error</p>
             </div>
-            <p className="text-sm text-red-600 whitespace-pre-line">{error}</p>
+            <p className={`text-sm whitespace-pre-line ${getErrorTextColor()}`}>{error}</p>
           </div>
         )}
 
         {/* Validation Errors Summary */}
         {validationErrors.length > 0 && (
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className={`mt-4 p-3 rounded-lg ${getValidationBg()}`}>
             <div className="flex items-center gap-2 mb-2">
-              <AlertCircle size={18} className="text-yellow-600" />
-              <p className="text-sm font-medium text-yellow-700">
+              <AlertCircle size={18} className={getValidationTextColor()} />
+              <p className={`text-sm font-medium ${getValidationTextColor()}`}>
                 Validation Errors ({validationErrors.length})
               </p>
             </div>
             <div className="max-h-32 overflow-y-auto">
               {validationErrors.slice(0, 5).map((err, idx) => (
-                <p key={idx} className="text-xs text-yellow-600">
+                <p key={idx} className={`text-xs ${getValidationTextColor()}`}>
                   Row {err.row}: {err.field} - {err.message} (Value: {err.value || 'empty'})
                 </p>
               ))}
               {validationErrors.length > 5 && (
-                <p className="text-xs text-yellow-600 mt-1">
+                <p className={`text-xs mt-1 ${getValidationTextColor()}`}>
                   + {validationErrors.length - 5} more errors
                 </p>
               )}
@@ -721,7 +729,7 @@ const Bulk_Upload: React.FC<BulkUploadProps> = ({ onClose, onSuccess }) => {
         {files.length > 0 && (
           <div className="mt-6">
             <div className="flex justify-between items-center mb-3">
-              <h3 className="font-semibold text-gray-700">Selected Files ({files.length})</h3>
+              <h3 className={`font-semibold ${getCardTextColor()}`}>Selected Files ({files.length})</h3>
               <button
                 onClick={clearAll}
                 className="text-xs text-red-600 hover:text-red-700 disabled:opacity-50"
@@ -734,14 +742,14 @@ const Bulk_Upload: React.FC<BulkUploadProps> = ({ onClose, onSuccess }) => {
               {files.map((file, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
+                  className={`flex items-center justify-between p-2 rounded-lg ${getCardBg()}`}
                 >
                   <div className="flex items-center gap-2">
-                    <FileType size={16} className="text-gray-500" />
-                    <span className="text-sm text-gray-700 truncate max-w-[200px]">
+                    <FileType size={16} className={getCardSubtextColor()} />
+                    <span className={`text-sm truncate max-w-[200px] ${getCardTextColor()}`}>
                       {file.name}
                     </span>
-                    <span className="text-xs text-gray-400">
+                    <span className={`text-xs ${getCardSubtextColor()}`}>
                       ({(file.size / 1024).toFixed(1)} KB)
                     </span>
                   </div>
@@ -762,40 +770,40 @@ const Bulk_Upload: React.FC<BulkUploadProps> = ({ onClose, onSuccess }) => {
         {uploadedData.length > 0 && (
           <div className="mt-6">
             <div className="flex justify-between items-center mb-3">
-              <h3 className="font-semibold text-gray-700">
+              <h3 className={`font-semibold ${getCardTextColor()}`}>
                 Data Preview ({uploadedData.length} records)
               </h3>
-              <span className="text-xs text-gray-500">
+              <span className={`text-xs ${getCardSubtextColor()}`}>
                 Scroll to view all columns
               </span>
             </div>
             
-            <div className="overflow-x-auto border border-gray-200 rounded-lg">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+            <div className={`overflow-x-auto border rounded-lg ${getTableBorderColor()}`}>
+              <table className="min-w-full divide-y">
+                <thead className={getTableHeaderBg()}>
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mobile</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job Title</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Website</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Lead Source</th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    <th className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider ${getTableHeaderTextColor()}`}>Name</th>
+                    <th className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider ${getTableHeaderTextColor()}`}>Email</th>
+                    <th className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider ${getTableHeaderTextColor()}`}>Mobile</th>
+                    <th className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider ${getTableHeaderTextColor()}`}>Company</th>
+                    <th className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider ${getTableHeaderTextColor()}`}>Job Title</th>
+                    <th className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider ${getTableHeaderTextColor()}`}>Website</th>
+                    <th className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider ${getTableHeaderTextColor()}`}>Lead Source</th>
+                    <th className={`px-4 py-3 text-left text-xs font-medium uppercase tracking-wider ${getTableHeaderTextColor()}`}>Actions</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className={`divide-y ${getTableRowBg()} ${getTableBorderColor()}`}>
                   {uploadedData.slice(0, 10).map((row, index) => {
                     const hasError = validationErrors.some(e => e.row === index + 1);
                     return (
-                      <tr key={index} className={`hover:bg-gray-50 ${hasError ? 'bg-yellow-50' : ''}`}>
-                        <td className="px-4 py-2 text-sm text-gray-900">{row.name || '-'}</td>
-                        <td className="px-4 py-2 text-sm text-gray-600">{row.email || '-'}</td>
-                        <td className="px-4 py-2 text-sm text-gray-600">{row.mobileNo || '-'}</td>
-                        <td className="px-4 py-2 text-sm text-gray-600">{row.company || '-'}</td>
-                        <td className="px-4 py-2 text-sm text-gray-600">{row.jobTitle || '-'}</td>
-                        <td className="px-4 py-2 text-sm text-gray-600">{row.website || '-'}</td>
-                        <td className="px-4 py-2 text-sm text-gray-600">{row.leadsource || '-'}</td>
+                      <tr key={index} className={`${getTableRowHover()} ${hasError ? (darkMode ? 'bg-yellow-900/10' : 'bg-yellow-50') : ''}`}>
+                        <td className={`px-4 py-2 text-sm ${getTableCellTextColor()}`}>{row.name || '-'}</td>
+                        <td className={`px-4 py-2 text-sm ${getTableCellSubColor()}`}>{row.email || '-'}</td>
+                        <td className={`px-4 py-2 text-sm ${getTableCellSubColor()}`}>{row.mobileNo || '-'}</td>
+                        <td className={`px-4 py-2 text-sm ${getTableCellSubColor()}`}>{row.company || '-'}</td>
+                        <td className={`px-4 py-2 text-sm ${getTableCellSubColor()}`}>{row.jobTitle || '-'}</td>
+                        <td className={`px-4 py-2 text-sm ${getTableCellSubColor()}`}>{row.website || '-'}</td>
+                        <td className={`px-4 py-2 text-sm ${getTableCellSubColor()}`}>{row.leadsource || '-'}</td>
                         <td className="px-4 py-2 text-sm">
                           <button
                             onClick={() => removeDataRow(index)}
@@ -811,7 +819,7 @@ const Bulk_Upload: React.FC<BulkUploadProps> = ({ onClose, onSuccess }) => {
                 </tbody>
               </table>
               {uploadedData.length > 10 && (
-                <div className="p-3 bg-gray-50 text-center text-sm text-gray-500">
+                <div className={`p-3 text-center text-sm ${getCardBg()} ${getCardSubtextColor()}`}>
                   + {uploadedData.length - 10} more records
                 </div>
               )}

@@ -1,3 +1,4 @@
+import Notification_View from "../component/common/Notification_View";
 import All_Users from "../pages/all_users/All_Users";
 import AllUser_Main from "../pages/all_users/AllUser_Main";
 import Create_Users from "../pages/all_users/Create_Users";
@@ -89,6 +90,10 @@ export const getHomeLayoutRoutes = (subdomain: string | null) => {
     {
       path:`${basePath}/profile/`,
       Component:Profile_Page_Model,
+    },
+    {
+      path:`${basePath}/notification/`,
+      Component:Notification_View,
     }
   ];
 };

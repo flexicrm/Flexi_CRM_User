@@ -100,6 +100,7 @@ const Create_PermisionRole = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const {  darkMode } = useSelector((state: any) => state.theme);
   const { edit, rolesData, permissionId } = location.state || {};
   
   const { meData, meLoading } = useSelector((state: any) => state.auth);
@@ -111,6 +112,24 @@ const Create_PermisionRole = () => {
   const [submitting, setSubmitting] = useState(false);
   const [availableModules, setAvailableModules] = useState<string[]>([]);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
+
+  // Theme-based styles
+  const getCardBg = () => darkMode ? 'bg-gray-800' : 'bg-white';
+  const getCardBorder = () => darkMode ? 'border-gray-700' : 'border-gray-200';
+  const getTitleColor = () => darkMode ? 'text-white' : 'text-slate-900';
+  const getSubtitleColor = () => darkMode ? 'text-gray-400' : 'text-slate-500';
+  const getBackButtonBg = () => darkMode ? 'hover:bg-gray-700' : 'hover:bg-slate-100';
+  const getBackButtonColor = () => darkMode ? 'text-gray-400' : 'text-slate-600';
+  const getModuleCountBg = () => darkMode ? 'bg-gray-700 text-gray-300' : 'bg-slate-100 text-slate-500';
+  const getLabelColor = () => darkMode ? 'text-gray-300' : 'text-slate-700';
+  const getInputBg = () => darkMode ? 'bg-gray-700 border-gray-600 text-gray-200' : 'bg-white border-gray-300';
+  const getInputFocusRing = () => darkMode ? 'focus:ring-indigo-500' : 'focus:ring-indigo-500';
+  const getHelperTextColor = () => darkMode ? 'text-gray-500' : 'text-slate-400';
+  const getPermissionsHeaderBg = () => darkMode ? 'bg-gray-700/50' : 'bg-slate-50';
+  const getPermissionsHeaderBorder = () => darkMode ? 'border-gray-700' : 'border-gray-200';
+  const getPermissionsHeaderTitleColor = () => darkMode ? 'text-gray-200' : 'text-slate-700';
+  const getPermissionsHeaderSubColor = () => darkMode ? 'text-gray-400' : 'text-slate-500';
+  const getPermissionsContentBg = () => darkMode ? 'bg-gray-800' : 'bg-white';
 
   const fetchModules = async () => {
     try {
@@ -156,7 +175,7 @@ const Create_PermisionRole = () => {
     fetchModules();
   }, [dispatch, meData]);
 
-  // Prefill edit data - FIXED with proper debugging
+  // Prefill edit data
   useEffect(() => {
     if (edit && rolesData && permissions.length > 0) {
       console.log("🔍 Editing role data:", rolesData);
@@ -189,7 +208,7 @@ const Create_PermisionRole = () => {
           return {
             module: item.module,
             create: apiPerm.canCreate === true,
-            view: apiPerm.canRead === true,  // Map canRead to view
+            view: apiPerm.canRead === true,
             edit: apiPerm.canEdit === true,
             delete: apiPerm.canDelete === true,
           };
@@ -227,7 +246,7 @@ const Create_PermisionRole = () => {
       const permission = {
         module: item.module,
         canCreate: item.create,
-        canRead: item.view,     // Map view to canRead
+        canRead: item.view,
         canEdit: item.edit,
         canDelete: item.delete,
       };
@@ -252,7 +271,6 @@ const Create_PermisionRole = () => {
   const handleSubmit = () => {
     if (!validateForm()) return;
 
-    // Log current permissions state before submit
     console.log("📊 Current permissions state before submit:", permissions);
 
     confirmAlert({
@@ -327,31 +345,31 @@ const Create_PermisionRole = () => {
     <>
       {submitting && <RippleLoader />}
       
-      <div className="p-6 bg-white rounded-lg shadow-sm">
+      <div className={`p-6 rounded-lg shadow-sm ${getCardBg()} ${getCardBorder()}`}>
         <div className="flex items-center gap-4 mb-6">
           <button
             onClick={handleCancel}
-            className="p-2 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+            className={`p-2 rounded-lg transition-colors cursor-pointer ${getBackButtonBg()}`}
             disabled={submitting}
           >
-            <ArrowLeft size={20} className="text-slate-600" />
+            <ArrowLeft size={20} className={getBackButtonColor()} />
           </button>
           <div>
-            <h2 className="text-xl font-bold text-slate-900">
+            <h2 className={`text-xl font-bold ${getTitleColor()}`}>
               {edit ? "Edit Role" : "Create Role"}
             </h2>
-            <p className="text-sm text-slate-500 mt-1">
+            <p className={`text-sm mt-1 ${getSubtitleColor()}`}>
               {edit ? "Update role permissions and settings" : "Configure a new role with specific permissions"}
             </p>
           </div>
-          <div className="ml-auto text-sm text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+          <div className={`ml-auto text-sm px-3 py-1 rounded-full ${getModuleCountBg()}`}>
             Total Modules: {availableModules.length}
           </div>
         </div>
 
         {/* Role Input */}
         <div className="mb-4">
-          <label className="block text-sm font-semibold mb-2">
+          <label className={`block text-sm font-semibold mb-2 ${getLabelColor()}`}>
             Role Name <span className="text-red-500">*</span>
           </label>
           <input
@@ -364,7 +382,7 @@ const Create_PermisionRole = () => {
                 setValidationErrors({});
               }
             }}
-            className={`border ${validationErrors.userRole ? 'border-red-500' : 'border-gray-300'} px-4 py-2.5 rounded-lg w-full focus:ring-2 focus:ring-indigo-500 outline-none transition-all`}
+            className={`border ${validationErrors.userRole ? 'border-red-500' : ''} px-4 py-2.5 rounded-lg w-full focus:ring-2 outline-none transition-all ${getInputBg()} ${getInputFocusRing()}`}
             disabled={submitting}
           />
           {validationErrors.userRole && (
@@ -374,7 +392,7 @@ const Create_PermisionRole = () => {
 
         {/* Group Input (Optional) */}
         <div className="mb-6">
-          <label className="block text-sm font-semibold mb-2">
+          <label className={`block text-sm font-semibold mb-2 ${getLabelColor()}`}>
             Group (Optional)
           </label>
           <input
@@ -382,23 +400,23 @@ const Create_PermisionRole = () => {
             placeholder="e.g. Sales Team, Admin Team"
             value={group}
             onChange={(e) => setGroup(e.target.value)}
-            className="border border-gray-300 px-4 py-2.5 rounded-lg w-full focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+            className={`px-4 py-2.5 rounded-lg w-full focus:ring-2 outline-none transition-all ${getInputBg()} ${getInputFocusRing()}`}
             disabled={submitting}
           />
-          <p className="text-xs text-slate-400 mt-1">
+          <p className={`text-xs mt-1 ${getHelperTextColor()}`}>
             Group helps organize roles with similar permissions
           </p>
         </div>
 
         {/* Permissions Table Component */}
-        <div className="border rounded-lg overflow-hidden">
-          <div className="bg-slate-50 px-4 py-3 border-b">
-            <h3 className="font-semibold text-slate-700">Module Permissions</h3>
-            <p className="text-xs text-slate-500 mt-1">
+        <div className={`border rounded-lg overflow-hidden ${getCardBorder()}`}>
+          <div className={`px-4 py-3 border-b ${getPermissionsHeaderBg()} ${getPermissionsHeaderBorder()}`}>
+            <h3 className={`font-semibold ${getPermissionsHeaderTitleColor()}`}>Module Permissions</h3>
+            <p className={`text-xs mt-1 ${getPermissionsHeaderSubColor()}`}>
               Configure access rights for each module (Create, Read, Update, Delete)
             </p>
           </div>
-          <div className="p-4">
+          <div className={`p-4 ${getPermissionsContentBg()}`}>
             <Overall_Permissions
               permissionss={permissions}
               setPermissions={setPermissions}

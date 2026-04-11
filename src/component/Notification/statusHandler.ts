@@ -1,4 +1,3 @@
-// component/Notification/statusHandler.ts
 export type StatusType = 'success' | 'error' | 'warning' | 'confirm';
 
 export interface StatusState {
@@ -16,7 +15,6 @@ let pendingStatus: StatusState | null = null;
 
 export const registerStatus = (callback: (data: StatusState) => void) => {
   globalStatusCallback = callback;
-  // If there's a pending status, show it now
   if (pendingStatus) {
     callback(pendingStatus);
     pendingStatus = null;
@@ -29,13 +27,11 @@ const showStatus = (data: Omit<StatusState, 'isOpen'>) => {
   if (globalStatusCallback) {
     globalStatusCallback(statusData);
   } else {
-    // Store as pending if GlobalStatus not yet registered
     pendingStatus = statusData;
     console.warn('GlobalStatus not registered yet, storing pending status:', data);
   }
 };
 
-// Simple alert functions
 export const successAlert = (message: string, buttonText?: string, title?: string) => {
   console.log('Showing success alert:', message);
   showStatus({
@@ -66,7 +62,6 @@ export const warningAlert = (message: string, buttonText?: string, title?: strin
   });
 };
 
-// Confirm alert that accepts an object parameter
 export const confirmAlert = (options: {
   title?: string;
   message: string;

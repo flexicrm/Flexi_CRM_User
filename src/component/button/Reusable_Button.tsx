@@ -1,6 +1,7 @@
 import { AnimatePresence, motion, type HTMLMotionProps } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import React from "react";
+import { useSelector } from "react-redux";
 
 type ButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "danger";
 type ButtonSize = "sm" | "md" | "lg" | string;
@@ -27,12 +28,29 @@ const Reusable_Button: React.FC<ReusableButtonProps> = ({
   disabled,
   ...props
 }) => {
-  const variants: Record<ButtonVariant, string> = {
-    primary: "bg-[#0d1954] text-white shadow-md shadow-indigo-900/20 hover:bg-[#1a2a6c]",
-    secondary: "bg-slate-100 text-slate-700 hover:bg-slate-200",
-    outline: "bg-transparent text-slate-700 border border-slate-200 hover:border-[#1a2a6c] hover:text-[#1a2a6c]",
-    ghost: "bg-transparent text-slate-500 hover:bg-slate-50",
-    danger: "bg-rose-500 text-white hover:bg-rose-600 shadow-rose-100",
+  const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
+
+  // Get dynamic styles based on theme
+  const getVariantStyles = (): Record<ButtonVariant, string> => {
+    const color = primaryColor || '#3B82F6';
+    
+    if (darkMode) {
+      return {
+        primary: `text-white shadow-lg shadow-${color}/30 hover:opacity-90`,
+        secondary: "bg-gray-800 text-gray-200 hover:bg-gray-700",
+        outline: "bg-transparent text-gray-300 border border-gray-700 hover:border-gray-500 hover:text-white",
+        ghost: "bg-transparent text-gray-400 hover:bg-gray-800/50",
+        danger: "bg-red-600 text-white hover:bg-red-700 shadow-red-900/30",
+      };
+    }
+    
+    return {
+      primary: `text-white shadow-md shadow-${color}/20 hover:opacity-90`,
+      secondary: "bg-slate-100 text-slate-700 hover:bg-slate-200",
+      outline: "bg-transparent text-slate-700 border border-slate-200 hover:border-slate-400 hover:text-slate-900",
+      ghost: "bg-transparent text-slate-500 hover:bg-slate-50",
+      danger: "bg-rose-500 text-white hover:bg-rose-600 shadow-rose-100",
+    };
   };
 
   const sizeStyles: Record<string, string> = {
@@ -43,15 +61,16 @@ const Reusable_Button: React.FC<ReusableButtonProps> = ({
 
   const appliedSize = sizeStyles[size as keyof typeof sizeStyles] || size;
   const isInteractive = !disabled && !isLoading;
+  const variantStyles = getVariantStyles();
 
   return (
     <motion.button
-      whileHover={isInteractive ? { 
-        y: -2, 
+      whileHover={isInteractive ? {
+        y: -2,
         scale: 1.02,
         transition: { duration: 0.2, ease: "easeOut" }
       } : {}}
-      whileTap={isInteractive ? { 
+      whileTap={isInteractive ? {
         scale: 0.97,
         transition: { duration: 0.1, ease: "easeIn" }
       } : {}}
@@ -59,20 +78,13 @@ const Reusable_Button: React.FC<ReusableButtonProps> = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
       disabled={isLoading || disabled}
-      className={`
-        relative inline-flex items-center justify-center
-        rounded-md font-semibold tracking-wide
-        transition-all duration-200
-        focus:outline-none focus:ring-2 focus:ring-indigo-500/20
-        focus:ring-offset-2 focus:ring-offset-white
-        disabled:opacity-50 disabled:cursor-not-allowed
-        cursor-pointer active:cursor-pointer
-        overflow-hidden select-none
-        ${variants[variant]}
-        ${appliedSize}
-        ${fullWidth ? "w-full" : "w-auto"}
-        ${className}
-      `.replace(/\s+/g, ' ').trim()}
+      style={variant === "primary" ? { 
+        backgroundColor: primaryColor || '#3B82F6',
+        boxShadow: darkMode 
+          ? `0 10px 15px -3px ${primaryColor}40, 0 4px 6px -2px ${primaryColor}30`
+          : `0 4px 6px -1px ${primaryColor}30, 0 2px 4px -1px ${primaryColor}20`
+      } : {}}
+      className={`relative inline-flex items-center justify-center rounded-md font-semibold tracking-wide transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer active:cursor-pointer overflow-hidden select-none ${variantStyles[variant]} ${appliedSize} ${fullWidth ? "w-full" : "w-auto"} ${className}`}
       {...props}
     >
       {/* Ripple effect on click */}
@@ -107,7 +119,10 @@ const Reusable_Button: React.FC<ReusableButtonProps> = ({
             transition={{ duration: 0.15 }}
             className="absolute inset-0 flex items-center justify-center bg-inherit z-10"
           >
-            <Loader2 className="w-4 h-4 animate-spin text-current" />
+            <Loader2 
+              className="w-4 h-4 animate-spin text-current" 
+              style={{ color: variant === "primary" ? "white" : undefined }}
+            />
           </motion.div>
         )}
       </AnimatePresence>

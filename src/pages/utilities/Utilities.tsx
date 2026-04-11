@@ -63,20 +63,28 @@ const itemVariants = {
   },
 };
 
-// --- Tooltip Component ---
-const Tooltip = ({ children, text }: { children: React.ReactNode, text: string }) => (
-  <div className="group relative flex flex-col items-center">
-    {children}
-    <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center z-50 animate-in fade-in zoom-in-95 duration-200">
-      <span className="relative z-10 px-2 py-1 text-[10px] font-semibold text-white whitespace-nowrap bg-slate-800 shadow-md rounded-md">
-        {text}
-      </span>
-      <div className="w-2 h-2 -mt-1 rotate-45 bg-slate-800 rounded-sm"></div>
+// --- Tooltip Component with Theme Support ---
+const Tooltip = ({ children, text }: { children: React.ReactNode, text: string }) => {
+  const { darkMode } = useSelector((state: any) => state.theme);
+  
+  return (
+    <div className="group relative flex flex-col items-center">
+      {children}
+      <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center z-50 animate-in fade-in zoom-in-95 duration-200">
+        <span className={`relative z-10 px-2 py-1 text-[10px] font-semibold text-white whitespace-nowrap shadow-md rounded-md ${
+          darkMode ? 'bg-gray-800' : 'bg-slate-800'
+        }`}>
+          {text}
+        </span>
+        <div className={`w-2 h-2 -mt-1 rotate-45 rounded-sm ${
+          darkMode ? 'bg-gray-800' : 'bg-slate-800'
+        }`}></div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
-// --- Preview Modal Component ---
+// --- Preview Modal Component with Theme Support ---
 interface PreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -90,8 +98,26 @@ interface PreviewModalProps {
 }
 
 const PreviewModal = ({ isOpen, onClose, formData, generatedCode }: PreviewModalProps) => {
+  const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
   const [activeTab, setActiveTab] = useState<"preview" | "code">("preview");
   const [isCopied, setIsCopied] = useState(false);
+
+  const getModalBg = () => darkMode ? 'bg-gray-800' : 'bg-white';
+  const getModalBorder = () => darkMode ? 'border-gray-700' : 'border-slate-200';
+  const getTitleColor = () => darkMode ? 'text-white' : 'text-slate-900';
+  const getSubtitleColor = () => darkMode ? 'text-gray-400' : 'text-slate-500';
+  const getCloseButtonBg = () => darkMode ? 'hover:bg-gray-700' : 'hover:bg-slate-100';
+  const getTabButtonColor = (isActive: boolean) => {
+    if (isActive) return darkMode ? 'text-indigo-400' : 'text-indigo-600';
+    return darkMode ? 'text-gray-400 hover:text-gray-200' : 'text-slate-500 hover:text-slate-700';
+  };
+  const getTabIndicatorBg = () => darkMode ? primaryColor || '#818CF8' : '#6366f1';
+  const getCodeBg = () => darkMode ? 'bg-gray-900' : 'bg-[#0F172A]';
+  const getCodeBorder = () => darkMode ? 'border-gray-700' : 'border-slate-800';
+  const getCodeHeaderBg = () => darkMode ? 'bg-gray-800/50' : 'bg-slate-900/50';
+  const getCodeTextColor = () => darkMode ? 'text-emerald-400/90' : 'text-emerald-400/90';
+  const getModalFooterBg = () => darkMode ? 'bg-gray-800/50' : 'bg-slate-50';
+  const getModalFooterBorder = () => darkMode ? 'border-gray-700' : 'border-slate-200';
 
   const handleCopyCode = () => {
     if (!generatedCode) {
@@ -109,9 +135,9 @@ const PreviewModal = ({ isOpen, onClose, formData, generatedCode }: PreviewModal
   const renderFormPreview = () => {
     return (
       <div className="space-y-4">
-        <div className="border-b border-slate-200 pb-3">
-          <h3 className="text-lg font-semibold text-slate-900">{formData.formName}</h3>
-          <p className="text-xs text-slate-500 mt-1">
+        <div className={`border-b pb-3 ${getModalBorder()}`}>
+          <h3 className={`text-lg font-semibold ${getTitleColor()}`}>{formData.formName}</h3>
+          <p className={`text-xs mt-1 ${getSubtitleColor()}`}>
             Platform: {formData.platform} | Framework: {formData.integrationType}
           </p>
         </div>
@@ -119,42 +145,27 @@ const PreviewModal = ({ isOpen, onClose, formData, generatedCode }: PreviewModal
         <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
           {formData.fields.map((field) => (
             <div key={field.id} className="space-y-1">
-              <label className="block text-sm font-medium text-slate-700">
+              <label className={`block text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-slate-700'}`}>
                 {field.label}
                 {field.type === "email" && <span className="text-red-500 ml-1">*</span>}
               </label>
               
-              {field.type === "textarea" ? (
-                <textarea
-                  placeholder={`Enter ${field.label.toLowerCase()}`}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm"
-                  rows={3}
-                />
-              ) : field.type === "tel" ? (
-                <input
-                  type="tel"
-                  placeholder={`Enter ${field.label.toLowerCase()}`}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm"
-                />
-              ) : field.type === "email" ? (
-                <input
-                  type="email"
-                  placeholder={`Enter ${field.label.toLowerCase()}`}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm"
-                />
-              ) : (
-                <input
-                  type="text"
-                  placeholder={`Enter ${field.label.toLowerCase()}`}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm"
-                />
-              )}
+              <input
+                type={field.type === "textarea" ? "text" : field.type}
+                placeholder={`Enter ${field.label.toLowerCase()}`}
+                className={`w-full px-3 py-2 rounded-lg focus:ring-2 outline-none transition-all text-sm ${
+                  darkMode 
+                    ? 'bg-gray-700 border-gray-600 text-gray-200 focus:ring-indigo-500 focus:border-indigo-500'
+                    : 'bg-white border-slate-300 focus:ring-indigo-500 focus:border-indigo-500'
+                } border`}
+              />
             </div>
           ))}
           
           <button
             type="submit"
-            className="w-full bg-indigo-600 text-white py-2 rounded-lg font-semibold hover:bg-indigo-700 transition-colors shadow-sm text-sm"
+            className={`w-full py-2 rounded-lg font-semibold transition-colors shadow-sm text-sm text-white`}
+            style={{ backgroundColor: primaryColor || '#6366f1' }}
           >
             Submit
           </button>
@@ -207,22 +218,13 @@ const ${formData.formName.replace(/\s/g, '')}Form = () => {
         <label className="block text-sm font-medium text-gray-700">
           ${f.label}
         </label>
-        ${f.type === "textarea" ? 
-          `<textarea
-            name="${f.name}"
-            value={formData.${f.name}}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-            rows={3}
-          />` :
-          `<input
-            type="${f.type}"
-            name="${f.name}"
-            value={formData.${f.name}}
-            onChange={handleChange}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-          />`
-        }
+        <input
+          type="${f.type}"
+          name="${f.name}"
+          value={formData.${f.name}}
+          onChange={handleChange}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+        />
       </div>`).join("")}
       <button
         type="submit"
@@ -266,10 +268,7 @@ export default ${formData.formName.replace(/\s/g, '')}Form;`;
             ${formData.fields.map(f => `
             <div class="form-group">
                 <label for="${f.name}">${f.label}</label>
-                ${f.type === "textarea" ? 
-                  `<textarea id="${f.name}" name="${f.name}" rows="3"></textarea>` :
-                  `<input type="${f.type}" id="${f.name}" name="${f.name}">`
-                }
+                <input type="${f.type}" id="${f.name}" name="${f.name}">
             </div>`).join("")}
             <button type="submit" id="submitBtn">Submit</button>
         </form>
@@ -315,51 +314,45 @@ export default ${formData.formName.replace(/\s/g, '')}Form;`;
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
           transition={{ type: "spring", duration: 0.3 }}
-          className="relative bg-white rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
+          className={`relative rounded-xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col ${getModalBg()}`}
         >
-          <div className="flex items-center justify-between p-5 border-b border-slate-200">
+          <div className={`flex items-center justify-between p-5 border-b ${getModalBorder()}`}>
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Form Preview</h2>
-              <p className="text-xs text-slate-500 mt-0.5">Preview and copy your integration code</p>
+              <h2 className={`text-lg font-bold ${getTitleColor()}`}>Form Preview</h2>
+              <p className={`text-xs mt-0.5 ${getSubtitleColor()}`}>Preview and copy your integration code</p>
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+              className={`p-1.5 rounded-lg transition-colors ${getCloseButtonBg()}`}
             >
-              <X size={18} className="text-slate-500" />
+              <X size={18} className={darkMode ? 'text-gray-400' : 'text-slate-500'} />
             </button>
           </div>
           
-          <div className="flex border-b border-slate-200 px-5">
+          <div className={`flex border-b px-5 ${getModalBorder()}`}>
             <button
               onClick={() => setActiveTab("preview")}
-              className={`px-3 py-2 text-xs font-medium transition-colors relative ${
-                activeTab === "preview"
-                  ? "text-indigo-600"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
+              className={`px-3 py-2 text-xs font-medium transition-colors relative ${getTabButtonColor(activeTab === "preview")}`}
             >
               Form Preview
               {activeTab === "preview" && (
                 <motion.div
                   layoutId="activeTab"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600"
+                  className="absolute bottom-0 left-0 right-0 h-0.5"
+                  style={{ backgroundColor: getTabIndicatorBg() }}
                 />
               )}
             </button>
             <button
               onClick={() => setActiveTab("code")}
-              className={`px-3 py-2 text-xs font-medium transition-colors relative ${
-                activeTab === "code"
-                  ? "text-indigo-600"
-                  : "text-slate-500 hover:text-slate-700"
-              }`}
+              className={`px-3 py-2 text-xs font-medium transition-colors relative ${getTabButtonColor(activeTab === "code")}`}
             >
               Generated Code
               {activeTab === "code" && (
                 <motion.div
                   layoutId="activeTab"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600"
+                  className="absolute bottom-0 left-0 right-0 h-0.5"
+                  style={{ backgroundColor: getTabIndicatorBg() }}
                 />
               )}
             </button>
@@ -370,8 +363,8 @@ export default ${formData.formName.replace(/\s/g, '')}Form;`;
               renderFormPreview()
             ) : (
               <div className="space-y-3">
-                <div className="bg-[#0F172A] rounded-lg overflow-hidden">
-                  <div className="bg-slate-900/50 px-3 py-2 flex items-center justify-between border-b border-slate-800">
+                <div className={`rounded-lg overflow-hidden ${getCodeBg()} ${getCodeBorder()}`}>
+                  <div className={`px-3 py-2 flex items-center justify-between border-b ${getCodeHeaderBg()} ${getCodeBorder()}`}>
                     <div className="flex items-center gap-1.5">
                       <div className="w-2 h-2 rounded-full bg-rose-500/80"></div>
                       <div className="w-2 h-2 rounded-full bg-amber-500/80"></div>
@@ -382,7 +375,7 @@ export default ${formData.formName.replace(/\s/g, '')}Form;`;
                     </div>
                     <button
                       onClick={handleCopyCode}
-                      className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] bg-slate-800 hover:bg-slate-700 rounded transition-colors text-slate-300"
+                      className={`flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded transition-colors ${darkMode ? 'bg-gray-700 hover:bg-gray-600 text-gray-300' : 'bg-slate-800 hover:bg-slate-700 text-slate-300'}`}
                     >
                       {isCopied ? (
                         <>
@@ -397,7 +390,7 @@ export default ${formData.formName.replace(/\s/g, '')}Form;`;
                       )}
                     </button>
                   </div>
-                  <pre className="p-3 text-xs font-mono text-emerald-400/90 leading-relaxed overflow-x-auto whitespace-pre-wrap">
+                  <pre className={`p-3 text-xs font-mono leading-relaxed overflow-x-auto whitespace-pre-wrap ${getCodeTextColor()}`}>
                     <code>{generatePreviewCode()}</code>
                   </pre>
                 </div>
@@ -405,7 +398,7 @@ export default ${formData.formName.replace(/\s/g, '')}Form;`;
             )}
           </div>
           
-          <div className="flex items-center justify-end gap-2 p-4 border-t border-slate-200 bg-slate-50 mt-auto">
+          <div className={`flex items-center justify-end gap-2 p-4 border-t mt-auto ${getModalFooterBg()} ${getModalFooterBorder()}`}>
             <Reusable_Button
               text="Close"
               variant="ghost"
@@ -430,6 +423,7 @@ export default ${formData.formName.replace(/\s/g, '')}Form;`;
 
 const Utilities = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
   const { isLoading } = useSelector((state: any) => state.generatedCode || {});
   
   const [formName, setFormName] = useState("Contact Us");
@@ -453,6 +447,46 @@ const Utilities = () => {
   const [selectedFields, setSelectedFields] = useState<FieldItem[]>([]);
   const { permissions } = useSelector((state: any) => state.auth);
   const Roles = permissions[6];
+
+  // Theme-based styles
+  const getPageBg = () => darkMode ? 'bg-gray-900' : 'bg-[#F8FAFC]';
+  const getCardBg = () => darkMode ? 'bg-gray-800' : 'bg-white';
+  const getCardBorder = () => darkMode ? 'border-gray-700' : 'border-slate-200/60';
+  const getHeaderIconBg = () => darkMode ? 'bg-gray-700' : 'bg-indigo-100';
+  const getHeaderIconColor = () => darkMode ? primaryColor || '#818CF8' : '#6366f1';
+  const getTitleColor = () => darkMode ? 'text-white' : 'text-slate-900';
+  const getSubtitleColor = () => darkMode ? 'text-gray-400' : 'text-slate-500';
+  const getSeparatorColor = () => darkMode ? 'bg-gray-600' : 'bg-slate-300';
+  const getCountColor = () => darkMode ? 'text-gray-500' : 'text-slate-500';
+  const getButtonBg = () => darkMode ? 'bg-gray-800' : 'bg-white';
+  const getButtonBorder = () => darkMode ? 'border-gray-700' : 'border-slate-200';
+  const getButtonTextColor = () => darkMode ? 'text-gray-400 hover:text-indigo-400' : 'text-slate-500 hover:text-indigo-600';
+  const getButtonHoverBg = () => darkMode ? 'hover:bg-gray-700' : 'hover:bg-slate-50';
+  const getToolbarBg = () => darkMode ? 'bg-gray-800/80' : 'bg-slate-50/80';
+  const getToolbarBorder = () => darkMode ? 'border-gray-700' : 'border-slate-100';
+  const getLabelColor = () => darkMode ? 'text-gray-400' : 'text-slate-500';
+  const getInputBg = () => darkMode ? 'bg-gray-700 border-gray-600 text-gray-200' : 'bg-white border-slate-200 text-slate-800';
+  const getInputFocusRing = () => darkMode ? 'focus:ring-indigo-500' : 'focus:ring-indigo-500';
+  const getSelectBg = () => darkMode ? 'bg-gray-700 border-gray-600 text-gray-200' : 'bg-white border-slate-200 text-slate-800';
+  const getAvailableFieldsBg = () => darkMode ? 'bg-gray-700/50' : 'bg-slate-50';
+  const getAvailableFieldsBorder = () => darkMode ? 'border-gray-600' : 'border-slate-200';
+  const getAvailableFieldBg = () => darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-slate-200';
+  const getAvailableFieldTextColor = () => darkMode ? 'text-gray-200' : 'text-slate-700';
+  const getAvailableFieldSubColor = () => darkMode ? 'text-gray-500' : 'text-slate-400';
+  const getFormStructureBg = () => darkMode ? 'bg-indigo-900/20' : 'bg-indigo-50/30';
+  const getFormStructureBorder = () => darkMode ? 'border-indigo-800' : 'border-indigo-100';
+  const getFormStructureTitleColor = () => darkMode ? 'text-indigo-400' : 'text-indigo-900';
+  const getFormStructureCountColor = () => darkMode ? 'text-indigo-400' : 'text-indigo-400';
+  const getFormStructureEmptyIconColor = () => darkMode ? 'text-indigo-500' : 'text-indigo-300';
+  const getFormStructureEmptyTitleColor = () => darkMode ? 'text-indigo-300' : 'text-indigo-800';
+  const getFormStructureEmptyTextColor = () => darkMode ? 'text-indigo-400' : 'text-indigo-500';
+  const getSelectedFieldBg = () => darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-indigo-100';
+  const getSelectedFieldTextColor = () => darkMode ? 'text-indigo-400' : 'text-indigo-900';
+  const getSelectedFieldSubColor = () => darkMode ? 'text-indigo-400' : 'text-indigo-400';
+  const getCodePanelBg = () => darkMode ? 'bg-gray-900' : 'bg-[#0F172A]';
+  const getCodePanelBorder = () => darkMode ? 'border-gray-700' : 'border-slate-800';
+  const getCodeHeaderBg = () => darkMode ? 'bg-gray-800/50' : 'bg-slate-900/50';
+  const getCodeTextColor = () => darkMode ? 'text-emerald-400/90' : 'text-emerald-400/90';
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -659,21 +693,21 @@ const Utilities = () => {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="min-h-screen bg-[#F8FAFC] py-6 px-4 md:py-8 md:px-6 lg:px-8"
+        className={`min-h-screen py-6 px-4 md:py-8 md:px-6 lg:px-8 transition-colors duration-300 ${getPageBg()}`}
       >
         <div className="w-full mx-auto space-y-6">
           
           <motion.header variants={itemVariants} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-indigo-100 text-indigo-600 rounded-xl md:rounded-2xl flex items-center justify-center shadow-sm">
-                <Blocks size={20} strokeWidth={2.5} className="md:w-6 md:h-6" />
+              <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center shadow-sm ${getHeaderIconBg()}`}>
+                <Blocks size={20} strokeWidth={2.5} className="md:w-6 md:h-6" style={{ color: getHeaderIconColor() }} />
               </div>
               <div>
-                <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">Form Builder</h1>
+                <h1 className={`text-xl md:text-2xl lg:text-3xl font-bold tracking-tight ${getTitleColor()}`}>Form Builder</h1>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <p className="text-xs md:text-sm text-slate-500">Design custom forms and generate integration code instantly.</p>
-                  <span className="w-1 h-1 rounded-full bg-slate-300 hidden sm:block"></span>
-                  <p className="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-wider hidden sm:block">
+                  <p className={`text-xs md:text-sm ${getSubtitleColor()}`}>Design custom forms and generate integration code instantly.</p>
+                  <span className={`w-1 h-1 rounded-full hidden sm:block ${getSeparatorColor()}`}></span>
+                  <p className={`text-[10px] md:text-xs font-bold uppercase tracking-wider hidden sm:block ${getCountColor()}`}>
                     {selectedFields.length} Field{selectedFields.length !== 1 ? 's' : ''} Selected
                   </p>
                 </div>
@@ -681,11 +715,11 @@ const Utilities = () => {
             </div>
             
             <div className="flex items-center gap-2">
-              <Tooltip text="Refresh Builder">
+              <Tooltip text="Refresh Data">
                 <button
                   onClick={handleRefresh}
                   disabled={isLoadingState}
-                  className="p-2 bg-white rounded-lg shadow-sm border border-slate-200 text-slate-500 hover:text-indigo-600 hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`p-2 rounded-lg shadow-sm border transition-all disabled:opacity-50 disabled:cursor-not-allowed ${getButtonBg()} ${getButtonBorder()} ${getButtonTextColor()} ${getButtonHoverBg()}`}
                 >
                   <RefreshCw size={16} className={isLoadingState ? "animate-spin" : ""} />
                 </button>
@@ -702,21 +736,19 @@ const Utilities = () => {
             </div>
           </motion.header>
 
-          <motion.main variants={itemVariants} className="bg-white rounded-xl md:rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden">
+          <motion.main variants={itemVariants} className={`rounded-xl md:rounded-2xl shadow-sm border overflow-hidden ${getCardBg()} ${getCardBorder()}`}>
             
-            <div className="bg-slate-50/80 border-b border-slate-100 p-4">
+            <div className={`border-b p-4 ${getToolbarBg()} ${getToolbarBorder()}`}>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  <label className={`text-[10px] font-bold uppercase tracking-wider ${getLabelColor()}`}>
                     Form Name <span className="text-red-500">*</span>
                   </label>
                   <input
                     value={formName}
                     onChange={handleFormNameChange}
                     placeholder="e.g., Contact Us"
-                    className={`w-full px-3 py-1.5 rounded-lg bg-white text-slate-800 border text-sm ${
-                      validationErrors.formName ? 'border-red-500 focus:ring-red-500' : 'border-slate-200 focus:ring-indigo-500'
-                    } focus:border-indigo-500 outline-none transition-all shadow-sm`}
+                    className={`w-full px-3 py-1.5 rounded-lg border text-sm focus:outline-none transition-all shadow-sm ${getInputBg()} ${getInputFocusRing()}`}
                     disabled={isLoadingState}
                   />
                   {validationErrors.formName && (
@@ -725,11 +757,11 @@ const Utilities = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Platform</label>
+                  <label className={`text-[10px] font-bold uppercase tracking-wider ${getLabelColor()}`}>Platform</label>
                   <select
                     value={platform}
                     onChange={(e) => setPlatform(e.target.value)}
-                    className="w-full px-3 py-1.5 rounded-lg bg-white text-slate-800 border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm text-sm"
+                    className={`w-full px-3 py-1.5 rounded-lg border focus:ring-2 outline-none transition-all shadow-sm text-sm ${getSelectBg()} ${getInputFocusRing()}`}
                     disabled={isLoadingState}
                   >
                     <option value="website">Website</option>
@@ -738,11 +770,11 @@ const Utilities = () => {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Framework</label>
+                  <label className={`text-[10px] font-bold uppercase tracking-wider ${getLabelColor()}`}>Framework</label>
                   <select
                     value={integrationType}
                     onChange={(e) => setIntegrationType(e.target.value)}
-                    className="w-full px-3 py-1.5 rounded-lg bg-white text-slate-800 border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm text-sm"
+                    className={`w-full px-3 py-1.5 rounded-lg border focus:ring-2 outline-none transition-all shadow-sm text-sm ${getSelectBg()} ${getInputFocusRing()}`}
                     disabled={isLoadingState}
                   >
                     <option value="React">React App</option>
@@ -764,9 +796,9 @@ const Utilities = () => {
                   
                   <div className="flex flex-col">
                     <div className="flex items-center gap-1.5 mb-3">
-                      <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
-                      <h3 className="font-semibold text-slate-700 text-sm">Available Fields</h3>
-                      <span className="text-[10px] text-slate-400 ml-auto">{availableFields.length} fields</span>
+                      <div className={`w-1.5 h-1.5 rounded-full ${darkMode ? 'bg-gray-500' : 'bg-slate-300'}`} />
+                      <h3 className={`font-semibold text-sm ${darkMode ? 'text-gray-300' : 'text-slate-700'}`}>Available Fields</h3>
+                      <span className={`text-[10px] ml-auto ${darkMode ? 'text-gray-500' : 'text-slate-400'}`}>{availableFields.length} fields</span>
                     </div>
                     <Droppable droppableId="available">
                       {(provided, snapshot) => (
@@ -774,7 +806,9 @@ const Utilities = () => {
                           ref={provided.innerRef}
                           {...provided.droppableProps}
                           className={`flex-1 p-3 rounded-xl border-2 border-dashed transition-colors ${
-                            snapshot.isDraggingOver ? 'bg-slate-100 border-slate-300' : 'bg-slate-50 border-slate-200'
+                            snapshot.isDraggingOver 
+                              ? darkMode ? 'bg-gray-700 border-gray-500' : 'bg-slate-100 border-slate-300'
+                              : `${getAvailableFieldsBg()} ${getAvailableFieldsBorder()}`
                           }`}
                         >
                           <AnimatePresence>
@@ -786,15 +820,17 @@ const Utilities = () => {
                                     {...prov.draggableProps}
                                     {...prov.dragHandleProps}
                                     style={{ ...prov.draggableProps.style }}
-                                    className={`mb-2 flex items-center justify-between p-2 rounded-lg bg-white border shadow-sm transition-shadow ${
-                                      snap.isDragging ? 'border-indigo-300 shadow-md shadow-indigo-100 scale-105 z-50' : 'border-slate-200 hover:border-slate-300 hover:shadow-md'
+                                    className={`mb-2 flex items-center justify-between p-2 rounded-lg border shadow-sm transition-shadow ${
+                                      snap.isDragging 
+                                        ? `border-${primaryColor}-300 shadow-md shadow-${primaryColor}/10 scale-105 z-50`
+                                        : `${getAvailableFieldBg()} hover:border-slate-300 hover:shadow-md`
                                     }`}
                                   >
                                     <div className="flex items-center gap-2">
-                                      <GripVertical size={14} className="text-slate-400" />
+                                      <GripVertical size={14} className={darkMode ? 'text-gray-500' : 'text-slate-400'} />
                                       <div className="flex flex-col">
-                                        <span className="text-xs font-semibold text-slate-700">{field.label}</span>
-                                        <span className="text-[10px] font-mono text-slate-400">{field.type}</span>
+                                        <span className={`text-xs font-semibold ${getAvailableFieldTextColor()}`}>{field.label}</span>
+                                        <span className={`text-[10px] font-mono ${getAvailableFieldSubColor()}`}>{field.type}</span>
                                       </div>
                                     </div>
                                   </div>
@@ -804,7 +840,7 @@ const Utilities = () => {
                           </AnimatePresence>
                           {provided.placeholder}
                           {availableFields.length === 0 && (
-                            <div className="text-center py-6 text-slate-400 text-xs">
+                            <div className={`text-center py-6 text-xs ${darkMode ? 'text-gray-500' : 'text-slate-400'}`}>
                               All fields have been added to the form
                             </div>
                           )}
@@ -815,9 +851,9 @@ const Utilities = () => {
 
                   <div className="flex flex-col">
                     <div className="flex items-center gap-1.5 mb-3">
-                      <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
-                      <h3 className="font-semibold text-indigo-900 text-sm">Form Structure</h3>
-                      <span className="text-[10px] text-indigo-400 ml-auto">{selectedFields.length} fields</span>
+                      <div className={`w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]`} />
+                      <h3 className={`font-semibold text-sm ${getFormStructureTitleColor()}`}>Form Structure</h3>
+                      <span className={`text-[10px] ml-auto ${getFormStructureCountColor()}`}>{selectedFields.length} fields</span>
                     </div>
                     <Droppable droppableId="selected">
                       {(provided, snapshot) => (
@@ -825,14 +861,16 @@ const Utilities = () => {
                           ref={provided.innerRef}
                           {...provided.droppableProps}
                           className={`flex-1 p-3 rounded-xl border-2 border-dashed transition-colors flex flex-col ${
-                            snapshot.isDraggingOver ? 'bg-indigo-50 border-indigo-300' : 'bg-indigo-50/30 border-indigo-100'
+                            snapshot.isDraggingOver 
+                              ? darkMode ? 'bg-indigo-900/30 border-indigo-600' : 'bg-indigo-50 border-indigo-300'
+                              : `${getFormStructureBg()} ${getFormStructureBorder()}`
                           }`}
                         >
                           {selectedFields.length === 0 && !snapshot.isDraggingOver && (
                             <div className="m-auto flex flex-col items-center justify-center text-center p-4 opacity-60">
-                              <MousePointerClick size={32} className="text-indigo-300 mb-2" />
-                              <p className="text-xs font-medium text-indigo-800">Drag fields here to build</p>
-                              <p className="text-[10px] text-indigo-500 mt-0.5">Configure your form structure</p>
+                              <MousePointerClick size={32} className={getFormStructureEmptyIconColor()} />
+                              <p className={`text-xs font-medium mt-2 ${getFormStructureEmptyTitleColor()}`}>Drag fields here to build</p>
+                              <p className={`text-[10px] mt-0.5 ${getFormStructureEmptyTextColor()}`}>Configure your form structure</p>
                             </div>
                           )}
 
@@ -845,15 +883,17 @@ const Utilities = () => {
                                     {...prov.draggableProps}
                                     {...prov.dragHandleProps}
                                     style={{ ...prov.draggableProps.style }}
-                                    className={`mb-2 flex items-center justify-between p-2 rounded-lg bg-white border transition-shadow ${
-                                      snap.isDragging ? 'border-indigo-400 shadow-lg shadow-indigo-200 scale-105 z-50' : 'border-indigo-100 shadow-sm hover:border-indigo-200'
+                                    className={`mb-2 flex items-center justify-between p-2 rounded-lg border shadow-sm transition-shadow ${
+                                      snap.isDragging 
+                                        ? `border-${primaryColor}-400 shadow-lg shadow-${primaryColor}/20 scale-105 z-50`
+                                        : `${getSelectedFieldBg()} shadow-sm hover:border-indigo-200`
                                     }`}
                                   >
                                     <div className="flex items-center gap-2">
-                                      <GripVertical size={14} className="text-indigo-300" />
+                                      <GripVertical size={14} className={darkMode ? 'text-indigo-400' : 'text-indigo-300'} />
                                       <div className="flex flex-col">
-                                        <span className="text-xs font-semibold text-indigo-900">{field.label}</span>
-                                        <span className="text-[10px] font-mono text-indigo-400">{field.type}</span>
+                                        <span className={`text-xs font-semibold ${getSelectedFieldTextColor()}`}>{field.label}</span>
+                                        <span className={`text-[10px] font-mono ${getSelectedFieldSubColor()}`}>{field.type}</span>
                                       </div>
                                     </div>
                                   </div>
@@ -870,8 +910,8 @@ const Utilities = () => {
                   <div className="flex flex-col">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-1.5">
-                        <TerminalSquare size={16} className="text-slate-600" />
-                        <h3 className="font-semibold text-slate-800 text-sm">Integration Code</h3>
+                        <TerminalSquare size={16} className={darkMode ? 'text-gray-400' : 'text-slate-600'} />
+                        <h3 className={`font-semibold text-sm ${darkMode ? 'text-gray-300' : 'text-slate-800'}`}>Integration Code</h3>
                       </div>
                       {generatedCode && (
                         <span className="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full">
@@ -880,8 +920,8 @@ const Utilities = () => {
                       )}
                     </div>
                     
-                    <div className="flex-1 bg-[#0F172A] rounded-xl border border-slate-800 overflow-hidden flex flex-col shadow-md">
-                      <div className="bg-slate-900/50 px-3 py-2 flex items-center gap-1.5 border-b border-slate-800">
+                    <div className={`flex-1 rounded-xl border overflow-hidden flex flex-col shadow-md ${getCodePanelBg()} ${getCodePanelBorder()}`}>
+                      <div className={`px-3 py-2 flex items-center gap-1.5 border-b ${getCodeHeaderBg()} ${getCodePanelBorder()}`}>
                         <div className="w-2 h-2 rounded-full bg-rose-500/80"></div>
                         <div className="w-2 h-2 rounded-full bg-amber-500/80"></div>
                         <div className="w-2 h-2 rounded-full bg-emerald-500/80"></div>
@@ -892,12 +932,12 @@ const Utilities = () => {
                       
                       <div className="p-3 flex-1 overflow-auto max-h-[300px]">
                         {generatedCode ? (
-                          <pre className="text-[11px] font-mono text-emerald-400/90 leading-relaxed">
+                          <pre className={`text-[11px] font-mono leading-relaxed ${getCodeTextColor()}`}>
                             {generatedCode}
                           </pre>
                         ) : (
-                          <div className="h-full flex flex-col items-center justify-center text-slate-600 text-xs font-mono opacity-50 gap-2">
-                            <AlertCircle size={24} className="text-slate-500" />
+                          <div className={`h-full flex flex-col items-center justify-center text-xs font-mono opacity-50 gap-2 ${darkMode ? 'text-gray-500' : 'text-slate-600'}`}>
+                            <AlertCircle size={24} className={darkMode ? 'text-gray-600' : 'text-slate-500'} />
                             <div className="text-center">
                               <p>No code generated yet</p>
                               <p className="text-[10px] mt-0.5">Configure your form and click "Generate Code"</p>

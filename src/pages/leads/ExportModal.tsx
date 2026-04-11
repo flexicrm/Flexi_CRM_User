@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Download, FileSpreadsheet, FileText, X } from 'lucide-react';
 import React, { useState } from 'react';
+import { useSelector } from 'react-redux';
 import * as XLSX from 'xlsx';
 import Reusable_Button from '../../component/button/Reusable_Button';
 
@@ -12,7 +13,26 @@ interface ExportModalProps {
 }
 
 const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, data, selectedIds }) => {
+  const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
   const [exportType, setExportType] = useState<'all' | 'selected'>(selectedIds.length > 0 ? 'selected' : 'all');
+
+  // Theme-based styles
+  const getModalBg = () => darkMode ? 'bg-gray-800' : 'bg-white';
+  const getModalBorder = () => darkMode ? 'border-gray-700' : 'border-slate-100';
+  const getTitleColor = () => darkMode ? 'text-white' : 'text-[#0d1954]';
+  const getIconBg = () => darkMode ? 'bg-gray-700' : 'bg-indigo-50';
+  const getIconColor = () => darkMode ? primaryColor || '#818CF8' : '#6366f1';
+  const getCloseButtonColor = () => darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-slate-400 hover:bg-slate-50';
+  const getLabelColor = () => darkMode ? 'text-gray-300' : 'text-slate-700';
+  const getOptionBg = (isSelected: boolean) => {
+    if (isSelected) {
+      return darkMode ? `border-${primaryColor}-500 bg-${primaryColor}/10` : 'border-indigo-600 bg-indigo-50/50';
+    }
+    return darkMode ? 'border-gray-700 hover:border-gray-600' : 'border-slate-100 hover:border-slate-200';
+  };
+  const getOptionTitleColor = () => darkMode ? 'text-white' : 'text-[#0d1954]';
+  const getOptionSubtextColor = () => darkMode ? 'text-gray-500' : 'text-slate-500';
+  const getDisabledOptionBg = () => darkMode ? 'bg-gray-800 border-gray-700 opacity-50' : 'bg-slate-50 border-slate-100 opacity-50';
 
   // Format data for export
   const getFormattedData = () => {
@@ -55,6 +75,8 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, data, select
     onClose();
   };
 
+  const isSelectedDisabled = selectedIds.length === 0;
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -70,37 +92,48 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, data, select
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-3xl shadow-2xl z-[9999] overflow-hidden"
+            className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md rounded-3xl shadow-2xl z-[9999] overflow-hidden ${getModalBg()}`}
           >
-            <div className="flex items-center justify-between p-6 border-b border-slate-100">
+            <div className={`flex items-center justify-between p-6 border-b ${getModalBorder()}`}>
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl">
-                  <Download size={20} />
+                <div className={`p-2 rounded-xl ${getIconBg()}`}>
+                  <Download size={20} style={{ color: getIconColor() }} />
                 </div>
-                <h2 className="text-xl font-black text-[#0d1954]">Export Leads</h2>
+                <h2 className={`text-xl font-black ${getTitleColor()}`}>Export Leads</h2>
               </div>
-              <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-full transition-colors">
+              <button 
+                onClick={onClose} 
+                className={`p-2 rounded-full transition-colors ${getCloseButtonColor()}`}
+              >
                 <X size={20} />
               </button>
             </div>
 
             <div className="p-6 space-y-6">
               <div className="space-y-3">
-                <label className="text-sm font-bold text-slate-700">Which data would you like to export?</label>
+                <label className={`text-sm font-bold ${getLabelColor()}`}>Which data would you like to export?</label>
                 <div className="grid grid-cols-2 gap-3">
                   <div 
                     onClick={() => setExportType('all')}
-                    className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${exportType === 'all' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-100 hover:border-slate-200'}`}
+                    className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${getOptionBg(exportType === 'all')}`}
                   >
-                    <p className="font-bold text-[#0d1954]">All Records</p>
-                    <p className="text-xs text-slate-500 font-medium mt-1">Export {data.length} total leads</p>
+                    <p className={`font-bold ${getOptionTitleColor()}`}>All Records</p>
+                    <p className={`text-xs font-medium mt-1 ${getOptionSubtextColor()}`}>
+                      Export {data.length} total leads
+                    </p>
                   </div>
                   <div 
-                    onClick={() => selectedIds.length > 0 && setExportType('selected')}
-                    className={`p-4 rounded-2xl border-2 transition-all ${selectedIds.length === 0 ? 'opacity-50 cursor-not-allowed border-slate-100 bg-slate-50' : 'cursor-pointer'} ${exportType === 'selected' ? 'border-indigo-600 bg-indigo-50/50' : 'border-slate-100 hover:border-slate-200'}`}
+                    onClick={() => !isSelectedDisabled && setExportType('selected')}
+                    className={`p-4 rounded-2xl border-2 transition-all ${
+                      isSelectedDisabled 
+                        ? getDisabledOptionBg()
+                        : `cursor-pointer ${getOptionBg(exportType === 'selected')}`
+                    }`}
                   >
-                    <p className="font-bold text-[#0d1954]">Selected</p>
-                    <p className="text-xs text-slate-500 font-medium mt-1">{selectedIds.length} leads selected</p>
+                    <p className={`font-bold ${getOptionTitleColor()}`}>Selected</p>
+                    <p className={`text-xs font-medium mt-1 ${getOptionSubtextColor()}`}>
+                      {selectedIds.length} leads selected
+                    </p>
                   </div>
                 </div>
               </div>
@@ -111,7 +144,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ isOpen, onClose, data, select
                   variant="ghost"
                   icon={<FileText size={18} />}
                   onClick={handleExportCSV}
-                  className="w-full justify-center bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold py-3"
+                  className="w-full justify-center font-bold py-3"
                 />
                 <Reusable_Button 
                   text="Export Excel"

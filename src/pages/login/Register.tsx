@@ -10,6 +10,7 @@ import {
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import Reusable_Button from "../../component/button/Reusable_Button";
 import Reusable_Fields from "../../component/Fields/Reusable_Fiealds";
 import GlobalStatus from "../../component/Notification/GlobalStatus";
 import { errorAlert, successAlert } from "../../component/Notification/statusHandler";
@@ -95,6 +96,7 @@ const Register = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
   const { isLoading, error, categories, categoriesLoading } = useSelector((state: { auth: any }) => state.auth);
+  const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
 
   const categoryList = Array.isArray(categories) ? categories : [];
 
@@ -253,11 +255,19 @@ const Register = () => {
     value: cat._id,
   }));
 
+
   return (
     <>
-      <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className={`flex min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-gray-50 to-gray-100'}`}>
         {/* Left Side - Slider */}
-        <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-[#05264e] to-[#0a3a6e]">
+        <div 
+          className="hidden lg:flex lg:w-1/2 relative overflow-hidden"
+          style={{ 
+            background: darkMode 
+              ? "linear-gradient(135deg, #0f172a, #1e293b)" 
+              : `linear-gradient(135deg, ${primaryColor || '#05264e'}, ${primaryColor ? `${primaryColor}cc` : '#0a3a6e'})`
+          }}
+        >
           <Auth_Slider />
         </div>
 
@@ -280,7 +290,7 @@ const Register = () => {
                 initial={{ y: 10, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.3 }}
-                className="text-3xl font-bold text-gray-900 mb-2"
+                className={`text-3xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}
               >
                 Create Account
               </motion.h1>
@@ -288,7 +298,7 @@ const Register = () => {
                 initial={{ y: 10, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.4 }}
-                className="text-gray-500 text-sm"
+                className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}
               >
                 Join FlexiCRM and start managing your business
               </motion.p>
@@ -311,20 +321,30 @@ const Register = () => {
                     <div
                       className={`w-8 h-8 mx-auto rounded-full flex items-center justify-center text-xs font-semibold transition-all duration-300 ${
                         currentStep >= item.step
-                          ? "bg-gradient-to-r from-[#05264e] to-[#0a3a6e] text-white shadow-lg"
-                          : "bg-gray-200 text-gray-500"
+                          ? `shadow-lg ${darkMode ? 'bg-gradient-to-r from-gray-700 to-gray-800' : 'bg-gradient-to-r from-[#05264e] to-[#0a3a6e]'} text-white`
+                          : `${darkMode ? 'bg-gray-800 text-gray-500' : 'bg-gray-200 text-gray-500'}`
                       }`}
+                      style={currentStep >= item.step && !darkMode && primaryColor ? 
+                        { background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)` } : 
+                        {}}
                     >
                       {item.step}
                     </div>
-                    <p className="text-xs text-gray-500 mt-1 hidden sm:block">{item.label}</p>
+                    <p className={`text-xs mt-1 hidden sm:block ${darkMode ? 'text-gray-500' : 'text-gray-500'}`}>
+                      {item.label}
+                    </p>
                   </div>
                 ))}
               </div>
               <div className="relative mt-2 max-w-xs mx-auto">
-                <div className="absolute top-0 left-0 h-1 bg-gray-200 rounded-full w-full">
+                <div className={`absolute top-0 left-0 h-1 rounded-full w-full ${darkMode ? 'bg-gray-800' : 'bg-gray-200'}`}>
                   <motion.div
-                    className="h-full bg-gradient-to-r from-[#05264e] to-[#0a3a6e] rounded-full"
+                    className="h-full rounded-full"
+                    style={{ 
+                      background: darkMode 
+                        ? '#6b7280' 
+                        : `linear-gradient(90deg, ${primaryColor || '#05264e'}, ${primaryColor ? `${primaryColor}cc` : '#0a3a6e'})`
+                    }}
                     initial={{ width: "0%" }}
                     animate={{ width: `${((currentStep - 1) / 2) * 100}%` }}
                     transition={{ duration: 0.3 }}
@@ -376,15 +396,13 @@ const Register = () => {
                     />
 
                     <div className="flex justify-end">
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
+                      <Reusable_Button
                         type="button"
+                        text="Next →"
+                        variant="primary"
+                        size="md"
                         onClick={() => setCurrentStep(2)}
-                        className="px-5 py-2 bg-gradient-to-r from-[#05264e] to-[#0a3a6e] text-white rounded-lg font-medium text-sm hover:shadow-lg transition-all"
-                      >
-                        Next →
-                      </motion.button>
+                      />
                     </div>
                   </motion.div>
                 )}
@@ -435,7 +453,7 @@ const Register = () => {
                     />
 
                     <Reusable_Fields
-                      type="number"
+                      type="phone"
                       label="Mobile Number"
                       name="mobile"
                       value={formData.mobile}
@@ -446,24 +464,20 @@ const Register = () => {
                     />
 
                     <div className="flex justify-between gap-3">
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
+                      <Reusable_Button
                         type="button"
+                        text="← Back"
+                        variant="secondary"
+                        size="md"
                         onClick={() => setCurrentStep(1)}
-                        className="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-300 transition-all"
-                      >
-                        ← Back
-                      </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
+                      />
+                      <Reusable_Button
                         type="button"
+                        text="Next →"
+                        variant="primary"
+                        size="md"
                         onClick={() => setCurrentStep(3)}
-                        className="px-5 py-2 bg-gradient-to-r from-[#05264e] to-[#0a3a6e] text-white rounded-lg font-medium text-sm hover:shadow-lg transition-all"
-                      >
-                        Next →
-                      </motion.button>
+                      />
                     </div>
                   </motion.div>
                 )}
@@ -511,43 +525,36 @@ const Register = () => {
                         name="rememberMe"
                         checked={formData.rememberMe}
                         onChange={handleChange}
-                        className="w-3.5 h-3.5 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                        className="w-3.5 h-3.5 rounded focus:ring-2"
+                        style={{ 
+                          accentColor: primaryColor || '#3B82F6',
+                          borderColor: darkMode ? '#4b5563' : '#d1d5db'
+                        }}
                       />
-                      <label htmlFor="rememberMe" className="text-xs text-gray-600 cursor-pointer">
+                      <label htmlFor="rememberMe" className={`text-xs cursor-pointer ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
                         Remember me
                       </label>
                     </div>
 
                     <div className="flex justify-between gap-3">
-                      <motion.button
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
+                      <Reusable_Button
                         type="button"
+                        text="← Back"
+                        variant="secondary"
+                        size="md"
                         onClick={() => setCurrentStep(2)}
-                        className="px-5 py-2 bg-gray-200 text-gray-700 rounded-lg font-medium text-sm hover:bg-gray-300 transition-all"
-                      >
-                        ← Back
-                      </motion.button>
-                      <motion.button
+                      />
+                      <Reusable_Button
                         type="submit"
+                        text={isLoading ? "Creating..." : "Create Account →"}
+                        variant="primary"
+                        size="md"
+                        fullWidth={true}
+                        isLoading={isLoading}
                         disabled={isLoading}
-                        whileHover={{ scale: isLoading ? 1 : 1.02 }}
-                        whileTap={{ scale: isLoading ? 1 : 0.98 }}
-                        className={`flex-1 py-2 rounded-lg font-semibold text-sm text-white transition-all duration-200 ${
-                          isLoading
-                            ? "bg-gray-400 cursor-not-allowed"
-                            : "bg-gradient-to-r from-[#05264e] to-[#0a3a6e] hover:shadow-lg"
-                        }`}
-                      >
-                        {isLoading ? (
-                          <div className="flex items-center justify-center gap-2">
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            <span>Creating...</span>
-                          </div>
-                        ) : (
-                          "Create Account →"
-                        )}
-                      </motion.button>
+                        icon={<Building2 className="w-4 h-4" />}
+                        iconPosition="left"
+                      />
                     </div>
                   </motion.div>
                 )}
@@ -560,9 +567,14 @@ const Register = () => {
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="p-2 rounded-lg bg-red-50 border border-red-200"
+                    className="p-2 rounded-lg"
+                    style={{ 
+                      backgroundColor: darkMode ? '#450a0a' : '#fef2f2',
+                      borderColor: darkMode ? '#7f1d1d' : '#fecaca',
+                      borderWidth: '1px'
+                    }}
                   >
-                    <p className="text-red-600 text-xs text-center">
+                    <p className={`text-xs text-center ${darkMode ? 'text-red-400' : 'text-red-600'}`}>
                       {localError || (typeof error === "string" ? error : error?.message)}
                     </p>
                   </motion.div>
@@ -575,12 +587,13 @@ const Register = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.7 }}
-              className="text-center text-xs text-gray-600 mt-5"
+              className={`text-center text-xs mt-5 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}
             >
               Already have an account?{" "}
               <button
                 onClick={() => navigate("/login")}
-                className="text-indigo-600 hover:text-indigo-700 font-semibold cursor-pointer"
+                className="font-semibold cursor-pointer transition-colors hover:opacity-80"
+                style={{ color: primaryColor || '#6366f1' }}
               >
                 Sign in
               </button>

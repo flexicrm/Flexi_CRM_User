@@ -1,4 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
+import themeReducer from "../store/Theems_Slic";
 import dashboardReducer from "../store/homepage_slice/Dashboard_Slice";
 import profileReducer from "../store/homepage_slice/Profile_Slice";
 import authReducer from "./Login_Slice";
@@ -25,6 +26,7 @@ export const store = configureStore({
     leadSource: leadeSourceReducer,
     generatedCode: generatedCodeReducer,
     profile: profileReducer,
+    theme: themeReducer,
   },
 });
 

@@ -3,9 +3,10 @@ import { motion } from "framer-motion";
 import { type ChangeEvent, type ClipboardEvent, type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
+import Reusable_Button from "../../component/button/Reusable_Button";
 import GlobalStatus from "../../component/Notification/GlobalStatus";
 import { confirmAlert, errorAlert, successAlert } from "../../component/Notification/statusHandler";
-import { clearError, OtpUser } from "../../store/Login_Slice";
+import { clearError, OtpUser, setAuthData } from "../../store/Login_Slice";
 import type { AppDispatch } from "../../store/Store";
 import Auth_Slider from "./Auth_Slider";
 
@@ -43,15 +44,15 @@ const Otp: React.FC = () => {
     const location = useLocation();
     const dispatch = useDispatch<AppDispatch>();
     const { isLoading, error } = useSelector((state: AuthState) => state.auth);
+    const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
     
     const [mobile, setMobile] = useState<string>("");
     const [otpData, setOtpData] = useState<OtpData | null>(null);
-    localStorage.setItem("companyLogo", otpData?.companyLogo || "");
-localStorage.setItem("companyName", otpData?.companyName || "");
     const [, setDeviceIdData] = useState<DeviceIdData | null>(null);
     const [otp, setOtp] = useState<string[]>(new Array(6).fill(""));
     const [timer, setTimer] = useState<number>(27);
     const [localError, setLocalError] = useState<string>("");
+    const [isNavigating, setIsNavigating] = useState<boolean>(false);
     
     const [deviceInfo, setDeviceInfo] = useState({
         deviceId: "",
@@ -61,6 +62,14 @@ localStorage.setItem("companyName", otpData?.companyName || "");
 
     const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
     const [, setIsAnimating] = useState<boolean>(false);
+
+    // Save company data on load
+    useEffect(() => {
+        if (otpData) {
+            localStorage.setItem("companyLogo", otpData.companyLogo || "");
+            localStorage.setItem("companyName", otpData.companyName || "");
+        }
+    }, [otpData]);
 
     const getDeviceId = (): string => {
         const appName = "flexicrm";
@@ -133,9 +142,20 @@ localStorage.setItem("companyName", otpData?.companyName || "");
         }
     }, [timer]);
 
+    // Auto-submit logic
+    useEffect(() => {
+        const otpValue = otp.join("");
+        if (otpValue.length === 6 && !isLoading && !isNavigating) {
+            handleVerify();
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [otp]); 
+
     const handleChange = (element: HTMLInputElement, index: number) => {
         const value = element.value;
         if (isNaN(Number(value))) return;
+
+        setLocalError("");
 
         const newOtp = [...otp];
         newOtp[index] = value;
@@ -158,11 +178,81 @@ localStorage.setItem("companyName", otpData?.companyName || "");
         
         if (/^\d{6}$/.test(pastedData)) {
             const otpArray = pastedData.split("");
+            setLocalError("");
             setOtp(otpArray);
             inputRefs.current[5]?.focus();
         } else {
             errorAlert("Please paste a valid 6-digit OTP");
         }
+    };
+
+    // Function to refresh Redux store with latest data
+    const refreshReduxStore = async (subdomain: string, userData: any, accessToken: string) => {
+        try {
+            // Dispatch action to update Redux store with auth data
+            await dispatch(setAuthData({
+                isAuthenticated: true,
+                user: userData,
+                subdomain: subdomain,
+                accessToken: accessToken
+            }));
+            console.log("✅ Redux store refreshed with auth data");
+            return true;
+        } catch (error) {
+            console.error("Failed to refresh Redux store:", error);
+            return false;
+        }
+    };
+
+    // Function to ensure localStorage is properly set
+    const ensureLocalStorageData = (subdomain: string, userData: any, accessToken: string, refreshToken: string) => {
+        // Double-check and set subdomain
+        if (subdomain) {
+            localStorage.setItem("subdomain", subdomain);
+            console.log("✅ Subdomain saved to localStorage:", subdomain);
+        }
+        
+        // Verify subdomain was saved
+        const savedSubdomain = localStorage.getItem("subdomain");
+        if (!savedSubdomain && subdomain) {
+            // Retry saving if failed
+            localStorage.setItem("subdomain", subdomain);
+            console.log("🔄 Retry saving subdomain:", subdomain);
+        }
+        
+        // Ensure tokens are saved
+        if (accessToken) {
+            localStorage.setItem("accessToken", accessToken);
+        }
+        if (refreshToken) {
+            localStorage.setItem("refreshToken", refreshToken);
+        }
+        
+        // Ensure user data is saved
+        if (userData) {
+            localStorage.setItem("userData", JSON.stringify(userData));
+        }
+        
+        console.log("✅ localStorage verified - subdomain:", localStorage.getItem("subdomain"));
+    };
+
+    // Function to wait for localStorage to be ready
+    const waitForLocalStorage = (key: string, expectedValue?: string, maxAttempts = 10): Promise<string | null> => {
+        return new Promise((resolve) => {
+            let attempts = 0;
+            const checkInterval = setInterval(() => {
+                const value = localStorage.getItem(key);
+                attempts++;
+                
+                if (value && (!expectedValue || value === expectedValue)) {
+                    clearInterval(checkInterval);
+                    resolve(value);
+                } else if (attempts >= maxAttempts) {
+                    clearInterval(checkInterval);
+                    resolve(value);
+                }
+            }, 100);
+        });
     };
 
     const callOtpApi = async (forceLoginValue: boolean) => {
@@ -184,7 +274,6 @@ localStorage.setItem("companyName", otpData?.companyName || "");
 
             console.log("API Success Response:", responseData);
             
-            // Handle 201 Response (Success but Needs Confirmation)
             if (responseData?.requiresConfirmation && responseData?.data?.alreadyLoggedIn) {
                 dispatch(clearError());
                 setLocalError("");
@@ -204,41 +293,64 @@ localStorage.setItem("companyName", otpData?.companyName || "");
                 return;
             }
             
-            // Handle TRUE Login Success
             const accessToken = responseData?.accessToken || responseData?.data?.accessToken;
             const refreshToken = responseData?.refreshToken || responseData?.data?.refreshToken;
             
             if (accessToken && refreshToken) {
                 const expiresIn = responseData?.expiresIn || responseData?.data?.expiresIn;
-                const subdomain = responseData?.subdomain || responseData?.data?.subdomain;
-                const userData = responseData?.user || responseData?.data?.user;
+                let subdomain = responseData?.subdomain || responseData?.data?.subdomain;
+                let userData = responseData?.user || responseData?.data?.user;
                 
-                localStorage.setItem("accessToken", accessToken);
-                localStorage.setItem("refreshToken", refreshToken);
+                // Save data to localStorage
+                ensureLocalStorageData(subdomain, userData, accessToken, refreshToken);
                 
                 if (expiresIn) localStorage.setItem("tokenExpiry", String(Date.now() + Number(expiresIn)));
-                if (subdomain) localStorage.setItem("subdomain", subdomain);
-                if (userData) localStorage.setItem("userData", JSON.stringify(userData));
                 if (responseData?.isFirstlogin !== undefined) localStorage.setItem("isFirstLogin", String(responseData.isFirstlogin));
                 
                 localStorage.removeItem("mobile");
+                
+                // Wait for subdomain to be properly saved
+                await waitForLocalStorage("subdomain", subdomain);
+                
+                // Refresh Redux store with latest data
+                await refreshReduxStore(subdomain, userData, accessToken);
                 
                 const successMsg = responseData?.message || "Login successful!";
                 successAlert(successMsg, "Continue");
                 setLocalError("");
                 
-                const sub = subdomain || localStorage.getItem("subdomain");
-                setTimeout(() => navigate(`/${sub}/dashboard`), 1500);
+                // Get the final subdomain value
+                const finalSubdomain = subdomain || localStorage.getItem("subdomain");
+                console.log("🎯 Final subdomain for navigation:", finalSubdomain);
+                
+                if (!finalSubdomain) {
+                    console.error("❌ No subdomain found after login!");
+                    errorAlert("Login failed: Missing company subdomain", "Retry");
+                    setIsNavigating(false);
+                    return;
+                }
+                
+                setIsNavigating(true);
+                
+                // Add a small delay to ensure Redux state is updated
+                setTimeout(() => {
+                    console.log(`🚀 Navigating to /${finalSubdomain}/dashboard`);
+                    navigate(`/${finalSubdomain}/dashboard`, { replace: true });
+                }, 2000);
+                
             } else {
                 const errorMsg = responseData?.errors || responseData?.message || "OTP verification failed.";
                 errorAlert(errorMsg, "Try Again");
                 setLocalError(errorMsg);
+                setOtp(new Array(6).fill(""));
+                inputRefs.current[0]?.focus();
+                setIsNavigating(false);
             }
             
         } catch (errorData: any) {
             console.log("API Error Response:", errorData);
+            setIsNavigating(false);
 
-            // Handle 409 Response (Error because already logged in)
             if (errorData?.data?.alreadyLoggedIn) {
                 dispatch(clearError());
                 setLocalError("");
@@ -258,14 +370,20 @@ localStorage.setItem("companyName", otpData?.companyName || "");
                 return;
             }
 
-            // Standard Errors (Wrong OTP, Network Error, etc.)
             const errorMsg = errorData?.errors || errorData?.message || "OTP verification failed. Please try again.";
             errorAlert(errorMsg, "Try Again");
             setLocalError(errorMsg);
+            setOtp(new Array(6).fill(""));
+            inputRefs.current[0]?.focus();
         }
     };
 
     const handleVerify = async () => {
+        if (isNavigating) {
+            console.log("Already navigating, please wait...");
+            return;
+        }
+        
         const otpValue = otp.join("");
 
         if (otpValue.length !== 6) {
@@ -286,6 +404,8 @@ localStorage.setItem("companyName", otpData?.companyName || "");
     };
 
     const handleResend = async () => {
+        if (isNavigating) return;
+        
         if (!mobile) {
             errorAlert("Mobile number not found. Please login again.", "OK");
             setTimeout(() => navigate("/login"), 2000);
@@ -318,115 +438,200 @@ localStorage.setItem("companyName", otpData?.companyName || "");
         }
     };
 
-    const displayError =
-    localError ||
-    (typeof error === "string"
-        ? error
-        :  "");
+    const displayError = localError || (typeof error === "string" ? error : "");
 
     return (
         <>
-            <div className="login-page">
-                <div className="slider-half">
+            <div className={`flex min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-gray-50 to-gray-100'}`}>
+                {/* Left Side - Slider */}
+                <div 
+                    className="hidden lg:flex lg:w-1/2 relative overflow-hidden"
+                    style={{ 
+                        background: darkMode 
+                            ? "linear-gradient(135deg, #0f172a, #1e293b)" 
+                            : `linear-gradient(135deg, ${primaryColor || '#05264e'}, ${primaryColor ? `${primaryColor}cc` : '#0a3a6e'})`
+                    }}
+                >
                     <Auth_Slider />
                 </div>
 
-                <div className="form-half">
-                    <div className="otp-card">
+                {/* Right Side - OTP Form */}
+                <div className="w-full lg:w-1/2 flex items-center justify-center p-6 sm:p-8">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5 }}
+                        className="w-full max-w-md"
+                    >
                         <div className="text-center">
                             <div className="relative inline-block mb-6">
-  <motion.div
-    whileHover={{ scale: 1.05, rotate: 5 }}
-    transition={{ type: "spring", stiffness: 400 }}
-  >
-   <img
-      src={otpData?.companyLogo || "/default-logo.png"}
-      alt="FlexiCRM"
-      className="w-20 h-20 mx-auto rounded-full"
-    />
-  </motion.div>
-</div>
+                                <motion.div
+                                    whileHover={{ scale: 1.05, rotate: 5 }}
+                                    transition={{ type: "spring", stiffness: 400 }}
+                                >
+                                    <img
+                                        src={otpData?.companyLogo || "/default-logo.png"}
+                                        alt="FlexiCRM"
+                                        className="w-20 h-20 mx-auto rounded-full"
+                                        style={{ 
+                                            boxShadow: `0 0 0 3px ${primaryColor}20, 0 0 0 6px ${primaryColor}10` 
+                                        }}
+                                    />
+                                </motion.div>
+                            </div>
                         </div>
-                        <p className="text-2xl font-bold bg-gradient-to-r from-blue-900 to-purple-800 bg-clip-text text-transparent animate-slide-up">
-                            {otpData?.companyName || "FlexiCRM"}
-                        </p>
                         
-                        <h1 className="otp-title">Verify OTP</h1>
+                        <motion.p
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2 }}
+                            className="text-2xl font-bold text-center mb-2"
+                            style={{ 
+                                background: `linear-gradient(135deg, ${primaryColor || '#05264e'}, ${primaryColor ? `${primaryColor}cc` : '#0a3a6e'})`,
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                                backgroundClip: 'text'
+                            }}
+                        >
+                            {otpData?.companyName || "FlexiCRM"}
+                        </motion.p>
+                        
+                        <motion.h1
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3 }}
+                            className={`text-3xl font-bold text-center mt-4 mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}
+                        >
+                            Verify OTP
+                        </motion.h1>
 
-                        <p className="otp-subtitle">
+                        <motion.p
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.4 }}
+                            className={`text-center mb-8 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}
+                        >
                             Enter the 6-digit code sent to{" "}
-                            <span className="phone-num">{mobile || "your mobile"}</span>
-                        </p>
+                            <span className="font-bold" style={{ color: primaryColor || '#05264e' }}>
+                                {mobile || "your mobile"}
+                            </span>
+                        </motion.p>
 
-                        <div style={{ fontSize: "11px", color: "#999", marginBottom: "10px" }}>
-                            Device: {deviceInfo.deviceType} | ID: {deviceInfo.deviceId.substring(0, 10)}...
-                        </div>
-
-                        <div className="otp-input-container" onPaste={handlePaste}>
+                        {/* OTP Input Container */}
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: 0.5 }}
+                            className="flex justify-center gap-3 sm:gap-4 mb-4"
+                            onPaste={handlePaste}
+                        >
                             {otp.map((data, index) => (
                                 <input
                                     key={index}
                                     type="text"
                                     maxLength={1}
-                                    className={`otp-box ${otp[index] || (index === 0 && !otp[0]) ? "active" : ""}`}
+                                    className={`w-12 h-14 sm:w-14 sm:h-16 text-center text-xl sm:text-2xl font-semibold rounded-xl border-2 transition-all duration-200 focus:outline-none ${
+                                        darkMode 
+                                            ? 'bg-gray-800 text-white border-gray-700 focus:border-gray-500' 
+                                            : 'bg-white text-gray-900 border-gray-200 focus:border-gray-400'
+                                    } ${otp[index] ? 'border-opacity-100' : 'border-opacity-50'}`}
+                                    style={{
+                                        borderColor: otp[index] ? primaryColor : undefined,
+                                        boxShadow: otp[index] ? `0 0 0 2px ${primaryColor}20` : undefined
+                                    }}
                                     value={data}
                                     ref={(el) => {inputRefs.current[index] = el;}}
                                     onChange={(e: ChangeEvent<HTMLInputElement>) => handleChange(e.target, index)}
                                     onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => handleKeyDown(e, index)}
                                     onFocus={(e: React.FocusEvent<HTMLInputElement>) => e.target.select()}
+                                    disabled={isLoading || isNavigating}
                                 />
                             ))}
-                        </div>
+                        </motion.div>
 
-                        <p style={{ fontSize: "12px", color: "#718096", marginBottom: "10px", textAlign: "center" }}>
+                        <motion.p
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.55 }}
+                            className={`text-xs text-center mb-4 ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}
+                        >
                             💡 Tip: You can copy and paste the 6-digit OTP
-                        </p>
+                        </motion.p>
 
+                        {/* Error Message */}
                         {displayError && (
-                            <p style={{ color: "red", marginBottom: "10px", fontSize: "14px" }}>
-                                {displayError}
-                            </p>
+                            <motion.div
+                                initial={{ opacity: 0, y: -10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="p-3 rounded-lg mb-4"
+                                style={{ 
+                                    backgroundColor: darkMode ? '#450a0a' : '#fef2f2',
+                                    borderColor: darkMode ? '#7f1d1d' : '#fecaca',
+                                    borderWidth: '1px'
+                                }}
+                            >
+                                <p className={`text-sm text-center ${darkMode ? 'text-red-400' : 'text-red-600'}`}>
+                                    {displayError}
+                                </p>
+                            </motion.div>
                         )}
 
-                        <button className="verify-btn" onClick={handleVerify} disabled={isLoading}>
-                            {isLoading ? "Verifying..." : "Verify & Continue"}
-                        </button>
+                        {/* Verify Button */}
+                        <Reusable_Button
+                            type="button"
+                            text={isLoading || isNavigating ? (isNavigating ? "Redirecting..." : "Verifying...") : "Verify & Continue"}
+                            variant="primary"
+                            size="lg"
+                            fullWidth={true}
+                            isLoading={isLoading || isNavigating}
+                            disabled={isLoading || isNavigating || otp.join("").length < 6}
+                            onClick={handleVerify}
+                        />
 
-                        <div className="resend-section">
-                            <button className={`resend-btn ${timer > 0 ? "disabled" : ""}`} disabled={timer > 0} onClick={handleResend}>
+                        {/* Resend Section */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.6 }}
+                            className="flex justify-center items-center gap-3 mt-6"
+                        >
+                            <button
+                                onClick={handleResend}
+                                disabled={timer > 0 || isLoading || isNavigating}
+                                className={`text-sm font-medium transition-all duration-200 ${
+                                    timer > 0 || isLoading || isNavigating
+                                        ? `${darkMode ? 'text-gray-600' : 'text-gray-400'} cursor-not-allowed`
+                                        : 'hover:opacity-80 cursor-pointer'
+                                }`}
+                                style={{ color: timer > 0 || isLoading || isNavigating ? undefined : primaryColor || '#ff9800' }}
+                            >
                                 Resend OTP
                             </button>
-                            <span className="timer-text">{timer > 0 ? `in ${timer}s` : ""}</span>
-                        </div>
-                    </div>
-                </div>
+                            {timer > 0 && (
+                                <span className={`text-sm ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                                    in {timer}s
+                                </span>
+                            )}
+                        </motion.div>
 
-                <style>{`
-                    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
-                    .login-page { display: flex; min-height: 100vh; font-family: 'Poppins', sans-serif; }
-                    .slider-half { flex: 1; background-color: #05264e; display: flex; justify-content: center; align-items: center; color: white; }
-                    .form-half { flex: 1; background: white; display: flex; align-items: center; justify-content: center; padding: 40px; }
-                    .otp-card { width: 100%; max-width: 450px; text-align: center; }
-                    .otp-title { color: #05264e; font-size: 28px; font-weight: 700; }
-                    .otp-subtitle { margin: 10px 0 30px; color: #718096; }
-                    .phone-num { font-weight: bold; color: #05264e; }
-                    .otp-input-container { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; }
-                    .otp-box { width: 55px; height: 70px; border: 1px solid #ccc; border-radius: 10px; text-align: center; font-size: 22px; transition: all 0.3s ease; }
-                    .otp-box:focus { border-color: #ff9800; outline: none; box-shadow: 0 0 0 2px rgba(255, 152, 0, 0.2); }
-                    .verify-btn { width: 100%; padding: 15px; background: #05264e; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.3s ease; }
-                    .verify-btn:hover:not(:disabled) { background: #0a3a6e; }
-                    .verify-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-                    .resend-section { margin-top: 20px; display: flex; justify-content: center; align-items: center; gap: 10px; }
-                    .resend-btn { background: none; border: none; color: #ff9800; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.3s ease; }
-                    .resend-btn:hover:not(:disabled) { text-decoration: underline; }
-                    .resend-btn.disabled { opacity: 0.5; cursor: not-allowed; }
-                    .timer-text { color: #718096; font-size: 14px; }
-                    @keyframes logoEntrance { 0% { opacity: 0; transform: scale(0.5) rotate(-180deg); } 100% { opacity: 1; transform: scale(1) rotate(0deg); } }
-                    @keyframes ringPulse { 0% { opacity: 0.6; transform: scale(0.8); } 100% { opacity: 0; transform: scale(1.2); } }
-                    @keyframes slide-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-                    .animate-slide-up { animation: slide-up 0.5s ease-out; }
-                    @media (max-width: 768px) { .login-page { flex-direction: column; } .slider-half { display: none; } .otp-box { width: 45px; height: 60px; font-size: 18px; } .otp-input-container { gap: 10px; } }
-                `}</style>
+                        {/* Back to Login Link */}
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            transition={{ delay: 0.65 }}
+                            className="text-center mt-6"
+                        >
+                            <button
+                                onClick={() => navigate("/login")}
+                                className="text-sm hover:opacity-80 transition-opacity"
+                                style={{ color: primaryColor || '#6366f1' }}
+                                disabled={isNavigating}
+                            >
+                                ← Back to Login
+                            </button>
+                        </motion.div>
+                    </motion.div>
+                </div>
             </div>
             <GlobalStatus />
         </>

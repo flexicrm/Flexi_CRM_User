@@ -20,6 +20,7 @@ const Recent_Leads = () => {
   const { recentLeads, isLoading } = useSelector(
     (state: RootState) => state.dashboard
   );
+  const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
 
   // Safely extract leads array
   const recentLeadsData = recentLeads?.data?.recentLeads || [];
@@ -44,9 +45,18 @@ const Recent_Leads = () => {
     }));
   }, [leadsArray]);
 
-  // Helper function to get status styles
+  // Helper function to get status styles with theme support
   const getStatusStyles = (color: string) => {
     const finalColor = (color && color.startsWith('#')) ? color : "#64748b";
+    
+    if (darkMode) {
+      return {
+        backgroundColor: `${finalColor}20`,
+        color: finalColor,
+        border: `1px solid ${finalColor}40`
+      };
+    }
+    
     return {
       backgroundColor: `${finalColor}15`,
       color: finalColor,
@@ -54,7 +64,51 @@ const Recent_Leads = () => {
     };
   };
 
-  // Define columns for the Table component
+  // Get card background based on dark mode
+  const getCardBg = () => {
+    return darkMode ? 'bg-gray-800' : 'bg-white';
+  };
+
+  // Get border color based on dark mode
+  const getBorderColor = () => {
+    return darkMode ? 'border-gray-700' : 'border-slate-200';
+  };
+
+  // Get header background
+  const getHeaderBg = () => {
+    if (darkMode) {
+      return 'bg-gradient-to-r from-gray-800 to-gray-800/50';
+    }
+    return 'bg-gradient-to-r from-white to-slate-50/30';
+  };
+
+  // Get header border
+  const getHeaderBorder = () => {
+    return darkMode ? 'border-gray-700' : 'border-slate-100';
+  };
+
+  // Get title color
+  const getTitleColor = () => {
+    return darkMode ? 'text-white' : 'text-slate-800';
+  };
+
+  // Get subtitle color
+  const getSubtitleColor = () => {
+    return darkMode ? 'text-gray-400' : 'text-slate-500';
+  };
+
+  // Get icon background
+  const getIconBg = () => {
+    return darkMode ? 'bg-gray-700' : 'bg-indigo-50';
+  };
+
+  // Get icon color
+  const getIconColor = () => {
+    return darkMode ? primaryColor || '#818CF8' : '#6366f1';
+  };
+
+
+  // Define columns for the Table component with theme support
   const columns = useMemo(() => [
     {
       title: 'Lead',
@@ -63,31 +117,35 @@ const Recent_Leads = () => {
       width: '250px',
       filterable: true,
       sortable: true,
-      render: (name: string,) => (
+      render: (name: string) => (
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center">
-            <User size={16} className="text-slate-500" />
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+            darkMode ? 'bg-gray-700' : 'bg-slate-100'
+          }`}>
+            <User size={16} className={darkMode ? 'text-gray-400' : 'text-slate-500'} />
           </div>
           <div className="flex flex-col">
-            <span className="font-semibold text-slate-800 text-sm">{name}</span>
+            <span className={`font-semibold text-sm ${darkMode ? 'text-gray-200' : 'text-slate-800'}`}>
+              {name}
+            </span>
           </div>
         </div>
       ),
     },
     {
       title: 'Company',
-      dataIndex: 'leadName',
-      key: 'lead',
+      dataIndex: 'company',
+      key: 'Company',
       width: '250px',
       filterable: true,
       sortable: true,
-      render: (record: any) => (
-        <div className="flex items-center gap-3">
-          <div className="flex flex-col">
-            <div className="flex items-center gap-1 text-xs text-slate-400 mt-0.5">
-              <Building2 size={12} />
-              <span>{record.leadSubInfo}</span>
-            </div>
+      render: (_: string, record: any) => (
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center gap-2 text-sm">
+            <Building2 size={14} className={darkMode ? 'text-gray-500' : 'text-slate-400'} />
+            <span className={darkMode ? 'text-gray-300' : 'text-indigo-600'}>
+              {record.leadSubInfo}
+            </span>
           </div>
         </div>
       ),
@@ -101,9 +159,11 @@ const Recent_Leads = () => {
       sortable: true,
       render: (_: string, record: any) => (
         <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-2 text-sm text-indigo-600">
-            <Mail size={14} className="text-slate-400" />
-            <span>{record.email}</span>
+          <div className="flex items-center gap-2 text-sm">
+            <Mail size={14} className={darkMode ? 'text-gray-500' : 'text-slate-400'} />
+            <span style={{ color: primaryColor || '#6366f1' }}>
+              {record.email}
+            </span>
           </div>
         </div>
       ),
@@ -117,9 +177,11 @@ const Recent_Leads = () => {
       sortable: true,
       render: (_: string, record: any) => (
         <div className="flex flex-col gap-1.5">
-          <div className="flex items-center gap-2 text-sm text-slate-600">
-            <Phone size={14} className="text-slate-400" />
-            <span>{record.mobile}</span>
+          <div className="flex items-center gap-2 text-sm">
+            <Phone size={14} className={darkMode ? 'text-gray-500' : 'text-slate-400'} />
+            <span className={darkMode ? 'text-gray-300' : 'text-slate-600'}>
+              {record.mobile}
+            </span>
           </div>
         </div>
       ),
@@ -161,10 +223,12 @@ const Recent_Leads = () => {
       filterable: true,
       sortable: true,
       render: (source: string) => (
-        <span className="text-sm text-slate-700 font-medium">{source}</span>
+        <span className={`text-sm font-medium ${darkMode ? 'text-gray-300' : 'text-slate-700'}`}>
+          {source}
+        </span>
       ),
     },
-  ], []);
+  ], [darkMode, primaryColor]);
 
   // Prepare status options for the Table component
   const statusOptions = useMemo(() => {
@@ -182,16 +246,17 @@ const Recent_Leads = () => {
     setActiveStatusType(type || null);
   };
 
+  // Loading skeleton with dark mode support
   if (isLoading) {
     return (
-      <div className="bg-white rounded-xl border border-slate-200 p-8">
+      <div className={`${getCardBg()} rounded-xl border ${getBorderColor()} p-8`}>
         <div className="flex items-center justify-center">
-          <div className="animate-pulse flex space-x-4">
+          <div className="animate-pulse flex space-x-4 w-full">
             <div className="flex-1 space-y-4 py-1">
-              <div className="h-4 bg-slate-200 rounded w-3/4"></div>
+              <div className={`h-4 rounded w-3/4 ${darkMode ? 'bg-gray-700' : 'bg-slate-200'}`}></div>
               <div className="space-y-2">
-                <div className="h-4 bg-slate-200 rounded"></div>
-                <div className="h-4 bg-slate-200 rounded w-5/6"></div>
+                <div className={`h-4 rounded ${darkMode ? 'bg-gray-700' : 'bg-slate-200'}`}></div>
+                <div className={`h-4 rounded w-5/6 ${darkMode ? 'bg-gray-700' : 'bg-slate-200'}`}></div>
               </div>
             </div>
           </div>
@@ -201,21 +266,31 @@ const Recent_Leads = () => {
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+    <div className={`${getCardBg()} rounded-xl border ${getBorderColor()} overflow-hidden shadow-sm`}>
       {/* Card Header */}
-      <div className="flex justify-between items-center p-5 border-b border-slate-100 bg-gradient-to-r from-white to-slate-50/30">
+      <div className={`flex justify-between items-center p-5 border-b ${getHeaderBorder()} ${getHeaderBg()}`}>
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center">
-            <LayoutGrid size={16} className="text-indigo-600" strokeWidth={2.5} />
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${getIconBg()}`}>
+            <LayoutGrid size={16} style={{ color: getIconColor() }} strokeWidth={2.5} />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-slate-800 tracking-tight">Recent Leads</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Latest prospects in your pipeline</p>
+            <h2 className={`text-lg font-bold tracking-tight ${getTitleColor()}`}>Recent Leads</h2>
+            <p className={`text-xs ${getSubtitleColor()} mt-0.5`}>Latest prospects in your pipeline</p>
           </div>
         </div>
         <button 
           onClick={() => window.location.href = `/${localStorage.getItem("subdomain")}/leads`}
-          className="text-sm font-semibold text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition-all"
+          className="text-sm font-semibold px-3 py-1.5 rounded-lg transition-all hover:bg-opacity-10"
+          style={{ 
+            color: primaryColor || '#6366f1',
+            backgroundColor: 'transparent'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = darkMode ? '#374151' : `${primaryColor}10`;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+          }}
         >
           View All →
         </button>
@@ -244,6 +319,10 @@ const Recent_Leads = () => {
         }}
         emptyMessage="No recent leads found"
         className="border-0 rounded-none"
+        theme={{
+          darkMode,
+          primaryColor
+        }}
       />
     </div>
   );

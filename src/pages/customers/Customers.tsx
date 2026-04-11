@@ -93,18 +93,26 @@ const extractErrorMessage = (error: any): string => {
   return errorMessage;
 };
 
-// --- Tooltip Component ---
-const Tooltip = ({ children, text }: { children: React.ReactNode, text: string }) => (
-  <div className="group relative flex flex-col items-center">
-    {children}
-    <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center z-50 animate-in fade-in zoom-in-95 duration-200">
-      <span className="relative z-10 px-2 py-1 text-[10px] font-semibold text-white whitespace-nowrap bg-slate-800 shadow-md rounded-md">
-        {text}
-      </span>
-      <div className="w-2 h-2 -mt-1 rotate-45 bg-slate-800 rounded-sm"></div>
+// --- Tooltip Component with Theme Support ---
+const Tooltip = ({ children, text }: { children: React.ReactNode, text: string }) => {
+  const { darkMode } = useSelector((state: any) => state.theme);
+  
+  return (
+    <div className="group relative flex flex-col items-center">
+      {children}
+      <div className="absolute bottom-full mb-2 hidden group-hover:flex flex-col items-center z-50 animate-in fade-in zoom-in-95 duration-200">
+        <span className={`relative z-10 px-2 py-1 text-[10px] font-semibold text-white whitespace-nowrap shadow-md rounded-md ${
+          darkMode ? 'bg-gray-800' : 'bg-slate-800'
+        }`}>
+          {text}
+        </span>
+        <div className={`w-2 h-2 -mt-1 rotate-45 rounded-sm ${
+          darkMode ? 'bg-gray-800' : 'bg-slate-800'
+        }`}></div>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const Customers: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -116,6 +124,7 @@ const Customers: React.FC = () => {
   const navigate = useNavigate();
 
   const dispatch = useDispatch();
+  const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
 
   const { customerTableData, loading } = useSelector(
     (state: any) => state.customer
@@ -150,6 +159,41 @@ const Customers: React.FC = () => {
     fetchCustomers(false);
   }, [dispatch]);
 
+  // Theme-based styles
+  const getPageBg = () => darkMode ? 'bg-gray-900' : 'bg-[#F8FAFC]';
+  const getHeaderIconBg = () => darkMode ? 'bg-gray-700' : 'bg-indigo-100';
+  const getHeaderIconColor = () => darkMode ? primaryColor || '#818CF8' : '#6366f1';
+  const getTitleColor = () => darkMode ? 'text-white' : 'text-slate-900';
+  const getSubtitleColor = () => darkMode ? 'text-gray-400' : 'text-slate-500';
+  const getSeparatorColor = () => darkMode ? 'bg-gray-600' : 'bg-slate-300';
+  const getCountColor = () => darkMode ? 'text-gray-500' : 'text-slate-500';
+  const getButtonBg = () => darkMode ? 'bg-gray-800' : 'bg-white';
+  const getButtonBorder = () => darkMode ? 'border-gray-700' : 'border-slate-200';
+  const getButtonTextColor = () => darkMode ? 'text-gray-400 hover:text-indigo-400' : 'text-slate-500 hover:text-indigo-600';
+  const getButtonHoverBg = () => darkMode ? 'hover:bg-gray-700' : 'hover:bg-slate-50';
+  const getMainBg = () => darkMode ? 'bg-gray-800' : 'bg-white';
+  const getMainBorder = () => darkMode ? 'border-gray-700' : 'border-slate-200/60';
+  const getErrorCardBg = () => darkMode ? 'bg-gray-800' : 'bg-white';
+  const getErrorCardBorder = () => darkMode ? 'border-gray-700' : 'border-slate-200';
+  const getErrorIconBg = () => darkMode ? 'bg-red-900/20' : 'bg-red-50';
+  const getErrorIconColor = () => darkMode ? 'text-red-400' : 'text-red-500';
+  const getErrorTitleColor = () => darkMode ? 'text-gray-200' : 'text-slate-800';
+  const getErrorTextColor = () => darkMode ? 'text-gray-400' : 'text-slate-500';
+  
+  // Floating toast styles
+  const getToastBg = () => darkMode ? 'bg-gray-800' : 'bg-[#0F172A]';
+  const getToastBorder = () => darkMode ? 'border-gray-700' : 'border-slate-700/50';
+  const getToastIconBg = () => darkMode ? 'bg-gray-700' : 'bg-slate-800';
+  const getToastIconColor = () => darkMode ? primaryColor || '#818CF8' : '#6366f1';
+  const getToastTextColor = () => darkMode ? 'text-gray-200' : 'text-white';
+  const getToastDivider = () => darkMode ? 'bg-gray-700' : 'bg-slate-700';
+  const getToastButtonBg = () => darkMode ? 'bg-indigo-500/20' : 'bg-indigo-500/10';
+  const getToastButtonHoverBg = () => darkMode ? 'bg-indigo-500' : 'bg-indigo-500';
+  const getToastButtonTextColor = () => darkMode ? 'text-indigo-400' : 'text-indigo-400';
+  const getToastButtonHoverTextColor = () => 'text-white';
+  const getToastButtonBorder = () => darkMode ? 'border-indigo-500/30' : 'border-indigo-500/20';
+  const getToastCloseColor = () => darkMode ? 'text-gray-500 hover:text-white' : 'text-slate-400 hover:text-white';
+
   // SAFE DATA TRANSFORMATION
   const tableData: TableDataItem[] = useMemo(() => {
     return customerTableData?.customers?.map((item: CustomerData) => ({
@@ -165,7 +209,7 @@ const Customers: React.FC = () => {
     })) || [];
   }, [customerTableData]);
 
-  // COLUMNS DEFINITION
+  // COLUMNS DEFINITION with theme support
   const columns = useMemo(() => [
     {
       title: 'Profile',
@@ -180,7 +224,9 @@ const Customers: React.FC = () => {
             whileHover={{ scale: 1.05, rotate: 2 }}
             src={profile || "https://via.placeholder.com/40"}
             alt="profile"
-            className="w-8 h-8 md:w-10 md:h-10 rounded-full ring-2 ring-slate-100 object-cover bg-slate-50 shadow-sm"
+            className={`w-8 h-8 md:w-10 md:h-10 rounded-full ring-2 object-cover shadow-sm ${
+              darkMode ? 'ring-gray-700 bg-gray-800' : 'ring-slate-100 bg-slate-50'
+            }`}
             onError={(e) => {
               (e.target as HTMLImageElement).src = "https://via.placeholder.com/40";
             }}
@@ -195,7 +241,9 @@ const Customers: React.FC = () => {
       filterable: true as const,
       sortable: true as const,
       render: (text: string) => (
-        <span className="font-semibold text-slate-800 text-sm">{text}</span>
+        <span className={`font-semibold text-sm ${darkMode ? 'text-gray-200' : 'text-slate-800'}`}>
+          {text}
+        </span>
       ),
     },
     {
@@ -205,7 +253,11 @@ const Customers: React.FC = () => {
       filterable: true as const,
       sortable: true as const,
       render: (id: string) => (
-        <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded-md text-[10px] font-mono font-bold border border-slate-200">
+        <span className={`px-2 py-1 rounded-md text-[10px] font-mono font-bold border ${
+          darkMode 
+            ? 'bg-gray-700 text-gray-300 border-gray-600' 
+            : 'bg-slate-100 text-slate-600 border-slate-200'
+        }`}>
           {id || '-'}
         </span>
       ),
@@ -218,15 +270,14 @@ const Customers: React.FC = () => {
       sortable: false as const,
       render: (_: any, record: TableDataItem) => (
         <div className="flex flex-col text-xs gap-1">
-
-          <div className='flex items-center gap-1.5 text-slate-500'>
+          <div className={`flex items-center gap-1.5 ${darkMode ? 'text-gray-400' : 'text-slate-500'}`}>
             <Mail size={12} />
             <span className="truncate max-w-[160px] text-xs">{record.email || '-'}</span>
           </div>
         </div>
       ),
     },
-     {
+    {
       title: 'Mobile',
       dataIndex: 'contact',
       key: 'contact',
@@ -234,8 +285,10 @@ const Customers: React.FC = () => {
       sortable: false as const,
       render: (_: any, record: TableDataItem) => (
         <div className="flex flex-col text-xs gap-1">
-          <div className='flex items-center gap-1.5 text-slate-700 font-medium'>
-            <Phone size={12} className="text-indigo-500" />
+          <div className={`flex items-center gap-1.5 font-medium ${
+            darkMode ? 'text-gray-300' : 'text-slate-700'
+          }`}>
+            <Phone size={12} style={{ color: primaryColor || '#6366f1' }} />
             <span>{record.phone || '-'}</span>
           </div>
         </div>
@@ -257,7 +310,9 @@ const Customers: React.FC = () => {
         return (
           <div className="flex items-center gap-1.5">
             <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-            <span className={`text-xs font-medium ${isActive ? 'text-emerald-700' : 'text-rose-700'}`}>
+            <span className={`text-xs font-medium ${isActive ? 'text-emerald-700' : 'text-rose-700'} ${
+              darkMode ? (isActive ? 'text-emerald-400' : 'text-rose-400') : ''
+            }`}>
               {isActive ? 'Active' : 'Inactive'}
             </span>
           </div>
@@ -272,15 +327,17 @@ const Customers: React.FC = () => {
       sortable: true as const,
       filterType: 'date' as const,
       render: (date: string) => (
-        <div className='flex items-center gap-1.5 text-slate-600 text-xs'>
-          <CalendarCog size={13} className="text-slate-400" />
+        <div className={`flex items-center gap-1.5 text-xs ${
+          darkMode ? 'text-gray-400' : 'text-slate-600'
+        }`}>
+          <CalendarCog size={13} className={darkMode ? 'text-gray-500' : 'text-slate-400'} />
           <span>
             {date ? new Date(date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : '-'}
           </span>
         </div>
       ),
     },
-  ], []);
+  ], [darkMode, primaryColor]);
 
   const handleRefresh = () => {
     fetchCustomers(true);
@@ -304,14 +361,14 @@ const Customers: React.FC = () => {
   // Show error state with retry option
   if (hasError && !tableData.length && !isRefreshing) {
     return (
-      <div className="min-h-screen bg-[#F8FAFC] py-6 px-4 md:py-8 md:px-6 lg:px-8">
+      <div className={`min-h-screen py-6 px-4 md:py-8 md:px-6 lg:px-8 ${getPageBg()}`}>
         <div className="w-full mx-auto">
-          <div className="flex flex-col items-center justify-center py-16 text-center bg-white rounded-xl border border-slate-200">
-            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4">
-              <Building2 size={32} className="text-red-500" />
+          <div className={`flex flex-col items-center justify-center py-16 text-center rounded-xl border ${getErrorCardBg()} ${getErrorCardBorder()}`}>
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-4 ${getErrorIconBg()}`}>
+              <Building2 size={32} className={getErrorIconColor()} />
             </div>
-            <h3 className="text-lg font-semibold text-slate-800 mb-2">Failed to Load Customers</h3>
-            <p className="text-sm text-slate-500 mb-6 max-w-md px-4">{hasError}</p>
+            <h3 className={`text-lg font-semibold mb-2 ${getErrorTitleColor()}`}>Failed to Load Customers</h3>
+            <p className={`text-sm mb-6 max-w-md px-4 ${getErrorTextColor()}`}>{hasError}</p>
             <div className="flex gap-3">
               <Reusable_Button
                 text="Try Again"
@@ -343,22 +400,26 @@ const Customers: React.FC = () => {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="min-h-screen bg-[#F8FAFC] py-6 px-4 md:py-8 md:px-6 lg:px-8"
+        className={`min-h-screen py-6 px-4 md:py-8 md:px-6 lg:px-8 transition-colors duration-300 ${getPageBg()}`}
       >
         <div className="w-full mx-auto space-y-6">
           
           {/* --- LAYER 1: HERO HEADER --- */}
           <motion.header variants={itemVariants} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 md:w-12 md:h-12 bg-indigo-100 text-indigo-600 rounded-xl md:rounded-2xl flex items-center justify-center shadow-sm">
-                <Building2 size={20} strokeWidth={2.5} className="md:w-6 md:h-6" />
+              <div className={`w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center shadow-sm ${getHeaderIconBg()}`}>
+                <Building2 size={20} strokeWidth={2.5} className="md:w-6 md:h-6" style={{ color: getHeaderIconColor() }} />
               </div>
               <div>
-                <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-slate-900 tracking-tight">Client Directory</h1>
+                <h1 className={`text-xl md:text-2xl lg:text-3xl font-bold tracking-tight ${getTitleColor()}`}>
+                  Client Directory
+                </h1>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <p className="text-xs md:text-sm text-slate-500">View and manage all registered companies and customers.</p>
-                  <span className="w-1 h-1 rounded-full bg-slate-300 hidden sm:block"></span>
-                  <p className="text-[10px] md:text-xs font-bold text-slate-500 uppercase tracking-wider hidden sm:block">
+                  <p className={`text-xs md:text-sm ${getSubtitleColor()}`}>
+                    View and manage all registered companies and customers.
+                  </p>
+                  <span className={`w-1 h-1 rounded-full hidden sm:block ${getSeparatorColor()}`}></span>
+                  <p className={`text-[10px] md:text-xs font-bold uppercase tracking-wider hidden sm:block ${getCountColor()}`}>
                     {tableData.length} Total
                   </p>
                 </div>
@@ -371,7 +432,7 @@ const Customers: React.FC = () => {
                 <button
                   onClick={handleRefresh}
                   disabled={isRefreshing}
-                  className="p-2 bg-white rounded-lg shadow-sm border border-slate-200 text-slate-500 hover:text-indigo-600 hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`p-2 rounded-lg shadow-sm border transition-all disabled:opacity-50 disabled:cursor-not-allowed ${getButtonBg()} ${getButtonBorder()} ${getButtonTextColor()} ${getButtonHoverBg()}`}
                 >
                   <RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""} />
                 </button>
@@ -385,8 +446,8 @@ const Customers: React.FC = () => {
           </motion.section>
 
           {/* --- LAYER 3: UNIFIED DATA CARD --- */}
-          <motion.main variants={itemVariants} className="bg-white rounded-xl md:rounded-2xl shadow-sm border border-slate-200/60 overflow-hidden flex flex-col">
-            <div className="p-0 sm:p-4">
+          <motion.main variants={itemVariants} className={`rounded-xl md:rounded-2xl shadow-sm border overflow-hidden flex flex-col ${getMainBg()} ${getMainBorder()}`}>
+            <div className="p-0 sm:p-0">
               {tableData.length === 0 ? (
                 <TableNotFound 
                   image={Generating_new_leads}
@@ -394,7 +455,7 @@ const Customers: React.FC = () => {
                   description="Start adding your first customer to manage and grow your business effectively."
                   buttonText="Create New Customer"
                   buttonIcon={<PlusCircle size={16} />}
-                  onAction={() => navigate(`/${localStorage.getItem("subdomain")}/customers/create-customers`)}
+                  onAction={() => navigate(`/${localStorage.getItem("subdomain")}/leads/create-leads`)}
                 />
               ) : (
                 <Table
@@ -421,6 +482,7 @@ const Customers: React.FC = () => {
                       setCurrentPage(1);
                     },
                   }}
+                  theme={{ darkMode, primaryColor }}
                 />
               )}
             </div>
@@ -435,20 +497,20 @@ const Customers: React.FC = () => {
               animate={{ y: 0, opacity: 1, scale: 1 }}
               exit={{ y: 100, opacity: 0, scale: 0.9 }}
               transition={{ type: "spring" as const, stiffness: 400, damping: 25 }}
-              className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-[#0F172A] text-white px-3 py-2.5 rounded-xl shadow-xl border border-slate-700/50"
+              className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-3 py-2.5 rounded-xl shadow-xl border ${getToastBg()} ${getToastBorder()}`}
             >
-              <div className="flex items-center justify-center w-7 h-7 rounded-full bg-slate-800 text-indigo-400 font-bold text-xs">
-                {selectedRows.length}
+              <div className={`flex items-center justify-center w-7 h-7 rounded-full font-bold text-xs ${getToastIconBg()}`}>
+                <span style={{ color: getToastIconColor() }}>{selectedRows.length}</span>
               </div>
-              <span className="font-medium text-xs tracking-wide">
+              <span className={`font-medium text-xs tracking-wide ${getToastTextColor()}`}>
                 Customer{selectedRows.length !== 1 ? 's' : ''} Selected
               </span>
-              <div className="w-px h-5 bg-slate-700 mx-1"></div>
+              <div className={`w-px h-5 mx-1 ${getToastDivider()}`}></div>
               
               {/* Bulk Export Button */}
               <button
                 onClick={handleExport}
-                className="group text-xs font-semibold bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500 hover:text-white px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 border border-indigo-500/20 hover:border-indigo-500"
+                className={`group text-xs font-semibold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 border ${getToastButtonBg()} ${getToastButtonTextColor()} ${getToastButtonBorder()} hover:${getToastButtonHoverBg()} hover:${getToastButtonHoverTextColor()}`}
               >
                 <Download size={13} className="group-hover:scale-110 transition-transform" />
                 Export
@@ -456,7 +518,7 @@ const Customers: React.FC = () => {
 
               <button
                 onClick={() => setSelectedRows([])}
-                className="text-slate-400 hover:text-white transition-colors p-1.5 rounded-md hover:bg-slate-800"
+                className={`rounded-md p-1.5 transition-colors ${getToastCloseColor()}`}
                 aria-label="Clear selection"
               >
                 <X size={14} />

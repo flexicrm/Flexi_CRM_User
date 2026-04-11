@@ -77,6 +77,7 @@ const extractErrorMessage = (error: any): string => {
 
 const FollowupType = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
   const {
     types,
     deleteLoading,
@@ -95,6 +96,9 @@ const FollowupType = () => {
   const { permissions } = useSelector((state: any) => state.auth);
   const Roles = permissions[4];
 
+  // Theme-based styles
+  const getTextColor = () => darkMode ? 'text-gray-300' : 'text-slate-700';
+
   useEffect(() => {
     dispatch(getFollowUpTypes());
   }, [dispatch]);
@@ -110,6 +114,9 @@ const FollowupType = () => {
       title: "Type Name",
       dataIndex: "typeName",
       key: "typeName",
+      render: (text: string) => (
+        <span className={getTextColor()}>{text}</span>
+      ),
     },
   ];
 
@@ -294,6 +301,7 @@ const FollowupType = () => {
           onEdit: Roles?.canRead ? handleEditClick : undefined,
           onDelete: Roles?.canDelete ? handleDeleteClick : undefined,
         }}
+        theme={{ darkMode, primaryColor }}
       />
     </>
   );

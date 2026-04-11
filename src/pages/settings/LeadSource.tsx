@@ -77,6 +77,7 @@ const extractErrorMessage = (error: any): string => {
 
 const LeadSource = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
 
   const {
     sources,
@@ -96,6 +97,9 @@ const LeadSource = () => {
   const { permissions } = useSelector((state: any) => state.auth);
   const Roles = permissions[4];
 
+  // Theme-based styles
+  const getTextColor = () => darkMode ? 'text-gray-300' : 'text-slate-700';
+
   useEffect(() => {
     dispatch(getLeadSource());
   }, [dispatch]);
@@ -111,6 +115,9 @@ const LeadSource = () => {
       title: "Source Name",
       dataIndex: "sourceName",
       key: "sourceName",
+      render: (text: string) => (
+        <span className={getTextColor()}>{text}</span>
+      ),
     },
   ];
 
@@ -295,6 +302,7 @@ const LeadSource = () => {
           onEdit: Roles?.canRead ? handleEditClick : undefined,
           onDelete: Roles?.canDelete ? handleDeleteClick : undefined,
         }}
+        theme={{ darkMode, primaryColor }}
       />
     </>
   );

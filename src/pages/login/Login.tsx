@@ -1,16 +1,16 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Phone } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import Flexi_CRM_Logo from "../../assets/logo/Flexi_CRM_Logo.svg";
+import favIconForFlexi from "../../assets/logo/favIconForFlexi.png";
+import Reusable_Button from "../../component/button/Reusable_Button";
 import Reusable_Fields from "../../component/Fields/Reusable_Fiealds";
 import GlobalStatus from "../../component/Notification/GlobalStatus";
+import { errorAlert, successAlert } from "../../component/Notification/statusHandler";
 import { getDeviceId } from "../../component/UUID/getDeviceId";
 import { loginAPI } from "../../store/Login_Slice";
 import Auth_Slider from "./Auth_Slider";
-
-// IMPORTANT: Adjust this import path to point to where your alert utility is located
-import { errorAlert, successAlert } from "../../component/Notification/statusHandler";
 
 // Helper function to extract exact error message from API
 const extractErrorMessage = (error: any): string => {
@@ -42,6 +42,8 @@ const extractErrorMessage = (error: any): string => {
 
 const Login = () => {
   const navigate = useNavigate();
+  const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
+  
   const [loginData, setLoginData] = useState({
     mobile: "",
   });
@@ -132,9 +134,16 @@ const Login = () => {
 
   return (
     <>
-    <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       {/* Left Side - Slider */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-gradient-to-br from-[#05264e] to-[#0a3a6e]">
+      <div 
+        className="hidden lg:flex lg:w-1/2 relative overflow-hidden"
+        style={{ 
+          background: darkMode 
+            ? "linear-gradient(135deg, #0f172a, #1e293b)" 
+            : `linear-gradient(135deg, ${primaryColor || '#05264e'}, ${primaryColor ? `${primaryColor}cc` : '#0a3a6e'})`
+        }}
+      >
         <Auth_Slider />
       </div>
 
@@ -159,7 +168,7 @@ const Login = () => {
                 transition={{ type: "spring", stiffness: 400 }}
               >
                 <img
-                  src={Flexi_CRM_Logo}
+                  src={favIconForFlexi}
                   alt="FlexiCRM"
                   className="w-20 h-20 mx-auto rounded-full"
                 />
@@ -169,7 +178,7 @@ const Login = () => {
               initial={{ y: 10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.3 }}
-              className="text-3xl font-bold text-gray-900 mt-4"
+              className="text-3xl font-bold text-gray-900 dark:text-white mt-4"
             >
               Welcome Back
             </motion.h1>
@@ -177,7 +186,7 @@ const Login = () => {
               initial={{ y: 10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.4 }}
-              className="text-gray-500 text-sm mt-1"
+              className="text-gray-500 dark:text-gray-400 text-sm mt-1"
             >
               Sign in to continue to FlexiCRM
             </motion.p>
@@ -192,7 +201,7 @@ const Login = () => {
             className="space-y-5"
           >
             <Reusable_Fields
-              type="number"
+              type="phone"
               label="Mobile Number"
               name="mobile"
               value={loginData.mobile}
@@ -203,27 +212,42 @@ const Login = () => {
               error={error}
             />
 
-            {/* Submit Button */}
-            <motion.button
-              type="submit"
-              disabled={loading}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className={`w-full py-3 px-4 rounded-xl font-semibold text-white transition-all duration-200 ${
-                loading
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-gradient-to-r from-[#05264e] to-[#0a3a6e] hover:shadow-lg hover:from-[#0a3a6e] hover:to-[#0e4a7a]"
-              }`}
+            {/* Remember Me Checkbox */}
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.55 }}
+              className="flex items-center justify-between"
             >
-              {loading ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Logging in...</span>
-                </div>
-              ) : (
-                "Login →"
-              )}
-            </motion.button>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300 dark:border-gray-600"
+                  style={{ 
+                    accentColor: primaryColor || '#3B82F6'
+                  }}
+                />
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  Remember me
+                </span>
+              </label>
+            
+            </motion.div>
+
+            {/* Submit Button - Using Reusable Button */}
+            <Reusable_Button
+              type="submit"
+              text={loading ? "Logging in..." : "Login →"}
+              variant="primary"
+              size="lg"
+              fullWidth={true}
+              isLoading={loading}
+              disabled={loading}
+              icon={<Phone className="w-4 h-4" />}
+              iconPosition="left"
+            />
 
             {/* Inline Error Message */}
             <AnimatePresence>
@@ -232,9 +256,14 @@ const Login = () => {
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="p-3 rounded-lg bg-red-50 border border-red-200"
+                  className="p-3 rounded-lg"
+                  style={{ 
+                    backgroundColor: darkMode ? '#450a0a' : '#fef2f2',
+                    borderColor: darkMode ? '#7f1d1d' : '#fecaca',
+                    borderWidth: '1px'
+                  }}
                 >
-                  <p className="text-red-600 text-sm text-center">{error}</p>
+                  <p className="text-red-600 dark:text-red-400 text-sm text-center">{error}</p>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -245,12 +274,13 @@ const Login = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6 }}
-            className="text-center text-sm text-gray-600 mt-6"
+            className="text-center text-sm text-gray-600 dark:text-gray-400 mt-6"
           >
             Don't have an account?{" "}
             <button
               onClick={() => navigate("/register")}
-              className="text-indigo-600 hover:text-indigo-700 font-semibold cursor-pointer"
+              className="font-semibold cursor-pointer transition-colors hover:opacity-80"
+              style={{ color: primaryColor || '#6366f1' }}
             >
               Create Account
             </button>

@@ -1,10 +1,13 @@
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { createAction, createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
 import { Reusable_Service } from "../service/Reusable_Service/Reusable_Service";
 import {
   clearTokenRefresh,
   setupTokenRefresh,
 } from "../utils/SetupRefreshToken";
+
+const Register_Base_Url = import.meta.env.VITE_REGISTER_BASE_URL
+console.log("Register base url", Register_Base_Url)
 
 interface Category {
   _id: string;
@@ -80,6 +83,7 @@ interface AuthState {
   meData: UserData | null;
   meLoading: boolean;
   meError: any;
+  subdomain: string | null;
 }
 
 export const loginAPI = (data: { mobile: string }) =>
@@ -89,10 +93,10 @@ export const OtpAPI = (data: { mobile: string; otp: string }) =>
   Reusable_Service().post("/user/verify-otp/", data);
 
 export const RegisterAPI = (data: any) =>
-  axios.post("http://192.168.1.11:5000/api/v1/company/self-register", data);
+  axios.post(`${Register_Base_Url}/company/self-register`, data);
 
 export const getCategories = () =>
-  axios.get("http://192.168.1.11:5000/api/v1/category/");
+  axios.get(`${Register_Base_Url}/category/`);
 
 // Evaluate localStorage dynamically ONLY when the function is called!
 export const meAPI = () => {
@@ -107,6 +111,16 @@ export const notificationAPI = () => {
 
 export const refreshTokenAPI = (data: { refreshToken: string }) =>
   axios.post(`${import.meta.env.VITE_BASE_URL}/auth/refresh-token`, data);
+
+// Create setAuthData action
+export const setAuthData = createAction<{
+  isAuthenticated: boolean;
+  user: UserData | null;
+  subdomain: string;
+  accessToken: string;
+  permissions?: Permission[];
+  userRole?: string;
+}>('auth/setAuthData');
 
 export const loginUser = createAsyncThunk(
   "auth/loginUser",
@@ -123,13 +137,49 @@ export const loginUser = createAsyncThunk(
 export const OtpUser = createAsyncThunk(
   "auth/OtpUser",
   async (
-    data: { mobile: string; otp: string },
+    data: { mobile: string; otp: string; deviceId?: string; deviceType?: string; forceLogin?: boolean },
     { rejectWithValue, dispatch },
   ) => {
     try {
       const response = await OtpAPI(data);
-      const { accessToken, refreshToken: newRefreshToken } = response.data;
+      const { accessToken, refreshToken: newRefreshToken, user, subdomain } = response.data;
+      
       if (accessToken && newRefreshToken) {
+        // Save subdomain to localStorage first
+        if (subdomain) {
+          localStorage.setItem("subdomain", subdomain);
+          console.log("✅ Subdomain saved to localStorage from API:", subdomain);
+        }
+        
+        // Save tokens
+        localStorage.setItem("accessToken", accessToken);
+        localStorage.setItem("refreshToken", newRefreshToken);
+        
+        // Save user data
+        if (user) {
+          localStorage.setItem("userData", JSON.stringify(user));
+          if (user.permissions) {
+            localStorage.setItem("userPermissions", JSON.stringify(user.permissions));
+          }
+          if (user.userRole) {
+            localStorage.setItem("userRole", user.userRole);
+          }
+        }
+        
+        const expiryTime = Date.now() + 60 * 60 * 1000;
+        localStorage.setItem("tokenExpiry", String(expiryTime));
+        localStorage.setItem("loginTimestamp", String(Date.now()));
+        
+        // Dispatch setAuthData to update Redux store
+        dispatch(setAuthData({
+          isAuthenticated: true,
+          user: user,
+          subdomain: subdomain || localStorage.getItem("subdomain") || "",
+          accessToken: accessToken,
+          permissions: user?.permissions,
+          userRole: user?.userRole,
+        }));
+        
         setTimeout(() => {
           setupTokenRefresh(dispatch);
         }, 100);
@@ -176,22 +226,25 @@ export const fetchCategories = createAsyncThunk<Category[]>(
 
 export const fetchMeData = createAsyncThunk(
   "auth/fetchMeData",
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, dispatch }) => {
     try {
       const response = await meAPI();
       console.log("meAPI Response:", response);
       
       const userData = response.data?.data || response.data;
+      const subdomain = localStorage.getItem("subdomain");
       
-      // if (userData?.permissions) {
-      //   localStorage.setItem("userPermissions", JSON.stringify(userData.permissions));
-      // }
-      
-      // if (userData?.userRole) {
-      //   localStorage.setItem("userRole", userData.userRole);
-      // }
-      
-      // localStorage.setItem("userData", JSON.stringify(userData));
+      // Update Redux store with fetched data
+      if (userData) {
+        dispatch(setAuthData({
+          isAuthenticated: true,
+          user: userData,
+          subdomain: subdomain || "",
+          accessToken: localStorage.getItem("accessToken") || "",
+          permissions: userData?.permissions,
+          userRole: userData?.userRole,
+        }));
+      }
       
       return userData;
     } catch (error: any) {
@@ -221,6 +274,15 @@ export const refreshToken = createAsyncThunk(
       if (!localStorage.getItem("loginTimestamp")) {
         localStorage.setItem("loginTimestamp", String(Date.now()));
       }
+      
+      // Update Redux store with new token
+      dispatch(setAuthData({
+        isAuthenticated: true,
+        user: null, // Keep existing user data
+        subdomain: localStorage.getItem("subdomain") || "",
+        accessToken: accessToken,
+      }));
+      
       setTimeout(() => {
         setupTokenRefresh(dispatch);
       }, 100);
@@ -249,6 +311,7 @@ const loadInitialState = (): Partial<AuthState> => {
   const storedUserData = localStorage.getItem("userData");
   const storedPermissions = localStorage.getItem("userPermissions");
   const storedUserRole = localStorage.getItem("userRole");
+  const storedSubdomain = localStorage.getItem("subdomain");
   
   return {
     user: storedUserData ? JSON.parse(storedUserData) : null,
@@ -256,6 +319,7 @@ const loadInitialState = (): Partial<AuthState> => {
     userRole: storedUserRole || null,
     token: localStorage.getItem("accessToken") || null,
     mobile: localStorage.getItem("mobile") || null,
+    subdomain: storedSubdomain || null,
   };
 };
 
@@ -274,6 +338,7 @@ const initialState: AuthState = {
   meData: null,
   meLoading: false,
   meError: null,
+  subdomain: localStorage.getItem("subdomain") || null,
   ...loadInitialState(),
 };
 
@@ -291,6 +356,7 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.meData = null;
       state.meError = null;
+      state.subdomain = null;
       clearTokenRefresh();
       
       // ✅ Targeted cleanup: Destroys auth/user data, but keeps dismissed alarms & subdomain safe
@@ -302,10 +368,14 @@ const authSlice = createSlice({
       localStorage.removeItem("userPermissions");
       localStorage.removeItem("userRole");
       localStorage.removeItem("mobile");
+      // Note: subdomain is NOT removed here to preserve it for potential re-login
     },
     clearError: (state) => {
       state.error = null;
       state.meError = null;
+    },
+    updateSubdomain: (state, action) => {
+      state.subdomain = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -334,11 +404,13 @@ const authSlice = createSlice({
           user,
           accessToken,
           refreshToken: newRefreshToken,
+          subdomain,
         } = action.payload;
 
         state.user = user;
         state.token = accessToken;
         state.isAuthenticated = true;
+        state.subdomain = subdomain || localStorage.getItem("subdomain") || null;
         
         if (user?.permissions) {
           state.permissions = user.permissions;
@@ -348,6 +420,10 @@ const authSlice = createSlice({
           state.userRole = user.userRole;
         }
         
+        // Ensure localStorage is synced
+        if (subdomain) {
+          localStorage.setItem("subdomain", subdomain);
+        }
         localStorage.setItem("accessToken", accessToken);
         localStorage.setItem("refreshToken", newRefreshToken);
         const expiryTime = Date.now() + 60 * 60 * 1000;
@@ -421,6 +497,7 @@ const authSlice = createSlice({
         state.permissions = [];
         state.userRole = null;
         state.isAuthenticated = false;
+        state.subdomain = null;
         
         // Make sure rejection also doesn't wipe out global storage
         localStorage.removeItem("accessToken");
@@ -431,9 +508,30 @@ const authSlice = createSlice({
         localStorage.removeItem("userPermissions");
         localStorage.removeItem("userRole");
         localStorage.removeItem("mobile");
+        // subdomain is intentionally NOT removed here
+      })
+      
+      // Handle setAuthData action
+      .addCase(setAuthData, (state, action) => {
+        state.isAuthenticated = action.payload.isAuthenticated;
+        if (action.payload.user) {
+          state.user = action.payload.user;
+        }
+        if (action.payload.subdomain) {
+          state.subdomain = action.payload.subdomain;
+        }
+        if (action.payload.accessToken) {
+          state.token = action.payload.accessToken;
+        }
+        if (action.payload.permissions) {
+          state.permissions = action.payload.permissions;
+        }
+        if (action.payload.userRole) {
+          state.userRole = action.payload.userRole;
+        }
       });
   },
 });
 
-export const { logout, clearError } = authSlice.actions;
+export const { logout, clearError, updateSubdomain } = authSlice.actions;
 export default authSlice.reducer;
