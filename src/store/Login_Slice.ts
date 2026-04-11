@@ -109,8 +109,18 @@ export const notificationAPI = () => {
   return Reusable_Service().get(`/activity/own/activity/${subdomain}`);
 };
 
-export const refreshTokenAPI = (data: { refreshToken: string }) =>
-  axios.post(`${import.meta.env.VITE_BASE_URL}/auth/refresh-token`, data);
+// Refresh token API call
+const refreshTokenAPI = async (subdomain: string, refreshToken: string) => {
+  return Reusable_Service().post(
+    `/user/${subdomain}/refresh`,
+    {},
+    {
+      headers: {
+        Authorization: `Bearer ${refreshToken}`,
+      },
+    }
+  );
+};
 
 // Create setAuthData action
 export const setAuthData = createAction<{
@@ -166,8 +176,11 @@ export const OtpUser = createAsyncThunk(
           }
         }
         
+        // Set token expiry to 1 hour from now
         const expiryTime = Date.now() + 60 * 60 * 1000;
         localStorage.setItem("tokenExpiry", String(expiryTime));
+        
+        // Set login timestamp for 7-day session
         localStorage.setItem("loginTimestamp", String(Date.now()));
         
         // Dispatch setAuthData to update Redux store
@@ -180,9 +193,10 @@ export const OtpUser = createAsyncThunk(
           userRole: user?.userRole,
         }));
         
+        // Setup token refresh after successful login
         setTimeout(() => {
           setupTokenRefresh(dispatch);
-        }, 100);
+        }, 1000);
       }
       return response.data;
     } catch (error: any) {
@@ -259,39 +273,52 @@ export const refreshToken = createAsyncThunk(
   async (_, { rejectWithValue, dispatch }) => {
     try {
       const refreshTokenValue = localStorage.getItem("refreshToken");
+      const subdomain = localStorage.getItem("subdomain");
 
       if (!refreshTokenValue) {
-        throw new Error("No refresh token");
+        throw new Error("No refresh token found");
       }
-      const response = await refreshTokenAPI({
-        refreshToken: refreshTokenValue,
-      });
+      
+      if (!subdomain) {
+        throw new Error("No subdomain found");
+      }
+
+      console.log("🔄 Refreshing token at:", new Date().toLocaleTimeString());
+      
+      const response = await refreshTokenAPI(subdomain, refreshTokenValue);
+      
       const { accessToken, refreshToken: newRefreshToken } = response.data;
+      
+      // Save new tokens
       localStorage.setItem("accessToken", accessToken);
       localStorage.setItem("refreshToken", newRefreshToken);
+      
+      // Reset token expiry to 1 hour from now
       const expiryTime = Date.now() + 60 * 60 * 1000;
       localStorage.setItem("tokenExpiry", String(expiryTime));
+      
+      // Ensure login timestamp exists (for 7-day session tracking)
       if (!localStorage.getItem("loginTimestamp")) {
         localStorage.setItem("loginTimestamp", String(Date.now()));
       }
+      
+      console.log("✅ Token refreshed successfully at:", new Date().toLocaleTimeString());
+      console.log("⏰ New token expires at:", new Date(expiryTime).toLocaleTimeString());
       
       // Update Redux store with new token
       dispatch(setAuthData({
         isAuthenticated: true,
         user: null, // Keep existing user data
-        subdomain: localStorage.getItem("subdomain") || "",
+        subdomain: subdomain,
         accessToken: accessToken,
       }));
       
-      setTimeout(() => {
-        setupTokenRefresh(dispatch);
-      }, 100);
-
       return response.data;
+      
     } catch (error: any) {
       console.error("❌ Token refresh failed:", error);
       
-      // Only clear auth data on refresh fail, preserve app settings/alarms
+      // Clear all auth data on refresh failure
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
       localStorage.removeItem("tokenExpiry");
@@ -359,7 +386,7 @@ const authSlice = createSlice({
       state.subdomain = null;
       clearTokenRefresh();
       
-      // ✅ Targeted cleanup: Destroys auth/user data, but keeps dismissed alarms & subdomain safe
+      // Clear all auth data from localStorage
       localStorage.removeItem("accessToken");
       localStorage.removeItem("refreshToken");
       localStorage.removeItem("tokenExpiry");
@@ -499,7 +526,7 @@ const authSlice = createSlice({
         state.isAuthenticated = false;
         state.subdomain = null;
         
-        // Make sure rejection also doesn't wipe out global storage
+        // Clear auth data on refresh failure
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
         localStorage.removeItem("tokenExpiry");
@@ -508,7 +535,6 @@ const authSlice = createSlice({
         localStorage.removeItem("userPermissions");
         localStorage.removeItem("userRole");
         localStorage.removeItem("mobile");
-        // subdomain is intentionally NOT removed here
       })
       
       // Handle setAuthData action

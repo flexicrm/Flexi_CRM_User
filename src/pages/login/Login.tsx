@@ -170,7 +170,7 @@ const Login = () => {
                 <img
                   src={favIconForFlexi}
                   alt="FlexiCRM"
-                  className="w-20 h-20 mx-auto rounded-full"
+                  className="w-20 h-20 mx-auto"
                 />
               </motion.div>
             </div>
