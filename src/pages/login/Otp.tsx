@@ -321,22 +321,22 @@ const Otp: React.FC = () => {
                 
                 // Get the final subdomain value
                 const finalSubdomain = subdomain || localStorage.getItem("subdomain");
-                console.log("🎯 Final subdomain for navigation:", finalSubdomain);
+                console.log(" Final subdomain for navigation:", finalSubdomain);
                 
                 if (!finalSubdomain) {
-                    console.error("❌ No subdomain found after login!");
+                    console.error(" No subdomain found after login!");
                     errorAlert("Login failed: Missing company subdomain", "Retry");
                     setIsNavigating(false);
                     return;
                 }
                 
                 setIsNavigating(true);
-                
-                // Add a small delay to ensure Redux state is updated
-                setTimeout(() => {
-                    console.log(`🚀 Navigating to /${finalSubdomain}/dashboard`);
-                    navigate(`/${finalSubdomain}/dashboard`, { replace: true });
-                }, 2000);
+                setIsNavigating(true);
+setTimeout(() => {
+    console.log(` Redirecting to /${finalSubdomain}/dashboard with auto-refresh`);
+    window.location.replace(`/${finalSubdomain}/dashboard`);
+    
+}, 2000);
                 
             } else {
                 const errorMsg = responseData?.errors || responseData?.message || "OTP verification failed.";

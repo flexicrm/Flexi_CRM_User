@@ -158,7 +158,7 @@ export const OtpUser = createAsyncThunk(
         // Save subdomain to localStorage first
         if (subdomain) {
           localStorage.setItem("subdomain", subdomain);
-          console.log("✅ Subdomain saved to localStorage from API:", subdomain);
+          console.log(" Subdomain saved to localStorage from API:", subdomain);
         }
         
         // Save tokens
