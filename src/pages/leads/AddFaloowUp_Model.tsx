@@ -759,11 +759,6 @@ if (formData.setReminder && formData.dueDate) {
     { label: 'Low', value: 'low' }
   ];
 
-  const reminderTypeOptions: SelectOption[] = [
-    { label: 'Email', value: 'email' },
-    { label: 'SMS', value: 'sms' },
-    { label: 'Push Notification', value: 'push' }
-  ];
 
   if (!isOpen) return null;
 
