@@ -83,9 +83,15 @@ const generatePath = (moduleName: string, subdomain: string): string => {
 };
 
 const formatLabel = (moduleName: string): string => {
-  let formatted = moduleName.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim();
-  formatted = formatted.replace(/And/g, '&');
-  formatted = formatted.replace(/Permissions/g, 'Permissions');
+  if (moduleName === "RolesandPermissions") {
+    return "Roles & Permissions";
+  }
+
+  let formatted = moduleName
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/^./, str => str.toUpperCase())
+    .trim();
+
   return formatted;
 };
 
