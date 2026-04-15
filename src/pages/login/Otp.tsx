@@ -276,139 +276,142 @@ const Otp: React.FC = () => {
     };
 
     const callOtpApi = async (forceLoginValue: boolean) => {
-    const otpValue = otp.join("");
+        const otpValue = otp.join("");
 
-    //  Strongly typed payload
-    type OtpPayload =
-        | {
-              mobile: string;
-              otp: string;
-              deviceId: string;
-              deviceType: string;
-              forceLogin: boolean;
-          }
-        | {
-              email: string;
-              otp: string;
-              deviceId: string;
-              deviceType: string;
-              forceLogin: boolean;
-          };
-
-    const payload: OtpPayload =
-        loginType === "mobile"
-            ? {
-                  mobile: identifier,
-                  otp: otpValue,
-                  deviceId: deviceInfo.deviceId,
-                  deviceType: deviceInfo.deviceType,
-                  forceLogin: forceLoginValue,
+        // Strongly typed payload
+        type OtpPayload =
+            | {
+                  mobile: string;
+                  otp: string;
+                  deviceId: string;
+                  deviceType: string;
+                  forceLogin: boolean;
               }
-            : {
-                  email: identifier,
-                  otp: otpValue,
-                  deviceId: deviceInfo.deviceId,
-                  deviceType: deviceInfo.deviceType,
-                  forceLogin: forceLoginValue,
+            | {
+                  email: string;
+                  otp: string;
+                  deviceId: string;
+                  deviceType: string;
+                  forceLogin: boolean;
               };
 
-    console.log(`Sending OTP payload (${loginType}, forceLogin: ${forceLoginValue}):`, payload);
+        const payload: OtpPayload =
+            loginType === "mobile"
+                ? {
+                      mobile: identifier,
+                      otp: otpValue,
+                      deviceId: deviceInfo.deviceId,
+                      deviceType: deviceInfo.deviceType,
+                      forceLogin: forceLoginValue,
+                  }
+                : {
+                      email: identifier,
+                      otp: otpValue,
+                      deviceId: deviceInfo.deviceId,
+                      deviceType: deviceInfo.deviceType,
+                      forceLogin: forceLoginValue,
+                  };
 
-    try {
-        //  cast ensures Redux accepts union
-        const actionResult = await dispatch(OtpUser(payload as any));
-        const responseData = unwrapResult(actionResult);
+        console.log(`Sending OTP payload (${loginType}, forceLogin: ${forceLoginValue}):`, payload);
 
-        console.log("API Success Response:", responseData);
+        try {
+            const actionResult = await dispatch(OtpUser(payload as any));
+            const responseData = unwrapResult(actionResult);
 
-        if (responseData?.requiresConfirmation && responseData?.data?.alreadyLoggedIn) {
-            dispatch(clearError());
-            setLocalError("");
+            console.log("API Success Response:", responseData);
 
-            setTimeout(() => {
-                confirmAlert({
-                    title: "Already Logged In",
-                    message:
-                        responseData?.errors ||
-                        "This account is already logged in. Do you want to continue?",
-                    confirmText: "Yes, Force Login",
-                    cancelText: "Cancel",
-                    onConfirm: () => {
-                        console.log("Retrying with forceLogin: true");
-                        callOtpApi(true);
-                    },
-                });
-            }, 100);
-            return;
-        }
+            if (responseData?.requiresConfirmation && responseData?.data?.alreadyLoggedIn) {
+                dispatch(clearError());
+                setLocalError("");
 
-        const accessToken = responseData?.accessToken || responseData?.data?.accessToken;
-        const refreshToken = responseData?.refreshToken || responseData?.data?.refreshToken;
-
-        if (accessToken && refreshToken) {
-            const expiresIn = responseData?.expiresIn || responseData?.data?.expiresIn;
-            let subdomain = responseData?.subdomain || responseData?.data?.subdomain;
-            let userData = responseData?.user || responseData?.data?.user;
-
-            ensureLocalStorageData(subdomain, userData, accessToken, refreshToken);
-
-            if (expiresIn)
-                localStorage.setItem("tokenExpiry", String(Date.now() + Number(expiresIn)));
-            if (responseData?.isFirstlogin !== undefined)
-                localStorage.setItem("isFirstLogin", String(responseData.isFirstlogin));
-
-            localStorage.removeItem("identifier");
-            localStorage.removeItem("loginType");
-            localStorage.removeItem("mobile");
-            localStorage.removeItem("email");
-
-            await waitForLocalStorage("subdomain", subdomain);
-            await refreshReduxStore(subdomain, userData, accessToken);
-
-            const successMsg = responseData?.message || "Login successful!";
-            successAlert(successMsg, "Continue");
-            setLocalError("");
-
-            const finalSubdomain = subdomain || localStorage.getItem("subdomain");
-
-            if (!finalSubdomain) {
-                errorAlert("Login failed: Missing company subdomain", "Retry");
-                setIsNavigating(false);
+                setTimeout(() => {
+                    confirmAlert({
+                        title: "Already Logged In",
+                        message:
+                            responseData?.errors ||
+                            "This account is already logged in. Do you want to continue?",
+                        confirmText: "Yes, Force Login",
+                        cancelText: "Cancel",
+                        onConfirm: () => {
+                            console.log("Retrying with forceLogin: true");
+                            callOtpApi(true);
+                        },
+                    });
+                }, 100);
                 return;
             }
 
-            setIsNavigating(true);
+            const accessToken = responseData?.accessToken || responseData?.data?.accessToken;
+            const refreshToken = responseData?.refreshToken || responseData?.data?.refreshToken;
 
-            setTimeout(() => {
-                window.location.replace(`/${finalSubdomain}/dashboard`);
-            }, 2000);
-        } else {
+            if (accessToken && refreshToken) {
+                const expiresIn = responseData?.expiresIn || responseData?.data?.expiresIn;
+                let subdomain = responseData?.subdomain || responseData?.data?.subdomain;
+                let userData = responseData?.user || responseData?.data?.user;
+
+                // Set 7-Day login variables on success
+                const isFirst = responseData?.isFirstlogin ?? responseData?.isFirstLogin ?? false;
+                localStorage.setItem("isFirstLogin", String(isFirst));
+                localStorage.setItem("loginTimestamp", String(Date.now()));
+
+                ensureLocalStorageData(subdomain, userData, accessToken, refreshToken);
+
+                if (expiresIn)
+                    localStorage.setItem("tokenExpiry", String(Date.now() + Number(expiresIn)));
+
+                localStorage.removeItem("identifier");
+                localStorage.removeItem("loginType");
+                localStorage.removeItem("mobile");
+                localStorage.removeItem("email");
+
+                await waitForLocalStorage("subdomain", subdomain);
+                await refreshReduxStore(subdomain, userData, accessToken);
+
+                const successMsg = responseData?.message || "Login successful!";
+                successAlert(successMsg, "Continue");
+                setLocalError("");
+
+                const finalSubdomain = subdomain || localStorage.getItem("subdomain");
+
+                if (!finalSubdomain) {
+                    errorAlert("Login failed: Missing company subdomain", "Retry");
+                    setIsNavigating(false);
+                    return;
+                }
+
+                setIsNavigating(true);
+
+                setTimeout(() => {
+                    window.location.replace(`/${finalSubdomain}/dashboard`);
+                }, 2000);
+            } else {
+                const errorMsg =
+                    responseData?.errors ||
+                    responseData?.message ||
+                    "OTP verification failed.";
+
+                errorAlert(errorMsg, "Try Again");
+                setLocalError(errorMsg);
+                setOtp(new Array(6).fill(""));
+                inputRefs.current[0]?.focus();
+                setIsNavigating(false);
+            }
+        } catch (errorData: any) {
+            console.log("API Error Response:", errorData);
+            setIsNavigating(false);
+
             const errorMsg =
-                responseData?.errors ||
-                responseData?.message ||
-                "OTP verification failed.";
+                errorData?.errors ||
+                errorData?.message ||
+                "OTP verification failed. Please try again.";
 
             errorAlert(errorMsg, "Try Again");
             setLocalError(errorMsg);
             setOtp(new Array(6).fill(""));
             inputRefs.current[0]?.focus();
-            setIsNavigating(false);
         }
-    } catch (errorData: any) {
-        console.log("API Error Response:", errorData);
-        setIsNavigating(false);
+    };
 
-        const errorMsg =
-            errorData?.errors ||
-            errorData?.message ||
-            "OTP verification failed. Please try again.";
-
-        errorAlert(errorMsg, "Try Again");
-        setLocalError(errorMsg);
-        setOtp(new Array(6).fill(""));
-        inputRefs.current[0]?.focus();
-    }
-};
     const handleVerify = async () => {
         if (isNavigating) {
             console.log("Already navigating, please wait...");

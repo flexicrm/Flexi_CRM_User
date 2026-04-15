@@ -208,7 +208,7 @@ const Login = () => {
 
   return (
     <>
-    <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+    <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 ">
       {/* Left Side - Slider */}
       <div 
         className="hidden lg:flex lg:w-1/2 relative overflow-hidden"
@@ -248,14 +248,6 @@ const Login = () => {
                 />
               </motion.div>
             </div>
-            <motion.h1
-              initial={{ y: 10, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.3 }}
-              className="text-3xl font-bold text-gray-900 dark:text-white mt-4"
-            >
-              Welcome Back
-            </motion.h1>
             <motion.p
               initial={{ y: 10, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
@@ -347,7 +339,7 @@ const Login = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6 }}
-            className="text-center text-sm text-gray-600 dark:text-gray-400 mt-6"
+            className={`text-center text-sm mt-5 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}
           >
             Don't have an account?{" "}
             <button
@@ -356,22 +348,6 @@ const Login = () => {
               style={{ color: primaryColor || '#6366f1' }}
             >
               Create Account
-            </button>
-          </motion.p>
-
-          {/* Forgot Password Link */}
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.65 }}
-            className="text-center text-xs text-gray-500 dark:text-gray-500 mt-3"
-          >
-            <button
-              onClick={() => navigate("/forgot-password")}
-              className="hover:underline transition-colors"
-              style={{ color: primaryColor || '#6366f1' }}
-            >
-              Forgot Password?
             </button>
           </motion.p>
         </motion.div>

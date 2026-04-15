@@ -173,6 +173,11 @@ export const OtpUser = createAsyncThunk(
         localStorage.setItem("accessToken", accessToken);
         localStorage.setItem("refreshToken", newRefreshToken);
         
+        // Save 7-Day logic variables
+        const isFirst = response.data?.isFirstlogin ?? response.data?.isFirstLogin ?? false;
+        localStorage.setItem("isFirstLogin", String(isFirst));
+        localStorage.setItem("loginTimestamp", String(Date.now()));
+        
         // Save user data
         if (user) {
           localStorage.setItem("userData", JSON.stringify(user));
@@ -187,9 +192,6 @@ export const OtpUser = createAsyncThunk(
         // Set token expiry to 1 hour from now
         const expiryTime = Date.now() + 60 * 60 * 1000;
         localStorage.setItem("tokenExpiry", String(expiryTime));
-        
-        // Set login timestamp for 7-day session
-        localStorage.setItem("loginTimestamp", String(Date.now()));
         
         // Dispatch setAuthData to update Redux store
         dispatch(setAuthData({
@@ -291,6 +293,19 @@ export const refreshToken = createAsyncThunk(
         throw new Error("No subdomain found");
       }
 
+      // --- 7 DAYS EXPIRY LOGIC ---
+      const isFirstLogin = localStorage.getItem("isFirstLogin") === "true";
+      const loginTimestamp = localStorage.getItem("loginTimestamp");
+
+      if (isFirstLogin && loginTimestamp) {
+        const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+        if (Date.now() - Number(loginTimestamp) >= SEVEN_DAYS_MS) {
+          console.warn("Session expired after 7 days.");
+          throw new Error("Session expired after 7 days");
+        }
+      }
+      // ---------------------------
+
       console.log("🔄 Refreshing token at:", new Date().toLocaleTimeString());
       
       const response = await refreshTokenAPI(subdomain, refreshTokenValue);
@@ -305,7 +320,7 @@ export const refreshToken = createAsyncThunk(
       const expiryTime = Date.now() + 60 * 60 * 1000;
       localStorage.setItem("tokenExpiry", String(expiryTime));
       
-      // Ensure login timestamp exists (for 7-day session tracking)
+      // Ensure login timestamp exists
       if (!localStorage.getItem("loginTimestamp")) {
         localStorage.setItem("loginTimestamp", String(Date.now()));
       }
@@ -335,6 +350,7 @@ export const refreshToken = createAsyncThunk(
       localStorage.removeItem("userPermissions");
       localStorage.removeItem("userRole");
       localStorage.removeItem("mobile");
+      localStorage.removeItem("isFirstLogin");
       
       dispatch(logout());
       return rejectWithValue(error.response?.data || error.message);
@@ -403,6 +419,7 @@ const authSlice = createSlice({
       localStorage.removeItem("userPermissions");
       localStorage.removeItem("userRole");
       localStorage.removeItem("mobile");
+      localStorage.removeItem("isFirstLogin");
       // Note: subdomain is NOT removed here to preserve it for potential re-login
     },
     clearError: (state) => {
@@ -463,7 +480,11 @@ const authSlice = createSlice({
         localStorage.setItem("refreshToken", newRefreshToken);
         const expiryTime = Date.now() + 60 * 60 * 1000;
         localStorage.setItem("tokenExpiry", String(expiryTime));
-        localStorage.setItem("loginTimestamp", String(Date.now()));
+        
+        // Ensure login timestamp is saved (Fail-safe)
+        if (!localStorage.getItem("loginTimestamp")) {
+           localStorage.setItem("loginTimestamp", String(Date.now()));
+        }
       })
       .addCase(OtpUser.rejected, (state, action) => {
         state.isLoading = false;
@@ -543,6 +564,7 @@ const authSlice = createSlice({
         localStorage.removeItem("userPermissions");
         localStorage.removeItem("userRole");
         localStorage.removeItem("mobile");
+        localStorage.removeItem("isFirstLogin");
       })
       
       // Handle setAuthData action

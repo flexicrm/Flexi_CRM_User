@@ -43,8 +43,7 @@ export const Reusable_Service = () => {
   api.interceptors.request.use(
     (config) => {
       const token = localStorage.getItem("accessToken");
-      const deviceId =
-        localStorage.getItem("flexicrm-device-id") || "web";
+      const deviceId = localStorage.getItem("flexicrm-device-id") || "web";
 
       if (config.headers) {
         //  Correct Authorization header
@@ -55,9 +54,6 @@ export const Reusable_Service = () => {
         //  Separate device id header
         config.headers["x-device-id"] = deviceId;
       }
-
-      //  Debug (optional)
-      // console.log("Request Headers:", config.headers);
 
       return config;
     },
@@ -74,6 +70,23 @@ export const Reusable_Service = () => {
 
       //  Handle 401 (token expired)
       if (error.response?.status === 401 && !originalRequest?._retry) {
+        
+        // --- 7 DAYS EXPIRY LOGIC CHECK BEFORE REFRESH ---
+        const isFirstLogin = localStorage.getItem("isFirstLogin") === "true";
+        const loginTimestamp = localStorage.getItem("loginTimestamp");
+
+        if (isFirstLogin && loginTimestamp) {
+          const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+          if (Date.now() - Number(loginTimestamp) >= SEVEN_DAYS_MS) {
+            
+            processQueue(new Error("Session expired after 7 days"), null);
+            localStorage.clear();
+            window.location.href = "/login";
+            return Promise.reject(new Error("Session expired after 7 days"));
+          }
+        }
+        // ------------------------------------------------
+
         if (isRefreshing) {
           return new Promise<string>((resolve, reject) => {
             failedQueue.push({ resolve, reject });

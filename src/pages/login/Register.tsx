@@ -95,7 +95,7 @@ const extractErrorMessage = (error: any): string => {
 const Register = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
-  const { isLoading, error, categories, categoriesLoading } = useSelector((state: { auth: any }) => state.auth);
+  const { isLoading, categories, categoriesLoading } = useSelector((state: { auth: any }) => state.auth);
   const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
 
   const categoryList = Array.isArray(categories) ? categories : [];
@@ -559,27 +559,6 @@ const Register = () => {
                   </motion.div>
                 )}
               </AnimatePresence>
-
-              {/* Error Message */}
-              <AnimatePresence>
-                {(localError || error) && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="p-2 rounded-lg"
-                    style={{ 
-                      backgroundColor: darkMode ? '#450a0a' : '#fef2f2',
-                      borderColor: darkMode ? '#7f1d1d' : '#fecaca',
-                      borderWidth: '1px'
-                    }}
-                  >
-                    <p className={`text-xs text-center ${darkMode ? 'text-red-400' : 'text-red-600'}`}>
-                      {localError || (typeof error === "string" ? error : error?.message)}
-                    </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </motion.form>
 
             {/* Login Link */}
@@ -587,7 +566,7 @@ const Register = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.7 }}
-              className={`text-center text-xs mt-5 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}
+              className={`text-center text-sm mt-5 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}
             >
               Already have an account?{" "}
               <button

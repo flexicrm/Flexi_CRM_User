@@ -46,7 +46,7 @@ const TableNotFound = ({
           <img 
             src={image} 
             alt="No Data Found" 
-            className="w-full h-full object-contain"
+            className="w-full h-full object-contain rounded-full"
           />
         </motion.div>
 

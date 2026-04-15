@@ -5,6 +5,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import favIconForFlexi from "../../assets/logo/favIconForFlexi.png";
 import { errorAlert } from "../../component/Notification/statusHandler";
+import { Reusable_Service } from "../../service/Reusable_Service/Reusable_Service";
 import { logout, notificationAPI } from "../../store/Login_Slice";
 import type { AppDispatch } from "../../store/Store";
 import { toggleDarkModeAndSave } from "../../store/Theems_Slic";
@@ -48,8 +49,10 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [isMarkingRead, setIsMarkingRead] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
+  const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Get company info from localStorage
   const companyName = localStorage.getItem("companyName") || "FlexiCRM";
@@ -76,28 +79,137 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Fetch notifications
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const response = await notificationAPI();
-        const data: NotificationResponse = response?.data?.data;
+  // Fetch notifications function
+  const fetchNotifications = async () => {
+    try {
+      const response = await notificationAPI();
+      const data: NotificationResponse = response?.data?.data;
+      
+      if (data) {
+        const newNotifications = data.activities || [];
+        setNotifications(newNotifications);
         
-        if (data) {
-          setNotifications(data.activities || []);
-          
-          const unread = (data.activities || []).filter(
-            (n) => !n.notificationRead
-          ).length;
-          setUnreadCount(unread);
+        const unread = newNotifications.filter(
+          (n) => !n.notificationRead
+        ).length;
+        setUnreadCount(unread);
+        
+        // Store last notification timestamp to detect new notifications
+        if (newNotifications.length > 0) {
+          const latestTimestamp = newNotifications[0].timestamp;
+          localStorage.setItem("lastNotificationTimestamp", latestTimestamp);
         }
-      } catch (error) {
-        console.error("Error fetching notifications:", error);
+      }
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+    }
+  };
+
+  // Mark single notification as read
+  const markNotificationAsRead = async (notificationId: string) => {
+    try {
+      const subdomain = localStorage.getItem("subdomain");
+      const api = Reusable_Service();
+      await api.put(`/activity/mark-read/${subdomain}/${notificationId}`);
+      
+      // Update local state
+      setNotifications(prev => 
+        prev.map(n => 
+          n._id === notificationId 
+            ? { ...n, notificationRead: true }
+            : n
+        )
+      );
+      
+      // Update unread count
+      setUnreadCount(prev => Math.max(0, prev - 1));
+      
+      return true;
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      return false;
+    }
+  };
+
+  // Mark all notifications as read
+  const markAllAsRead = async () => {
+    if (isMarkingRead || unreadCount === 0) return;
+    
+    setIsMarkingRead(true);
+    try {
+      const subdomain = localStorage.getItem("subdomain");
+      const api = Reusable_Service();
+      await api.put(`/activity/mark-all-read/${subdomain}`);
+      
+      // Update local state
+      setNotifications(prev => 
+        prev.map(n => ({ ...n, notificationRead: true }))
+      );
+      setUnreadCount(0);
+      
+    } catch (error) {
+      console.error("Error marking all notifications as read:", error);
+      errorAlert("Failed to mark notifications as read", "Try Again");
+    } finally {
+      setIsMarkingRead(false);
+    }
+  };
+
+  // Poll for new notifications every 30 seconds
+  useEffect(() => {
+    // Initial fetch
+    fetchNotifications();
+    
+    // Set up polling
+    pollingIntervalRef.current = setInterval(() => {
+      // Only fetch if notifications dropdown is not open
+      if (!showNotifications) {
+        fetchNotifications();
+      }
+    }, 30000); // Poll every 30 seconds
+    
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
       }
     };
-
-    fetchNotifications();
   }, []);
+
+  // Re-fetch when dropdown opens to get latest
+  useEffect(() => {
+    if (showNotifications) {
+      fetchNotifications();
+    }
+  }, [showNotifications]);
+
+  // Listen for new notification events (if using WebSocket or SSE)
+  useEffect(() => {
+    const handleNewNotification = (event: CustomEvent) => {
+      console.log("New notification received:", event.detail);
+      // Fetch latest notifications
+      fetchNotifications();
+      
+      // Optional: Show browser notification
+      if (Notification.permission === "granted" && !showNotifications) {
+        const notification = new Notification("New Notification", {
+          body: event.detail?.description || "You have a new notification",
+          icon: favIconForFlexi,
+        });
+        
+        notification.onclick = () => {
+          window.focus();
+          setShowNotifications(true);
+        };
+      }
+    };
+    
+    // Listen for custom event (can be triggered from WebSocket or SSE)
+    window.addEventListener('new-notification', handleNewNotification as EventListener);
+    
+    return () => {
+      window.removeEventListener('new-notification', handleNewNotification as EventListener);
+    };
+  }, [showNotifications]);
 
   // Format date & time
   const formatDateTime = (timestamp: string) => {
@@ -169,6 +281,36 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
   const userFirstname = localStorage.getItem("FirstName") || "User";
   const userInitial = userFirstname.charAt(0).toUpperCase();
   const userFullName = `${localStorage.getItem("FirstName") || ""} ${localStorage.getItem("LastName") || ""}`.trim();
+
+  // Handle notification click
+  const handleNotificationClick = async (notification: Notification) => {
+    // Mark as read if not already
+    if (!notification.notificationRead) {
+      await markNotificationAsRead(notification._id);
+    }
+    
+    // Close dropdown
+    setShowNotifications(false);
+    
+    // Navigate based on entity type
+    if (notification.entityType?.toLowerCase() === 'lead') {
+      let mainId = '';
+      let leadId = '';
+
+      if (notification.entityId && typeof notification.entityId === 'object') {
+        mainId = notification.entityId._id;
+        leadId = notification.entityId.LeadId || '';
+      } else if (typeof notification.entityId === 'string') {
+        mainId = notification.entityId;
+      }
+
+      if (mainId) {
+        navigate(`/${localStorage.getItem('subdomain')}/leads/view-leads`, {
+          state: { tableId: leadId, mainId: mainId }
+        });
+      }
+    }
+  };
 
   return (
     <nav className={`sticky top-0 z-30 shadow-lg transition-all duration-300 ${
@@ -261,6 +403,7 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
               >
                 <Bell size={20} className="transition-transform group-hover:scale-110" />
                 
+                {/* Notification dot - only shows when there are unread notifications */}
                 {unreadCount > 0 && (
                   <span className="absolute top-0 right-0 flex h-3 w-3">
                     <span 
@@ -298,10 +441,14 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
                     <div className="flex items-center gap-2">
                       {unreadCount > 0 && (
                         <button 
-                          className="text-xs font-medium hover:opacity-80 transition-opacity"
+                          onClick={markAllAsRead}
+                          disabled={isMarkingRead}
+                          className={`text-xs font-medium hover:opacity-80 transition-opacity ${
+                            isMarkingRead ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
                           style={{ color: themeColor }}
                         >
-                          Mark all read
+                          {isMarkingRead ? 'Marking...' : 'Mark all read'}
                         </button>
                       )}
                       <button 
@@ -338,26 +485,7 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
                         return (
                           <div
                             key={n._id}
-                            onClick={() => {
-                              setShowNotifications(false);
-                              if (n.entityType?.toLowerCase() === 'lead') {
-                                let mainId = '';
-                                let leadId = '';
-
-                                if (n.entityId && typeof n.entityId === 'object') {
-                                  mainId = n.entityId._id;
-                                  leadId = n.entityId.LeadId || '';
-                                } else if (typeof n.entityId === 'string') {
-                                  mainId = n.entityId;
-                                }
-
-                                if (mainId) {
-                                  navigate(`/${localStorage.getItem('subdomain')}/leads/view-leads`, {
-                                    state: { tableId: leadId, mainId: mainId }
-                                  });
-                                }
-                              }
-                            }}
+                            onClick={() => handleNotificationClick(n)}
                             className={`p-4 transition-all duration-200 cursor-pointer group relative ${
                               !n.notificationRead 
                                 ? darkMode ? 'bg-gray-700/30' : 'bg-slate-50/50'

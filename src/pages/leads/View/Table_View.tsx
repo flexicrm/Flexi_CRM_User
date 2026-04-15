@@ -4,6 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
+// --- DRIVER.JS IMPORTS ---
+import { driver } from "driver.js";
+import "driver.js/dist/driver.css";
+
 import Generating_new_leads from "../../../assets/image/Generating_new_leads.gif";
 import Table, { type Column } from "../../../component/table/Table";
 import TableNotFound from "../../../component/TableNotFound/TableNotFound";
@@ -75,6 +79,68 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
   const selectedLeadData = data.find(lead => lead.LeadId === selectedLeadId);
   const { permissions } = useSelector((state: any) => state.auth);
   const Roles = permissions?.[1];
+
+  // --- DRIVER.JS TOUR LOGIC ---
+  useEffect(() => {
+    let driverObj: any = null;
+
+    // Small timeout ensures the DOM has finished painting the target elements
+    const timer = setTimeout(() => {
+      // Phase 1: No leads exist yet
+      if (data.length === 0 && !localStorage.getItem("lead_tour_create_lead")) {
+        driverObj = driver({
+          showProgress: false,
+          animate: true,
+          popoverClass: darkMode ? 'driver-dark-theme' : '',
+          steps: [
+            {
+              element: '.tour-create-lead-wrapper',
+              popover: {
+                title: '🚀 Create Your First Lead',
+                description: 'You have no leads yet. Click this button to add a new lead and start tracking your business!',
+                side: "top",
+                align: 'center'
+              }
+            }
+          ],
+          onDestroyStarted: () => {
+            localStorage.setItem("lead_tour_create_lead", "true");
+            driverObj.destroy();
+          }
+        });
+        driverObj.drive();
+      } 
+      // Phase 2: Leads exist -> Show how to create Follow-Ups & Convert to Customer
+      else if (data.length > 0 && !localStorage.getItem("lead_tour_manage_lead")) {
+        driverObj = driver({
+          showProgress: true,
+          animate: true,
+          popoverClass: darkMode ? 'driver-dark-theme' : '',
+          steps: [
+            {
+              element: '.tour-followup-cell',
+              popover: {
+                title: '⚡ Manage Your Leads',
+                description: 'To create a Follow-up or Convert this lead to a Customer, click the action menu (three dots) on the far right of this row.',
+                side: "left",
+                align: 'start'
+              }
+            }
+          ],
+          onDestroyStarted: () => {
+            localStorage.setItem("lead_tour_manage_lead", "true");
+            driverObj.destroy();
+          }
+        });
+        driverObj.drive();
+      }
+    }, 1000);
+
+    return () => {
+      clearTimeout(timer);
+      if (driverObj) driverObj.destroy();
+    };
+  }, [data.length, darkMode]);
 
   // Save dismissed alarms to localStorage
   useEffect(() => {
@@ -474,7 +540,25 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
 
   useEffect(() => {
     const style = document.createElement('style');
-    style.textContent = `@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } .animate-slide-in { animation: slideIn 0.3s ease-out; }`;
+    style.textContent = `
+      @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } 
+      .animate-slide-in { animation: slideIn 0.3s ease-out; }
+      
+      /* Dark theme overrides for Driver.js */
+      .driver-dark-theme .driver-popover {
+        background-color: #1f2937 !important;
+        color: #f3f4f6 !important;
+      }
+      .driver-dark-theme .driver-popover-title {
+        color: #f3f4f6 !important;
+      }
+      .driver-dark-theme .driver-popover-description {
+        color: #9ca3af !important;
+      }
+      .driver-dark-theme .driver-popover-arrow {
+        border-color: #1f2937 !important;
+      }
+    `;
     document.head.appendChild(style);
     return () => { document.head.removeChild(style); };
   }, []);
@@ -549,13 +633,13 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
       key: "followUps",
       width: "250px",
       render: (followUps: any, record: any) => {
-        if (!followUps || followUps.length === 0) return <span className="text-[11px] text-slate-400 italic">No Follow-Ups</span>;
+        if (!followUps || followUps.length === 0) return <span className="tour-followup-cell text-[11px] text-slate-400 italic">No Follow-Ups</span>;
         
         const validFollowUps = followUps
           .map((f: any, originalIndex: number) => ({ ...f, originalIndex }))
           .filter((f: any) => f.dateTime || f.reminderDateTime);
 
-        if (validFollowUps.length === 0) return <span className="text-[11px] text-slate-400 italic">No scheduled dates</span>;
+        if (validFollowUps.length === 0) return <span className="tour-followup-cell text-[11px] text-slate-400 italic">No scheduled dates</span>;
         
         const sortedFollowUps = [...validFollowUps].sort((a, b) => {
           const now = Date.now();
@@ -574,7 +658,8 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
         const mostRecentFollowUp = sortedFollowUps[0];
         
         return (
-          <div className="flex flex-col gap-1 max-w-[230px]">
+          // Added .tour-followup-cell class for Tour Phase 2 Target
+          <div className="tour-followup-cell flex flex-col gap-1 max-w-[230px]">
             {[mostRecentFollowUp].map((followUp: any) => {
               const targetTime = followUp.reminderDateTime || followUp.dateTime;
               const isOverdue = new Date(targetTime) < new Date();
@@ -765,14 +850,17 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
       </div>
 
       {data.length === 0 ? (
-        <TableNotFound 
-          image={Generating_new_leads}
-          title="No Leads Yet"
-          description="Start adding your first lead to manage and grow your business effectively."
-          buttonText="Create New Lead"
-          buttonIcon={<PlusCircle size={18} />}
-          onAction={() => navigate(`/${localStorage.getItem("subdomain")}/leads/create-leads`)}
-        />
+        // Added wrapper class here for Phase 1 Target
+        <div className="tour-create-lead-wrapper">
+          <TableNotFound 
+            image={Generating_new_leads}
+            title="No Leads Yet"
+            description="Start adding your first lead to manage and grow your business effectively."
+            buttonText="Create New Lead"
+            buttonIcon={<PlusCircle size={18} />}
+            onAction={() => navigate(`/${localStorage.getItem("subdomain")}/leads/create-leads`)}
+          />
+        </div>
       ) : (
         <Table
           columns={columns}

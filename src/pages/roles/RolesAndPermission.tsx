@@ -3,6 +3,11 @@ import { Plus, Search, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+
+// --- DRIVER.JS IMPORTS ---
+import { driver } from "driver.js";
+import "driver.js/dist/driver.css";
+
 import Reusable_Button from "../../component/button/Reusable_Button";
 import RippleLoader from "../../component/Loader/RippleLoader";
 import Table, { type Column } from "../../component/table/Table";
@@ -147,6 +152,92 @@ const RolesAndPermission = () => {
     fetchPermissions();
   }, []);
 
+  // --- DRIVER.JS TOUR LOGIC ---
+  useEffect(() => {
+    // Only trigger tour after loading is completely finished
+    if (loading) return;
+
+    let driverObj: any = null;
+
+    const timer = setTimeout(() => {
+      // Phase 1: No roles exist yet
+      if (permissionss.length === 0 && !localStorage.getItem("role_tour_create")) {
+        driverObj = driver({
+          showProgress: false,
+          animate: true,
+          popoverClass: darkMode ? 'driver-dark-theme' : '',
+          steps: [
+            {
+              element: '.tour-add-role-btn',
+              popover: {
+                title: '🔐 Create a Role',
+                description: 'You have no roles set up yet. Click here to create your first role and define its permissions.',
+                side: "bottom",
+                align: 'end'
+              }
+            }
+          ],
+          onDestroyStarted: () => {
+            localStorage.setItem("role_tour_create", "true");
+            driverObj.destroy();
+          }
+        });
+        driverObj.drive();
+      } 
+      // Phase 2: Roles exist -> Show how to edit/delete
+      else if (permissionss.length > 0 && !localStorage.getItem("role_tour_actions")) {
+        driverObj = driver({
+          showProgress: false,
+          animate: true,
+          popoverClass: darkMode ? 'driver-dark-theme' : '',
+          steps: [
+            {
+              element: '.tour-action-area',
+              popover: {
+                title: '⚙️ Manage Roles',
+                description: 'Great! You have roles created. Use the action menu on the right side of any row to view, edit, or delete a role.',
+                side: "left",
+                align: 'start'
+              }
+            }
+          ],
+          onDestroyStarted: () => {
+            localStorage.setItem("role_tour_actions", "true");
+            driverObj.destroy();
+          }
+        });
+        driverObj.drive();
+      }
+    }, 800);
+
+    return () => {
+      clearTimeout(timer);
+      if (driverObj) driverObj.destroy();
+    };
+  }, [permissionss.length, loading, darkMode]);
+
+  // Inject Custom Dark Mode Styles for Driver.js
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .driver-dark-theme .driver-popover {
+        background-color: #1f2937 !important;
+        color: #f3f4f6 !important;
+      }
+      .driver-dark-theme .driver-popover-title {
+        color: #f3f4f6 !important;
+      }
+      .driver-dark-theme .driver-popover-description {
+        color: #9ca3af !important;
+      }
+      .driver-dark-theme .driver-popover-arrow {
+        border-color: #1f2937 !important;
+      }
+    `;
+    document.head.appendChild(style);
+    return () => { document.head.removeChild(style); };
+  }, []);
+
   // Filter data based on search term
   const filteredData = permissionss.filter(item =>
     item.userRole?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -205,15 +296,18 @@ const RolesAndPermission = () => {
             </div>
           </div>
 
-          <Tooltip text="Add New Role">
-            <Reusable_Button
-              text="Add Role"
-              onClick={handleCreate}
-              icon={<Plus size={16} />}
-              disabled={!Roles?.canCreate}
-              size="px-4 py-2 text-sm font-medium rounded-lg"
-            />
-          </Tooltip>
+          {/* Added .tour-add-role-btn wrapper for Phase 1 Target */}
+          <div className="tour-add-role-btn">
+            <Tooltip text="Add New Role">
+              <Reusable_Button
+                text="Add Role"
+                onClick={handleCreate}
+                icon={<Plus size={16} />}
+                disabled={!Roles?.canCreate}
+                size="px-4 py-2 text-sm font-medium rounded-lg"
+              />
+            </Tooltip>
+          </div>
         </motion.header>
 
         {/* --- LAYER 2: UNIFIED DATA CARD --- */}
@@ -233,10 +327,10 @@ const RolesAndPermission = () => {
                 }}
                 className={`w-full pl-9 pr-8 py-2 text-sm rounded-lg focus:outline-none focus:ring-2 transition-all ${getSearchInputBg()}`}
                 style={
-  {
-    '--tw-ring-color': `${primaryColor}20`
-  } as React.CSSProperties
-}
+                  {
+                    '--tw-ring-color': `${primaryColor}20`
+                  } as React.CSSProperties
+                }
               />
               {searchTerm && (
                 <button
@@ -294,36 +388,39 @@ const RolesAndPermission = () => {
                 )}
               </div>
             ) : (
-              <Table
-                columns={columns}
-                data={filteredData}
-                showSelection={false}
-                enableSearch={false}
-                actionButtons={{
-                  showView: !!Roles?.canRead,
-                  onView: (record: RoleItem) => {
-                    if (!Roles?.canRead) return;
-                    const subdomain = localStorage.getItem("subdomain") || "default";
-                    navigate(`/${subdomain}/rolesand-permissions/view`, {
-                      state: {
-                        tableId: record.index,
-                      },
-                    });
-                  },
-                }}
-                pagination={{
-                  currentPage,
-                  itemsPerPage,
-                  totalItems: filteredData.length,
-                  onPageChange: setCurrentPage,
-                  onItemsPerPageChange: (size: number) => {
-                    setItemsPerPage(size);
-                    setCurrentPage(1);
-                  },
-                }}
-                rowClickable={!!Roles?.canRead}
-                theme={{ darkMode, primaryColor }}
-              />
+              // Added .tour-action-area wrapper for Phase 2 Target
+              <div className="tour-action-area">
+                <Table
+                  columns={columns}
+                  data={filteredData}
+                  showSelection={false}
+                  enableSearch={false}
+                  actionButtons={{
+                    showView: !!Roles?.canRead,
+                    onView: (record: RoleItem) => {
+                      if (!Roles?.canRead) return;
+                      const subdomain = localStorage.getItem("subdomain") || "default";
+                      navigate(`/${subdomain}/rolesand-permissions/view`, {
+                        state: {
+                          tableId: record.index,
+                        },
+                      });
+                    },
+                  }}
+                  pagination={{
+                    currentPage,
+                    itemsPerPage,
+                    totalItems: filteredData.length,
+                    onPageChange: setCurrentPage,
+                    onItemsPerPageChange: (size: number) => {
+                      setItemsPerPage(size);
+                      setCurrentPage(1);
+                    },
+                  }}
+                  rowClickable={!!Roles?.canRead}
+                  theme={{ darkMode, primaryColor }}
+                />
+              </div>
             )}
           </div>
         </motion.main>
