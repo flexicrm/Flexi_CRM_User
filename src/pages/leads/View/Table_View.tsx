@@ -4,10 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-// --- DRIVER.JS IMPORTS ---
-import { driver } from "driver.js";
-import "driver.js/dist/driver.css";
-
 import Generating_new_leads from "../../../assets/image/Generating_new_leads.gif";
 import Table, { type Column } from "../../../component/table/Table";
 import TableNotFound from "../../../component/TableNotFound/TableNotFound";
@@ -54,6 +50,7 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const { primaryColor, darkMode } = useSelector((state: any) => state.theme);
+  const themeColor = primaryColor || "#6366f1";
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -79,68 +76,6 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
   const selectedLeadData = data.find(lead => lead.LeadId === selectedLeadId);
   const { permissions } = useSelector((state: any) => state.auth);
   const Roles = permissions?.[1];
-
-  // --- DRIVER.JS TOUR LOGIC ---
-  useEffect(() => {
-    let driverObj: any = null;
-
-    // Small timeout ensures the DOM has finished painting the target elements
-    const timer = setTimeout(() => {
-      // Phase 1: No leads exist yet
-      if (data.length === 0 && !localStorage.getItem("lead_tour_create_lead")) {
-        driverObj = driver({
-          showProgress: false,
-          animate: true,
-          popoverClass: darkMode ? 'driver-dark-theme' : '',
-          steps: [
-            {
-              element: '.tour-create-lead-wrapper',
-              popover: {
-                title: '🚀 Create Your First Lead',
-                description: 'You have no leads yet. Click this button to add a new lead and start tracking your business!',
-                side: "top",
-                align: 'center'
-              }
-            }
-          ],
-          onDestroyStarted: () => {
-            localStorage.setItem("lead_tour_create_lead", "true");
-            driverObj.destroy();
-          }
-        });
-        driverObj.drive();
-      } 
-      // Phase 2: Leads exist -> Show how to create Follow-Ups & Convert to Customer
-      else if (data.length > 0 && !localStorage.getItem("lead_tour_manage_lead")) {
-        driverObj = driver({
-          showProgress: true,
-          animate: true,
-          popoverClass: darkMode ? 'driver-dark-theme' : '',
-          steps: [
-            {
-              element: '.tour-followup-cell',
-              popover: {
-                title: '⚡ Manage Your Leads',
-                description: 'To create a Follow-up or Convert this lead to a Customer, click the action menu (three dots) on the far right of this row.',
-                side: "left",
-                align: 'start'
-              }
-            }
-          ],
-          onDestroyStarted: () => {
-            localStorage.setItem("lead_tour_manage_lead", "true");
-            driverObj.destroy();
-          }
-        });
-        driverObj.drive();
-      }
-    }, 1000);
-
-    return () => {
-      clearTimeout(timer);
-      if (driverObj) driverObj.destroy();
-    };
-  }, [data.length, darkMode]);
 
   // Save dismissed alarms to localStorage
   useEffect(() => {
@@ -376,7 +311,7 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
       }
       console.log(`🔔 Repeating alarm sound for ${reminder.leadName}`);
       playSound(reminderId, alarmState);
-    }, 3000); // Ring every 3 seconds until stopped
+    }, 3000);
     
     // Auto-stop after 5 minutes (300 seconds) as fallback
     alarmState.stopTimeout = setTimeout(() => {
@@ -531,34 +466,32 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
   };
 
   const getNotificationColor = (dueDate: string, priority: string) => {
-    const now = new Date(), due = new Date(dueDate);
-    if (due < now) return `border-red-500 ${darkMode ? 'bg-red-950/30' : 'bg-red-50'}`;
-    if (priority === 'high') return `border-orange-500 ${darkMode ? 'bg-orange-950/30' : 'bg-orange-50'}`;
-    if (due.getTime() - now.getTime() <= 3600000) return `border-yellow-500 ${darkMode ? 'bg-yellow-950/30' : 'bg-yellow-50'}`;
-    return `border-${primaryColor || 'blue'}-500 ${darkMode ? `bg-${primaryColor || 'blue'}-950/30` : `bg-${primaryColor || 'blue'}-50`}`;
+    const now = new Date();
+    const due = new Date(dueDate);
+    
+    if (due < now) {
+      return darkMode 
+        ? 'border-red-800 bg-red-950/20' 
+        : 'border-red-500 bg-red-50';
+    }
+    if (priority === 'high') {
+      return darkMode 
+        ? 'border-orange-800 bg-orange-950/20' 
+        : 'border-orange-500 bg-orange-50';
+    }
+    if (due.getTime() - now.getTime() <= 3600000) {
+      return darkMode 
+        ? 'border-yellow-800 bg-yellow-950/20' 
+        : 'border-yellow-500 bg-yellow-50';
+    }
+    return darkMode 
+      ? `border-${themeColor.replace('#', '')}-800 bg-${themeColor.replace('#', '')}-950/20`
+      : `border-${themeColor.replace('#', '')}-500 bg-${themeColor.replace('#', '')}-50`;
   };
 
   useEffect(() => {
     const style = document.createElement('style');
-    style.textContent = `
-      @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } 
-      .animate-slide-in { animation: slideIn 0.3s ease-out; }
-      
-      /* Dark theme overrides for Driver.js */
-      .driver-dark-theme .driver-popover {
-        background-color: #1f2937 !important;
-        color: #f3f4f6 !important;
-      }
-      .driver-dark-theme .driver-popover-title {
-        color: #f3f4f6 !important;
-      }
-      .driver-dark-theme .driver-popover-description {
-        color: #9ca3af !important;
-      }
-      .driver-dark-theme .driver-popover-arrow {
-        border-color: #1f2937 !important;
-      }
-    `;
+    style.textContent = `@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } .animate-slide-in { animation: slideIn 0.3s ease-out; }`;
     document.head.appendChild(style);
     return () => { document.head.removeChild(style); };
   }, []);
@@ -566,7 +499,7 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
   const getStatusBadge = (record: any) => {
     const statusValue = record.status;
     const statusName = record.leadstatus?.statusName || "";
-    const statusColor = record.leadstatus?.color || primaryColor || "#6366f1";
+    const statusColor = record.leadstatus?.color || themeColor;
     
     if (statusValue === 3 || statusName === "Won" || statusName === "Converted") {
       return (
@@ -583,7 +516,7 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
         </span>
       );
     }
-    return <span className="text-xs text-slate-400">-</span>;
+    return <span className="text-xs text-slate-400 dark:text-gray-600">-</span>;
   };
 
   const columns: Column[] = [
@@ -633,13 +566,13 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
       key: "followUps",
       width: "250px",
       render: (followUps: any, record: any) => {
-        if (!followUps || followUps.length === 0) return <span className="tour-followup-cell text-[11px] text-slate-400 italic">No Follow-Ups</span>;
+        if (!followUps || followUps.length === 0) return <span className="text-[11px] text-slate-400 dark:text-gray-600 italic">No Follow-Ups</span>;
         
         const validFollowUps = followUps
           .map((f: any, originalIndex: number) => ({ ...f, originalIndex }))
           .filter((f: any) => f.dateTime || f.reminderDateTime);
 
-        if (validFollowUps.length === 0) return <span className="tour-followup-cell text-[11px] text-slate-400 italic">No scheduled dates</span>;
+        if (validFollowUps.length === 0) return <span className="text-[11px] text-slate-400 dark:text-gray-600 italic">No scheduled dates</span>;
         
         const sortedFollowUps = [...validFollowUps].sort((a, b) => {
           const now = Date.now();
@@ -658,8 +591,7 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
         const mostRecentFollowUp = sortedFollowUps[0];
         
         return (
-          // Added .tour-followup-cell class for Tour Phase 2 Target
-          <div className="tour-followup-cell flex flex-col gap-1 max-w-[230px]">
+          <div className="flex flex-col gap-1 max-w-[230px]">
             {[mostRecentFollowUp].map((followUp: any) => {
               const targetTime = followUp.reminderDateTime || followUp.dateTime;
               const isOverdue = new Date(targetTime) < new Date();
@@ -686,7 +618,10 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
               const isExactDismissed = dismissedAlarms.has(`${baseReminderId}_exact`);
               
               return (
-                <div key={followUp._id || timeStamp} className={`flex flex-col gap-0.5 pb-1 border-b last:border-0 p-2 rounded-lg ${hasActiveAlarm ? `${darkMode ? 'bg-red-950/50 border-red-800' : 'bg-red-50 border-red-200'}` : ''}`}>
+                <div key={followUp._id || timeStamp} className={`flex flex-col gap-0.5 pb-1 border-b last:border-0 p-2 rounded-lg transition-colors duration-200 ${hasActiveAlarm 
+                  ? darkMode ? 'bg-red-950/50 border-red-800' : 'bg-red-50 border-red-200'
+                  : darkMode ? 'border-gray-800' : 'border-gray-100'
+                }`}>
                   <div className="flex items-center gap-1">
                     {hasActiveAlarm && (
                       <span className="text-[10px] px-1 py-0.5 rounded bg-red-500 text-white animate-pulse">
@@ -700,7 +635,14 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
                     )}
                     
                     <div>
-                      <span className={`text-[10px] font-bold ${isOverdue ? 'text-red-600 dark:text-red-400' : isToday ? 'text-orange-600 dark:text-orange-400' : darkMode ? 'text-cyan-400' : 'text-indigo-600'}`}>
+                      <span className={`text-[10px] font-bold ${isOverdue 
+                        ? 'text-red-600 dark:text-red-400' 
+                        : isToday 
+                          ? 'text-orange-600 dark:text-orange-400' 
+                          : darkMode 
+                            ? 'text-cyan-400' 
+                            : 'text-indigo-600'
+                      }`}>
                         {new Date(targetTime).toLocaleString()}
                       </span>
                     </div>
@@ -717,7 +659,7 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
                   {hasActiveAlarm && (
                     <button 
                       onClick={(e) => { e.stopPropagation(); stopAlarmCompletely(activeStage.id, false); }}
-                      className="text-[10px] text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 mt-1 text-left font-bold flex items-center gap-1"
+                      className="text-[10px] text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 mt-1 text-left font-bold flex items-center gap-1 transition-colors"
                     >
                       <VolumeX size={12}/> Stop Ringing
                     </button>
@@ -726,7 +668,7 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
               );
             })}
             {validFollowUps.length > 1 && (
-              <span className="text-[10px] font-medium text-slate-500 pl-1">
+              <span className="text-[10px] font-medium text-slate-500 dark:text-gray-500 pl-1">
                 +{validFollowUps.length - 1} more
               </span>
             )}
@@ -742,125 +684,193 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
     },
   ];
 
-
   return (
     <div className={`${darkMode ? 'dark' : ''}`}>
-      <div className="flex items-center gap-2">
-        <div className="relative" ref={notificationRef}>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowNotificationPanel(!showNotificationPanel)}
+            className={`relative p-2 rounded-xl transition-all duration-200 ${
+              darkMode 
+                ? 'hover:bg-gray-800 text-gray-400 hover:text-gray-200' 
+                : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            <BellRing size={20} />
+            {getNotificationCount() > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+                {getNotificationCount()}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
 
-          <AnimatePresence>
-            {showNotificationPanel && (
-              <motion.div 
-                initial={{ opacity: 0, y: -20, scale: 0.95 }} 
-                animate={{ opacity: 1, y: 0, scale: 1 }} 
-                exit={{ opacity: 0, y: -20, scale: 0.95 }} 
-                transition={{ duration: 0.2 }} 
-                className={`absolute right-0 mt-2 w-96 rounded-2xl shadow-2xl z-50 overflow-hidden ${
-                  darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-slate-200'
-                } border`}
-              >
-                <div className={`p-4 border-b flex justify-between items-center ${
+      <div className="relative" ref={notificationRef}>
+        <AnimatePresence>
+          {showNotificationPanel && (
+            <motion.div 
+              initial={{ opacity: 0, y: -20, scale: 0.95 }} 
+              animate={{ opacity: 1, y: 0, scale: 1 }} 
+              exit={{ opacity: 0, y: -20, scale: 0.95 }} 
+              transition={{ duration: 0.2 }} 
+              className={`absolute right-0 mt-2 w-96 rounded-2xl shadow-2xl z-50 overflow-hidden ${
+                darkMode ? 'bg-gray-900 border-gray-800' : 'bg-white border-slate-200'
+              } border`}
+            >
+              <div 
+                className={`p-4 border-b flex justify-between items-center ${
                   darkMode 
                     ? 'border-gray-800 bg-gradient-to-r from-gray-900 to-gray-800' 
-                    : `border-slate-100 bg-gradient-to-r from-${primaryColor || 'indigo'}-50 to-white`
-                }`}>
-                  <div>
-                    <h3 className={`font-bold flex items-center gap-2 ${darkMode ? 'text-gray-200' : 'text-slate-800'}`}>
-                      <BellRing className={`w-5 h-5 ${darkMode ? 'text-cyan-400' : `text-${primaryColor || 'indigo'}-600`}`} /> 
-                      Reminders
-                    </h3>
-                    <p className={`text-xs mt-1 ${darkMode ? 'text-gray-500' : 'text-slate-500'}`}>
-                      {activeAlarms.size > 0 && <span className="text-red-600 font-semibold">{activeAlarms.size} Active Ringing</span>}
-                      {activeAlarms.size > 0 && notifications.length > 0 && ' • '}
-                      {notifications.length > 0 && `${notifications.length} Upcoming`}
-                    </p>
-                  </div>
-                  {getNotificationCount() > 0 && (
-                    <button onClick={() => {
+                    : 'border-slate-100 bg-gradient-to-r to-white'
+                }`}
+                style={!darkMode ? { backgroundImage: `linear-gradient(to right, ${themeColor}10, white)` } : {}}
+              >
+                <div>
+                  <h3 className={`font-bold flex items-center gap-2 ${darkMode ? 'text-gray-200' : 'text-slate-800'}`}>
+                    <BellRing className={`w-5 h-5`} style={!darkMode ? { color: themeColor } : { color: '#22d3ee' }} /> 
+                    Reminders
+                  </h3>
+                  <p className={`text-xs mt-1 ${darkMode ? 'text-gray-500' : 'text-slate-500'}`}>
+                    {activeAlarms.size > 0 && <span className="text-red-600 font-semibold">{activeAlarms.size} Active Ringing</span>}
+                    {activeAlarms.size > 0 && notifications.length > 0 && ' • '}
+                    {notifications.length > 0 && `${notifications.length} Upcoming`}
+                  </p>
+                </div>
+                {getNotificationCount() > 0 && (
+                  <button 
+                    onClick={() => {
                       activeAlarms.forEach((_, id) => stopAlarmCompletely(id, false));
                       setNotifications([]);
-                    }} className={`text-xs font-medium transition-colors ${
-                      darkMode ? 'text-cyan-400 hover:text-cyan-300' : `text-${primaryColor || 'indigo'}-600 hover:text-${primaryColor || 'indigo'}-800`
-                    }`}>
-                      Clear all
-                    </button>
-                  )}
-                </div>
+                    }} 
+                    className={`text-xs font-medium transition-colors ${
+                      darkMode ? 'text-cyan-400 hover:text-cyan-300' : 'hover:opacity-80'
+                    }`}
+                    style={!darkMode ? { color: themeColor } : {}}
+                  >
+                    Clear all
+                  </button>
+                )}
+              </div>
 
-                <div className="max-h-96 overflow-y-auto">
-                  {getNotificationCount() === 0 ? (
-                    <div className="p-8 text-center">
-                      <CheckCircle className={`w-12 h-12 mx-auto mb-3 ${darkMode ? 'text-green-500' : 'text-green-500'}`} />
-                      <p className={`font-medium ${darkMode ? 'text-gray-400' : 'text-slate-500'}`}>All caught up!</p>
-                    </div>
-                  ) : (
-                    <>
-                      {activeAlarms.size > 0 && (
-                        <div className={`border-b ${darkMode ? 'border-red-900' : 'border-red-100'}`}>
-                          <div className={`px-4 py-2 ${darkMode ? 'bg-red-950/50' : 'bg-red-50'}`}>
-                            <h4 className={`text-xs font-bold flex items-center gap-2 ${darkMode ? 'text-red-400' : 'text-red-700'}`}>
-                              <AlertCircle className="w-3 h-3 animate-pulse" /> ACTIVE ALARMS
-                            </h4>
-                          </div>
-                          {Array.from(activeAlarms.entries()).map(([id, data]) => (
-                            <motion.div key={id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} 
-                              className={`p-4 border-b hover:bg-slate-50 cursor-pointer ${darkMode ? 'bg-red-950/30 hover:bg-red-950/50 border-gray-800' : 'bg-red-50 hover:bg-slate-50'}`} 
-                              onClick={() => { setSearchParams({ modal: "schedule-followup", LeadId: data.leadId }); setShowNotificationPanel(false); }}>
-                              <div className="flex justify-between">
-                                <div>
-                                  <span className={`font-semibold text-sm ${darkMode ? 'text-gray-200' : 'text-slate-800'}`}>{data.leadName}</span>
-                                  <p className={`text-xs mb-2 ${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>{data.followUpNote}</p>
-                                  <span className="text-xs font-bold text-red-600">🔔 {data.stageLabel}</span>
-                                </div>
-                                <button onClick={(e) => { e.stopPropagation(); stopAlarmCompletely(id, false); }} className="text-slate-400 hover:text-red-500">
-                                  <XCircle className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </motion.div>
-                          ))}
+              <div className="max-h-96 overflow-y-auto">
+                {getNotificationCount() === 0 ? (
+                  <div className="p-8 text-center">
+                    <CheckCircle className={`w-12 h-12 mx-auto mb-3 ${darkMode ? 'text-green-500' : 'text-green-500'}`} />
+                    <p className={`font-medium ${darkMode ? 'text-gray-400' : 'text-slate-500'}`}>All caught up!</p>
+                  </div>
+                ) : (
+                  <>
+                    {activeAlarms.size > 0 && (
+                      <div className={`border-b ${darkMode ? 'border-red-900' : 'border-red-100'}`}>
+                        <div className={`px-4 py-2 ${darkMode ? 'bg-red-950/50' : 'bg-red-50'}`}>
+                          <h4 className={`text-xs font-bold flex items-center gap-2 ${darkMode ? 'text-red-400' : 'text-red-700'}`}>
+                            <AlertCircle className="w-3 h-3 animate-pulse" /> ACTIVE ALARMS
+                          </h4>
                         </div>
-                      )}
-                      
-                      {notifications.map((n) => (
-                        <motion.div key={n.baseId} initial={{ opacity: 0 }} animate={{ opacity: 1 }} 
-                          className={`p-4 border-b cursor-pointer transition-colors ${getNotificationColor(n.followUpDate, n.priority)} ${darkMode ? 'hover:bg-gray-800 border-gray-800' : 'hover:bg-slate-50'}`} 
-                          onClick={() => { setSearchParams({ modal: "schedule-followup", LeadId: n.leadId }); setShowNotificationPanel(false); }}>
-                          <div className="flex justify-between">
-                            <div>
-                              <span className={`font-semibold text-sm ${darkMode ? 'text-gray-200' : 'text-slate-800'}`}>{n.leadName}</span>
-                              <p className={`text-xs mb-2 ${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>{n.followUpNote}</p>
-                              <span className={`text-xs ${darkMode ? 'text-gray-500' : 'text-slate-500'}`}>
-                                <Clock className="w-3 h-3 inline mr-1"/>{getTimeRemaining(n.followUpDate)}
-                              </span>
+                        {Array.from(activeAlarms.entries()).map(([id, data]) => (
+                          <motion.div 
+                            key={id} 
+                            initial={{ opacity: 0 }} 
+                            animate={{ opacity: 1 }} 
+                            className={`p-4 border-b cursor-pointer transition-all duration-200 ${
+                              darkMode 
+                                ? 'bg-red-950/30 hover:bg-red-950/50 border-gray-800' 
+                                : 'bg-red-50 hover:bg-red-100'
+                            }`} 
+                            onClick={() => { 
+                              setSearchParams({ modal: "schedule-followup", LeadId: data.leadId }); 
+                              setShowNotificationPanel(false); 
+                            }}
+                          >
+                            <div className="flex justify-between">
+                              <div>
+                                <span className={`font-semibold text-sm ${darkMode ? 'text-gray-200' : 'text-slate-800'}`}>
+                                  {data.leadName}
+                                </span>
+                                <p className={`text-xs mb-2 ${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>
+                                  {data.followUpNote}
+                                </p>
+                                <span className="text-xs font-bold text-red-600">
+                                  🔔 {data.stageLabel}
+                                </span>
+                              </div>
+                              <button 
+                                onClick={(e) => { 
+                                  e.stopPropagation(); 
+                                  stopAlarmCompletely(id, false); 
+                                }} 
+                                className={`transition-colors ${
+                                  darkMode ? 'text-gray-500 hover:text-red-400' : 'text-slate-400 hover:text-red-500'
+                                }`}
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </button>
                             </div>
-                            <button onClick={(e) => { e.stopPropagation(); setNotifications(prev => prev.filter(notif => notif.id !== n.id)); }} className="text-slate-400 hover:text-red-500">
-                              <XCircle className="w-4 h-4" />
-                            </button>
+                          </motion.div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {notifications.map((n) => (
+                      <motion.div 
+                        key={n.baseId} 
+                        initial={{ opacity: 0 }} 
+                        animate={{ opacity: 1 }} 
+                        className={`p-4 border-b cursor-pointer transition-all duration-200 ${
+                          darkMode 
+                            ? 'hover:bg-gray-800 border-gray-800' 
+                            : 'hover:bg-slate-50'
+                        } ${getNotificationColor(n.followUpDate, n.priority)}`} 
+                        onClick={() => { 
+                          setSearchParams({ modal: "schedule-followup", LeadId: n.leadId }); 
+                          setShowNotificationPanel(false); 
+                        }}
+                      >
+                        <div className="flex justify-between">
+                          <div>
+                            <span className={`font-semibold text-sm ${darkMode ? 'text-gray-200' : 'text-slate-800'}`}>
+                              {n.leadName}
+                            </span>
+                            <p className={`text-xs mb-2 ${darkMode ? 'text-gray-400' : 'text-slate-600'}`}>
+                              {n.followUpNote}
+                            </p>
+                            <span className={`text-xs flex items-center gap-1 ${darkMode ? 'text-gray-500' : 'text-slate-500'}`}>
+                              <Clock className="w-3 h-3" />
+                              {getTimeRemaining(n.followUpDate)}
+                            </span>
                           </div>
-                        </motion.div>
-                      ))}
-                    </>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
+                          <button 
+                            onClick={(e) => { 
+                              e.stopPropagation(); 
+                              setNotifications(prev => prev.filter(notif => notif.id !== n.id)); 
+                            }} 
+                            className={`transition-colors ${
+                              darkMode ? 'text-gray-500 hover:text-red-400' : 'text-slate-400 hover:text-red-500'
+                            }`}
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {data.length === 0 ? (
-        // Added wrapper class here for Phase 1 Target
-        <div className="tour-create-lead-wrapper">
-          <TableNotFound 
-            image={Generating_new_leads}
-            title="No Leads Yet"
-            description="Start adding your first lead to manage and grow your business effectively."
-            buttonText="Create New Lead"
-            buttonIcon={<PlusCircle size={18} />}
-            onAction={() => navigate(`/${localStorage.getItem("subdomain")}/leads/create-leads`)}
-          />
-        </div>
+        <TableNotFound 
+          image={Generating_new_leads}
+          title="No Leads Yet"
+          description="Start adding your first lead to manage and grow your business effectively."
+          buttonText="Create New Lead"
+          buttonIcon={<PlusCircle size={18} />}
+          onAction={() => navigate(`/${localStorage.getItem("subdomain")}/leads/create-leads`)}
+        />
       ) : (
         <Table
           columns={columns}
@@ -886,17 +896,44 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
               navigate(`/${localStorage.getItem("subdomain")}/leads/view-leads`, { state: { tableId: record.LeadId, mainId: record._id } });
             }
           }}
-          theme={{ darkMode, primaryColor }}
+          theme={{ darkMode, primaryColor: themeColor }}
         />
       )}
 
-      {searchParams.get("modal") === "schedule-followup" && <AddFollowUp_Model tableId={selectedLeadId} selectedData={selectedLeadData} />}
+      {searchParams.get("modal") === "schedule-followup" && (
+        <AddFollowUp_Model 
+          tableId={selectedLeadId} 
+          selectedData={selectedLeadData} 
+        />
+      )}
+      
       {searchParams.get("modal") === "convert-customer" && selectedLeadId && (
         <Convert_custommer_Model
           tableId={selectedLeadId}
           selectedData={selectedLeadData}
         />
       )}
+
+      {/* Custom scrollbar styles for notification panel */}
+      <style>{`
+        .overflow-y-auto::-webkit-scrollbar {
+          width: 6px;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-track {
+          background: ${darkMode ? '#1f2937' : '#f1f1f1'};
+          border-radius: 10px;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-thumb {
+          background: ${darkMode ? '#4b5563' : '#c1c1c1'};
+          border-radius: 10px;
+        }
+        
+        .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+          background: ${darkMode ? '#6b7280' : '#a8a8a8'};
+        }
+      `}</style>
     </div>
   );
 };
