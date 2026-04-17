@@ -50,6 +50,10 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isMarkingRead, setIsMarkingRead] = useState(false);
+  
+  // New state to manage the blinking dot behavior
+  const [hasNewIndicator, setHasNewIndicator] = useState(false);
+  
   const notificationRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -94,14 +98,40 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
         ).length;
         setUnreadCount(unread);
         
-        // Store last notification timestamp to detect new notifications
+        // --- BLINKING DOT LOGIC ---
         if (newNotifications.length > 0) {
-          const latestTimestamp = newNotifications[0].timestamp;
-          localStorage.setItem("lastNotificationTimestamp", latestTimestamp);
+          const latestDataTimestamp = new Date(newNotifications[0].timestamp).getTime();
+          const lastViewed = localStorage.getItem("lastViewedTimestamp");
+          
+          // If there is no previous record, or if the newest notification is newer than our last viewed timestamp
+          if (!lastViewed || latestDataTimestamp > Number(lastViewed)) {
+            // Only make it blink if the dropdown is currently closed
+            if (!showNotifications) {
+              setHasNewIndicator(true);
+            } else {
+              // If dropdown is already open, just update the viewed timestamp quietly
+              localStorage.setItem("lastViewedTimestamp", latestDataTimestamp.toString());
+            }
+          }
         }
       }
     } catch (error) {
       console.error("Error fetching notifications:", error);
+    }
+  };
+
+  // Toggle Notifications and Stop Blinking
+  const toggleNotifications = () => {
+    const isOpening = !showNotifications;
+    setShowNotifications(isOpening);
+    
+    if (isOpening) {
+      // User opened the dropdown: stop blinking and record the current time as "seen"
+      setHasNewIndicator(false);
+      if (notifications.length > 0) {
+        const latestDataTimestamp = new Date(notifications[0].timestamp).getTime();
+        localStorage.setItem("lastViewedTimestamp", latestDataTimestamp.toString());
+      }
     }
   };
 
@@ -162,10 +192,7 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
     
     // Set up polling
     pollingIntervalRef.current = setInterval(() => {
-      // Only fetch if notifications dropdown is not open
-      if (!showNotifications) {
-        fetchNotifications();
-      }
+      fetchNotifications();
     }, 30000); // Poll every 30 seconds
     
     return () => {
@@ -175,18 +202,12 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
     };
   }, []);
 
-  // Re-fetch when dropdown opens to get latest
-  useEffect(() => {
-    if (showNotifications) {
-      fetchNotifications();
-    }
-  }, [showNotifications]);
-
-  // Listen for new notification events (if using WebSocket or SSE)
+  // Listen for new notification events (e.g., from WebSocket or SSE)
   useEffect(() => {
     const handleNewNotification = (event: CustomEvent) => {
       console.log("New notification received:", event.detail);
-      // Fetch latest notifications
+      
+      // Fetch latest notifications to check timestamps and update UI
       fetchNotifications();
       
       // Optional: Show browser notification
@@ -199,11 +220,11 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
         notification.onclick = () => {
           window.focus();
           setShowNotifications(true);
+          setHasNewIndicator(false);
         };
       }
     };
     
-    // Listen for custom event (can be triggered from WebSocket or SSE)
     window.addEventListener('new-notification', handleNewNotification as EventListener);
     
     return () => {
@@ -394,7 +415,7 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
             {/* NOTIFICATIONS */}
             <div className="relative" ref={notificationRef}>
               <button
-                onClick={() => setShowNotifications(!showNotifications)}
+                onClick={toggleNotifications}
                 className={`relative p-2 rounded-lg transition-all duration-200 cursor-pointer group ${
                   darkMode 
                     ? 'text-gray-400 hover:text-gray-300 hover:bg-gray-800' 
@@ -403,8 +424,8 @@ const Navbar = ({ toggleMobileSidebar }: NavbarProps) => {
               >
                 <Bell size={20} className="transition-transform group-hover:scale-110" />
                 
-                {/* Notification dot - only shows when there are unread notifications */}
-                {unreadCount > 0 && (
+                {/* Notification dot - only shows and blinks when there are genuinely NEW un-viewed notifications */}
+                {hasNewIndicator && (
                   <span className="absolute top-0 right-0 flex h-3 w-3">
                     <span 
                       className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"

@@ -3,6 +3,11 @@ import { Building2, CalendarCog, Download, Mail, Phone, PlusCircle, RefreshCw, X
 import React, { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+
+// Driver.js imports
+import { driver } from 'driver.js';
+import 'driver.js/dist/driver.css';
+
 import Generating_new_leads from "../../assets/image/Generating_new_leads.gif";
 import Reusable_Button from '../../component/button/Reusable_Button';
 import RippleLoader from '../../component/Loader/RippleLoader';
@@ -159,6 +164,64 @@ const Customers: React.FC = () => {
     fetchCustomers(false);
   }, [dispatch]);
 
+  // SAFE DATA TRANSFORMATION
+  const tableData: TableDataItem[] = useMemo(() => {
+    return customerTableData?.customers?.map((item: CustomerData) => ({
+      id: String(item?._id || ""),
+      profile: item?.customerProfile || "",
+      company: String(item?.Companyname ?? "N/A"),
+      customerId: String(item?.customerId ?? ""),
+      phone: String(item?.phone ?? ""),
+      email: String(item?.email ?? ""),
+      gst: "-",
+      status: String(item?.status ?? ""), 
+      created: item?.createdAt || "",
+    })) || [];
+  }, [customerTableData]);
+
+  // --- Driver.js Setup for Empty State ---
+  useEffect(() => {
+    // Only show driver.js if loading is completely finished, no errors, and the table is genuinely empty
+    if (!isInitialLoad && !loading && !hasError && tableData.length === 0) {
+      const hasSeenTour = localStorage.getItem("empty_customer_tour_seen");
+
+      if (!hasSeenTour) {
+        // Use a timeout to ensure the DOM elements (specifically #empty-customer-wrapper) have fully rendered
+        const tourTimeout = setTimeout(() => {
+          const emptyStateElement = document.getElementById("empty-customer-wrapper");
+          
+          if (emptyStateElement) {
+            const driverObj = driver({
+              showProgress: false,
+              animate: true,
+              overlayColor: darkMode ? 'rgba(0, 0, 0, 0.7)' : 'rgba(0, 0, 0, 0.5)',
+              steps: [
+                {
+                  element: '#empty-customer-wrapper',
+                  popover: {
+                    title: 'How to add Customers? 🔄',
+                    description: 'Customers are generated from Leads. Go to the Leads page, click the action menu (⋮) on any lead, and select "Convert to Customer". They will automatically appear here!',
+                    side: "top",
+                    align: 'center'
+                  }
+                }
+              ],
+              onDestroyStarted: () => {
+                driverObj.destroy();
+                // Mark tour as seen so it doesn't pop up on every page load
+                localStorage.setItem("empty_customer_tour_seen", "true");
+              }
+            });
+
+            driverObj.drive();
+          }
+        }, 800); // Give the Framer Motion enter animations time to finish
+
+        return () => clearTimeout(tourTimeout);
+      }
+    }
+  }, [isInitialLoad, loading, hasError, tableData.length, darkMode]);
+
   // Theme-based styles
   const getPageBg = () => darkMode ? 'bg-gray-900' : 'bg-[#F8FAFC]';
   const getHeaderIconBg = () => darkMode ? 'bg-gray-700' : 'bg-indigo-100';
@@ -193,21 +256,6 @@ const Customers: React.FC = () => {
   const getToastButtonHoverTextColor = () => 'text-white';
   const getToastButtonBorder = () => darkMode ? 'border-indigo-500/30' : 'border-indigo-500/20';
   const getToastCloseColor = () => darkMode ? 'text-gray-500 hover:text-white' : 'text-slate-400 hover:text-white';
-
-  // SAFE DATA TRANSFORMATION
-  const tableData: TableDataItem[] = useMemo(() => {
-    return customerTableData?.customers?.map((item: CustomerData) => ({
-      id: String(item?._id || ""),
-      profile: item?.customerProfile || "",
-      company: String(item?.Companyname ?? "N/A"),
-      customerId: String(item?.customerId ?? ""),
-      phone: String(item?.phone ?? ""),
-      email: String(item?.email ?? ""),
-      gst: "-",
-      status: String(item?.status ?? ""), 
-      created: item?.createdAt || "",
-    })) || [];
-  }, [customerTableData]);
 
   // COLUMNS DEFINITION with theme support
   const columns = useMemo(() => [
@@ -449,14 +497,17 @@ const Customers: React.FC = () => {
           <motion.main variants={itemVariants} className={`rounded-xl md:rounded-2xl shadow-sm border overflow-hidden flex flex-col ${getMainBg()} ${getMainBorder()}`}>
             <div className="p-0 sm:p-0">
               {tableData.length === 0 ? (
-                <TableNotFound 
-                  image={Generating_new_leads}
-                  title="No Customers Yet"
-                  description="Start adding your first customer to manage and grow your business effectively."
-                  buttonText="Create New Customer"
-                  buttonIcon={<PlusCircle size={16} />}
-                  onAction={() => navigate(`/${localStorage.getItem("subdomain")}/leads/create-leads`)}
-                />
+                // Added an ID wrapper here for Driver.js to target
+                <div id="empty-customer-wrapper" className="w-full">
+                  <TableNotFound 
+                    image={Generating_new_leads}
+                    title="No Customers Yet"
+                    description="Customers are created by converting existing leads. Go to the Leads section to convert your first lead."
+                    buttonText="Go to Leads Page"
+                    buttonIcon={<PlusCircle size={16} />}
+                    onAction={() => navigate(`/${localStorage.getItem("subdomain")}/leads`)}
+                  />
+                </div>
               ) : (
                 <Table
                   columns={columns}
