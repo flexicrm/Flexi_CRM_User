@@ -5,6 +5,16 @@
     <link rel="icon" type="image/svg+xml" href="./src//assets//logo/favIconForFlexi.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>flexi-crm</title>
+
+    <!-- ✅ Redirect user.flexicrm.in → flexicrm.in before React loads -->
+    <script>
+      if (window.location.hostname === 'user.flexicrm.in') {
+        window.location.replace(
+          window.location.href.replace('user.flexicrm.in', 'flexicrm.in')
+        );
+      }
+    </script>
+
   </head>
   <body>
     <div id="root"></div>
