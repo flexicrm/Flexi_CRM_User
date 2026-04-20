@@ -10,14 +10,15 @@ import { resumeTokenRefresh } from "./utils/SetupRefreshToken";
 // Check for existing session and setup token refresh on app start
 const token = localStorage.getItem("accessToken");
 if (token) {
+  // Resume token refresh if user was already logged in
   resumeTokenRefresh(store.dispatch);
   console.log("Token refresh resumed for existing session");
 }
 
-createRoot(document.getElementById("root")!).render(
+createRoot(document.getElementById("root")!).render(  
   <StrictMode>
     <Provider store={store}>
-      <RouterProvider router={Main_Route} />
+      <RouterProvider router={Main_Route} /> 
     </Provider>
   </StrictMode>
 );

@@ -1,10 +1,10 @@
+// vite.config.ts
 import tailwindcss from '@tailwindcss/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
-
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  base: 'https://user.flexicrm.in',
+  // ✅ Only absolute base in production
+  base: process.env.NODE_ENV === 'production' ? 'https://user.flexicrm.in' : '/',
 })
