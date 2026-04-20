@@ -496,26 +496,48 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
     return () => { document.head.removeChild(style); };
   }, []);
 
+  // Check if a row has status 3 (converted lead)
+  const isConvertedLead = (record: any) => {
+    return record.status === 3;
+  };
+
+  // Updated getStatusBadge function - always shows actual status name
   const getStatusBadge = (record: any) => {
     const statusValue = record.status;
     const statusName = record.leadstatus?.statusName || "";
     const statusColor = record.leadstatus?.color || themeColor;
     
-    if (statusValue === 3 || statusName === "Won" || statusName === "Converted") {
+    // For status 3, show actual status name with special styling and a converted badge
+    if (statusValue === 3) {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800">
-          <CheckCircle size={12} /> Won
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span 
+            className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border"
+            style={{ 
+              backgroundColor: `${statusColor}20`, 
+              color: statusColor, 
+              borderColor: `${statusColor}40`,
+              opacity: 0.8
+            }}
+          >
+            {statusName || "Converted"}
+          </span>
+        </div>
       );
     }
+    
+    // For other statuses, show the actual status name
     if (statusName) {
       return (
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border"
-          style={{ backgroundColor: `${statusColor}20`, color: statusColor, borderColor: `${statusColor}40` }}>
+        <span 
+          className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border"
+          style={{ backgroundColor: `${statusColor}20`, color: statusColor, borderColor: `${statusColor}40` }}
+        >
           {statusName}
         </span>
       );
     }
+    
     return <span className="text-xs text-slate-400 dark:text-gray-600">-</span>;
   };
 
@@ -526,37 +548,102 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
       key: "LeadId",
       width: "140px",
       sortable: true,
-      render: (val: any) => <span className={`text-[12px] font-bold uppercase tracking-wider ${darkMode ? 'text-cyan-400' : 'text-[#0d1954]'}`}>{val}</span>,
+      render: (val: any, record: any) => {
+        const isConverted = isConvertedLead(record);
+        return (
+          <span 
+            className={`text-[12px] font-bold uppercase tracking-wider ${
+              isConverted 
+                ? darkMode ? 'text-green-400' : 'text-green-600'
+                : darkMode ? 'text-cyan-400' : 'text-[#0d1954]'
+            }`}
+          >
+            {val}
+          </span>
+        );
+      },
     },
     {
       title: "Name",
       dataIndex: "manualData",
       key: "name",
-      render: (data: any) => <span className={`text-[13px] font-semibold ${darkMode ? 'text-gray-200' : 'text-slate-700'}`}>{data?.name || "-"}</span>,
+      render: (data: any, record: any) => {
+        const isConverted = isConvertedLead(record);
+        return (
+          <span 
+            className={`text-[13px] font-semibold ${
+              isConverted 
+                ? darkMode ? 'text-green-400' : 'text-green-700'
+                : darkMode ? 'text-gray-200' : 'text-slate-700'
+            }`}
+          >
+            {data?.name || "-"}
+          </span>
+        );
+      },
     },
     {
       title: "Email",
       dataIndex: "manualData",
       key: "email",
-      render: (data: any) => <span className={`text-[13px] lowercase ${darkMode ? 'text-gray-400' : 'text-slate-500'}`}>{data?.email || "-"}</span>,
+      render: (data: any, record: any) => {
+        const isConverted = isConvertedLead(record);
+        return (
+          <span 
+            className={`text-[13px] lowercase ${
+              isConverted 
+                ? darkMode ? 'text-green-500/70' : 'text-green-600/70'
+                : darkMode ? 'text-gray-400' : 'text-slate-500'
+            }`}
+          >
+            {data?.email || "-"}
+          </span>
+        );
+      },
     },
     {
       title: "Company",
       dataIndex: "manualData",
       key: "company",
-      render: (data: any) => <span className={`text-[13px] ${darkMode ? 'text-gray-400' : 'text-slate-500'}`}>{data?.company || "-"}</span>,
+      render: (data: any, record: any) => {
+        const isConverted = isConvertedLead(record);
+        return (
+          <span 
+            className={`text-[13px] ${
+              isConverted 
+                ? darkMode ? 'text-green-500/70' : 'text-green-600/70'
+                : darkMode ? 'text-gray-400' : 'text-slate-500'
+            }`}
+          >
+            {data?.company || "-"}
+          </span>
+        );
+      },
     },
     {
       title: "Phone",
       dataIndex: "manualData",
       key: "mobileNo",
-      render: (data: any) => <span className={`text-[13px] font-medium ${darkMode ? 'text-gray-300' : 'text-slate-600'}`}>{data?.mobileNo || "-"}</span>,
+      render: (data: any, record: any) => {
+        const isConverted = isConvertedLead(record);
+        return (
+          <span 
+            className={`text-[13px] font-medium ${
+              isConverted 
+                ? darkMode ? 'text-green-500/70' : 'text-green-600/70'
+                : darkMode ? 'text-gray-300' : 'text-slate-600'
+            }`}
+          >
+            {data?.mobileNo || "-"}
+          </span>
+        );
+      },
     },
     {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      width: "120px",
+      width: "140px",
       sortable: true,
       render: (_: any, record: any) => getStatusBadge(record),
     },
@@ -566,6 +653,15 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
       key: "followUps",
       width: "250px",
       render: (followUps: any, record: any) => {
+        // Don't show follow-ups for converted leads
+        if (isConvertedLead(record)) {
+          return (
+            <span className="text-[11px] text-green-600 dark:text-green-400 italic flex items-center gap-1">
+              <CheckCircle size={12} /> Converted to customer - No Actions For This
+            </span>
+          );
+        }
+        
         if (!followUps || followUps.length === 0) return <span className="text-[11px] text-slate-400 dark:text-gray-600 italic">No Follow-Ups</span>;
         
         const validFollowUps = followUps
@@ -680,9 +776,72 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
       title: "Source",
       dataIndex: "leadsource",
       key: "source",
-      render: (val: any) => <span className={`text-[12px] font-bold px-2 py-1 rounded-lg border ${darkMode ? 'bg-cyan-950/50 text-cyan-400 border-cyan-800' : 'bg-indigo-50 text-[#0d1954] border-indigo-100'}`}>{val || "N/A"}</span>,
+      render: (val: any, record: any) => {
+        const isConverted = isConvertedLead(record);
+        return (
+          <span 
+            className={`text-[12px] font-bold px-2 py-1 rounded-lg border ${
+              isConverted
+                ? darkMode 
+                  ? 'bg-green-950/50 text-green-400 border-green-800' 
+                  : 'bg-green-50 text-green-700 border-green-200'
+                : darkMode 
+                  ? 'bg-cyan-950/50 text-cyan-400 border-cyan-800' 
+                  : 'bg-indigo-50 text-[#0d1954] border-indigo-100'
+            }`}
+          >
+            {val || "N/A"}
+          </span>
+        );
+      },
     },
   ];
+
+  // Custom row styling for converted leads (status === 3)
+  const getRowClassName = (record: any) => {
+    if (isConvertedLead(record)) {
+      return darkMode 
+        ? 'bg-gradient-to-r from-green-950/30 to-transparent hover:bg-green-950/40 transition-colors duration-200 opacity-80' 
+        : 'bg-gradient-to-r from-green-50/50 to-transparent hover:bg-green-50/70 transition-colors duration-200 opacity-80';
+    }
+    return '';
+  };
+
+  // Check if a row should be selectable (converted leads are not selectable)
+  const isRowSelectable = (record: any) => {
+    return !isConvertedLead(record);
+  };
+
+  // Get action buttons based on row status
+  const getActionButtonsForRow = (record: any) => {
+    const isConverted = isConvertedLead(record);
+    
+    if (isConverted) {
+      // Return action buttons with all actions disabled/hidden for converted leads
+      return {
+        showView: false,
+        showEdit: false,
+        showFollowUp: false,
+        showConvert: false,
+        onEdit: undefined,
+        onView: undefined,
+        onFollowUp: undefined,
+        onConvert: undefined,
+      };
+    }
+    
+    // Return normal action buttons for non-converted leads
+    return {
+      showView: Roles?.canRead,
+      showEdit: Roles?.canEdit,
+      showFollowUp: Roles?.canCreate,
+      showConvert: Roles?.canCreate,
+      onEdit: Roles?.canEdit ? (record: any) => navigate(`/${localStorage.getItem("subdomain")}/leads/create-leads`, { state: { tableData: record, tableId: record.LeadId } }) : undefined,
+      onView: Roles?.canRead ? (record: any) => navigate(`/${localStorage.getItem("subdomain")}/leads/view-leads`, { state: { tableId: record.LeadId, mainId: record._id } }) : undefined,
+      onFollowUp: Roles?.canCreate ? (record: any) => setSearchParams({ modal: "schedule-followup", LeadId: record.LeadId }) : undefined,
+      onConvert: Roles?.canCreate ? (record: any) => setSearchParams({ modal: "convert-customer", LeadId: record.LeadId }) : undefined,
+    };
+  };
 
   return (
     <div className={`${darkMode ? 'dark' : ''}`}>
@@ -876,38 +1035,45 @@ const Table_View = ({ data, setSelectedIds }: TableViewProps) => {
           columns={columns}
           data={data}
           showSelection={true}
-          onSelectionChange={(selectedRows: any[]) => setSelectedIds(selectedRows.map(r => r.LeadId))}
+          onSelectionChange={(selectedRows: any[]) => {
+            // Filter out converted leads from selection
+            const selectableRows = selectedRows.filter(row => !isConvertedLead(row));
+            setSelectedIds(selectableRows.map(r => r.LeadId));
+          }}
           enableSearch={true}
           enableColumnFilter={false}
           searchPlaceholder="Search Leads..."
-          actionButtons={{
-            showView: Roles?.canRead,
-            showEdit: Roles?.canEdit,
-            showFollowUp: Roles?.canCreate,   
-            showConvert: Roles?.canCreate,  
-            onEdit: Roles?.canEdit ? (record: any) => navigate(`/${localStorage.getItem("subdomain")}/leads/create-leads`, { state: { tableData: record, tableId: record.LeadId } }) : undefined,
-            onView: Roles?.canRead ? (record: any) => navigate(`/${localStorage.getItem("subdomain")}/leads/view-leads`, { state: { tableId: record.LeadId, mainId: record._id } }) : undefined,
-            onFollowUp: Roles?.canCreate ? (record: any) => setSearchParams({ modal: "schedule-followup", LeadId: record.LeadId }) : undefined,
-            onConvert: Roles?.canCreate ? (record: any) => setSearchParams({ modal: "convert-customer", LeadId: record.LeadId }) : undefined,
+          actionButtons={(record: any) => getActionButtonsForRow(record)}
+          pagination={{ 
+            currentPage, 
+            itemsPerPage, 
+            totalItems: data.length, 
+            onPageChange: setCurrentPage, 
+            onItemsPerPageChange: (s: number) => { 
+              setItemsPerPage(s); 
+              setCurrentPage(1); 
+            } 
           }}
-          pagination={{ currentPage, itemsPerPage, totalItems: data.length, onPageChange: setCurrentPage, onItemsPerPageChange: (s: number) => { setItemsPerPage(s); setCurrentPage(1); } }}
           onRowClick={(record) => {
-            if (Roles?.canRead) {
+            // Only allow clicking on non-converted leads
+            if (!isConvertedLead(record) && Roles?.canRead) {
               navigate(`/${localStorage.getItem("subdomain")}/leads/view-leads`, { state: { tableId: record.LeadId, mainId: record._id } });
             }
           }}
           theme={{ darkMode, primaryColor: themeColor }}
+          rowClassName={getRowClassName}
+          isRowSelectable={isRowSelectable}
         />
       )}
 
-      {searchParams.get("modal") === "schedule-followup" && (
+      {searchParams.get("modal") === "schedule-followup" && selectedLeadData && !isConvertedLead(selectedLeadData) && (
         <AddFollowUp_Model 
           tableId={selectedLeadId} 
           selectedData={selectedLeadData} 
         />
       )}
       
-      {searchParams.get("modal") === "convert-customer" && selectedLeadId && (
+      {searchParams.get("modal") === "convert-customer" && selectedLeadId && selectedLeadData && !isConvertedLead(selectedLeadData) && (
         <Convert_custommer_Model
           tableId={selectedLeadId}
           selectedData={selectedLeadData}

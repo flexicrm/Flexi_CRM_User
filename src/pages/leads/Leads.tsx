@@ -16,7 +16,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import RippleLoader from '../../component/Loader/RippleLoader';
 import { errorAlert, successAlert } from '../../component/Notification/statusHandler';
 import Reusable_Button from '../../component/button/Reusable_Button';
-import { fetchMeData } from '../../store/Login_Slice';
 import { fetchLeads } from '../../store/homepage_slice/Leads_slice';
 import Bulk_Upload from './Bulk_Upload';
 import ExportModal from './ExportModal';
@@ -139,12 +138,7 @@ const Leads: React.FC = () => {
   // Initial load
   useEffect(() => {
     fetchLeadsData(false);
-  }, [dispatch]);
-
-  // Fetch me data when component mounts
-  useEffect(() => {
-    dispatch(fetchMeData() as any);
-  }, [dispatch]);
+  }, []);
 
   const handleViewChange = (view: string) => {
     setSearchParams({ view });

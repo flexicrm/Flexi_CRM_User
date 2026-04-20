@@ -4,31 +4,47 @@ import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import Navbar from "./component/common/Navbar";
 import Sidebar from "./component/common/Sidebar";
 import GlobalStatus from "./component/Notification/GlobalStatus";
+import { fetchMeData } from "./store/Login_Slice";
 import { resumeTokenRefresh } from "./utils/SetupRefreshToken";
 
 const App = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
-  const { token } = useSelector((state: any) => state.auth);
+
+  const { token, meLoading, isAuthenticated } = useSelector((state: any) => state.auth);
+
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
 
+  /* ================= TOKEN REFRESH ================= */
   useEffect(() => {
     if (token) {
       resumeTokenRefresh(dispatch);
     }
   }, [dispatch, token]);
 
+  /* ================= 🔥 FETCH USER + PERMISSIONS ================= */
+  useEffect(() => {
+    const accessToken = localStorage.getItem("accessToken");
+
+    if (accessToken) {
+      dispatch(fetchMeData() as any); // ✅ THIS FIXES YOUR ISSUE
+    }
+  }, [dispatch]);
+
+  /* ================= ROUTE CHECK ================= */
   useEffect(() => {
     const checkAuth = () => {
       const accessToken = localStorage.getItem("accessToken");
       const subdomain = localStorage.getItem("subdomain");
-      
+
       if (!accessToken || !subdomain) {
-        if (!location.pathname.includes("/login") && 
-            !location.pathname.includes("/register") && 
-            !location.pathname.includes("/otp")) {
+        if (
+          !location.pathname.includes("/login") &&
+          !location.pathname.includes("/register") &&
+          !location.pathname.includes("/otp")
+        ) {
           navigate("/login");
         }
       } else {
@@ -37,13 +53,15 @@ const App = () => {
           navigate(`/${subdomain}/dashboard`);
         }
       }
+
       setIsCheckingAuth(false);
     };
 
     checkAuth();
   }, [navigate, location.pathname]);
 
-  if (isCheckingAuth) {
+  /* ================= LOADING STATE ================= */
+  if (isCheckingAuth || meLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
@@ -54,12 +72,12 @@ const App = () => {
     );
   }
 
-  const isAuthenticatedUser = !!localStorage.getItem("accessToken") && !!localStorage.getItem("subdomain");
-  
-  if (!isAuthenticatedUser) {
+  /* ================= AUTH CHECK ================= */
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
+  /* ================= MAIN LAYOUT ================= */
   return (
     <div className="flex flex-col h-screen bg-gray-50">
       <Navbar isSidebarExpanded={isSidebarExpanded} />

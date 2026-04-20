@@ -53,6 +53,19 @@ export interface StatusFilterOption {
   color?: string;
 }
 
+export interface ActionButtonsConfig {
+  showView?: boolean;
+  showEdit?: boolean;
+  showDelete?: boolean;
+  showFollowUp?: boolean;
+  showConvert?: boolean;
+  onView?: (record: any) => void;
+  onEdit?: (record: any) => void;
+  onDelete?: (record: any) => void;
+  onFollowUp?: (record: any) => void;
+  onConvert?: (record: any) => void;
+}
+
 export interface TableProps {
   columns: Column[];
   data: any[];
@@ -70,18 +83,7 @@ export interface TableProps {
   onStatusFilter?: (status: string | null, type?: 'active' | 'inactive') => void;
   activeStatus?: string | null;
   activeStatusType?: 'active' | 'inactive' | null;
-  actionButtons?: {
-    showView?: boolean;
-    showEdit?: boolean;
-    showDelete?: boolean;
-    showFollowUp?: boolean;
-    showConvert?: boolean;
-    onView?: (record: any) => void;
-    onEdit?: (record: any) => void;
-    onDelete?: (record: any) => void;
-    onFollowUp?: (record: any) => void;
-    onConvert?: (record: any) => void;
-  } | boolean;
+  actionButtons?: boolean | ActionButtonsConfig | ((record: any) => ActionButtonsConfig);
   onRowClick?: (record: any) => void;
   rowClickable?: boolean;
   rowClassName?: (record: any, index: number) => string;
@@ -92,10 +94,11 @@ export interface TableProps {
     darkMode?: boolean;
     primaryColor?: string;
   };
+  isRowSelectable?: (record: any) => boolean;
 }
 
 // Loading Dots Animation Component with Theme Support
-const LoadingDots = ({  primaryColor }: { darkMode?: boolean; primaryColor?: string }) => {
+const LoadingDots = ({ primaryColor }: { darkMode?: boolean; primaryColor?: string }) => {
   const color = primaryColor || '#6366f1';
   return (
     <div className="flex items-center justify-center gap-2 py-16">
@@ -528,6 +531,7 @@ const Table: React.FC<TableProps> = ({
   tableMaxHeight = "70vh",
   stickyHeader = true,
   theme: propTheme,
+  isRowSelectable,
 }) => {
   const reduxTheme = useSelector((state: any) => state.theme);
   const darkMode = propTheme?.darkMode ?? reduxTheme?.darkMode ?? false;
@@ -548,6 +552,25 @@ const Table: React.FC<TableProps> = ({
   
   const [isDraggingRow, setIsDraggingRow] = useState(false);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
+
+  // Helper function to get action buttons for a record
+  const getActionButtonsForRecord = (record: any): ActionButtonsConfig => {
+    if (typeof actionButtons === 'function') {
+      return actionButtons(record);
+    }
+    if (typeof actionButtons === 'boolean') {
+      return actionButtons ? {} : { showView: false, showEdit: false, showDelete: false, showFollowUp: false, showConvert: false };
+    }
+    return actionButtons || {};
+  };
+
+  // Check if a row is selectable
+  const checkRowSelectable = (record: any): boolean => {
+    if (isRowSelectable) {
+      return isRowSelectable(record);
+    }
+    return true;
+  };
 
   const isStatusColumn = (column: Column): boolean => {
     if (!column) return false;
@@ -613,7 +636,7 @@ const Table: React.FC<TableProps> = ({
     if (onRowClick) {
       onRowClick(record);
     } else {
-      const actions = typeof actionButtons === 'boolean' ? {} : actionButtons;
+      const actions = getActionButtonsForRecord(record);
       if (actions?.onView) {
         actions.onView(record);
       }
@@ -713,8 +736,19 @@ const Table: React.FC<TableProps> = ({
   };
 
   const visibleColumnsList = columns.filter(col => visibleColumns.has(col.key));
-  const hasActions = useMemo(() => typeof actionButtons === 'boolean' ? actionButtons : !!(actionButtons?.showView || actionButtons?.showEdit || actionButtons?.showDelete || actionButtons?.showFollowUp || actionButtons?.showConvert), [actionButtons]);
-  const actions = typeof actionButtons === 'boolean' ? {} : actionButtons;
+  
+  // Check if any row has actions
+  const hasAnyActions = useMemo(() => {
+    if (typeof actionButtons === 'boolean') return actionButtons;
+    if (typeof actionButtons === 'function') {
+      // Check first few records to see if any have actions
+      return paginatedData.slice(0, 5).some(record => {
+        const actions = getActionButtonsForRecord(record);
+        return !!(actions?.showView || actions?.showEdit || actions?.showDelete || actions?.showFollowUp || actions?.showConvert);
+      });
+    }
+    return !!(actionButtons?.showView || actionButtons?.showEdit || actionButtons?.showDelete || actionButtons?.showFollowUp || actionButtons?.showConvert);
+  }, [actionButtons, paginatedData]);
 
   return (
     <div className={`flex flex-col w-full rounded-[24px] border shadow-sm overflow-hidden ${
@@ -808,11 +842,17 @@ const Table: React.FC<TableProps> = ({
                       type="checkbox" 
                       className="w-3.5 h-3.5 rounded focus:ring-offset-0 cursor-pointer"
                       style={{ accentColor: primaryColor }}
-                      checked={paginatedData.length > 0 && selectedRowKeys.length === paginatedData.length}
+                      checked={paginatedData.length > 0 && paginatedData.every(record => checkRowSelectable(record)) && selectedRowKeys.length === paginatedData.length}
                       onChange={(e) => {
-                        const keys = e.target.checked ? paginatedData.map((d, i) => d.id || d._id || i) : [];
-                        setSelectedRowKeys(keys);
-                        onSelectionChange?.(e.target.checked ? paginatedData : []);
+                        if (e.target.checked) {
+                          const selectableRecords = paginatedData.filter(record => checkRowSelectable(record));
+                          const keys = selectableRecords.map((d, i) => d.id || d._id || i);
+                          setSelectedRowKeys(keys);
+                          onSelectionChange?.(selectableRecords);
+                        } else {
+                          setSelectedRowKeys([]);
+                          onSelectionChange?.([]);
+                        }
                       }}
                     />
                   </div>
@@ -863,7 +903,7 @@ const Table: React.FC<TableProps> = ({
                   </th>
                 );
               })}
-              {hasActions && (
+              {hasAnyActions && (
                 <th className={`p-3 text-center text-[11px] font-bold uppercase tracking-wider sticky right-0 z-[30] border-b border-l w-[80px] shadow-[-5px_0_10px_-5px_rgba(0,0,0,0.05)] ${
                   darkMode
                     ? 'text-gray-400 border-gray-600 bg-gray-700 shadow-gray-900/20'
@@ -900,8 +940,11 @@ const Table: React.FC<TableProps> = ({
                 {paginatedData.map((record, idx) => {
                   const rowId = record.id || record._id || idx;
                   const isSelected = selectedRowKeys.includes(rowId);
-                  const isRowClickable = rowClickable && (onRowClick || actions?.onView);
+                  const isRowClickable = rowClickable && (onRowClick || getActionButtonsForRecord(record)?.onView);
                   const customRowClass = rowClassName ? rowClassName(record, idx) : '';
+                  const selectable = checkRowSelectable(record);
+                  const currentActions = getActionButtonsForRecord(record);
+                  const hasRecordActions = !!(currentActions?.showView || currentActions?.showEdit || currentActions?.showDelete || currentActions?.showFollowUp || currentActions?.showConvert);
 
                   return (
                     <motion.tr
@@ -914,16 +957,16 @@ const Table: React.FC<TableProps> = ({
                         darkMode
                           ? `border-gray-700 ${isSelected ? 'bg-indigo-900/20' : 'bg-gray-800 hover:bg-gray-700/50'}`
                           : `border-slate-50 ${isSelected ? 'bg-indigo-50/50' : 'bg-white hover:bg-slate-50/80'}`
-                      } ${isRowClickable ? 'cursor-pointer' : ''} ${customRowClass}`}
-                      onMouseDown={(e) => isRowClickable && handleRowMouseDown(e)}
-                      onMouseMove={(e) => isRowClickable && handleRowMouseMove(e)}
+                      } ${isRowClickable && selectable ? 'cursor-pointer' : ''} ${customRowClass}`}
+                      onMouseDown={(e) => isRowClickable && selectable && handleRowMouseDown(e)}
+                      onMouseMove={(e) => isRowClickable && selectable && handleRowMouseMove(e)}
                       onMouseUp={() => {
-                        if (isRowClickable) {
+                        if (isRowClickable && selectable) {
                           dragStartRef.current = null;
                           setIsDraggingRow(false);
                         }
                       }}
-                      onClick={(e) => isRowClickable && handleRowClick(record, e)}
+                      onClick={(e) => isRowClickable && selectable && handleRowClick(record, e)}
                     >
                       {showSelection && (
                         <td className={`p-3 sticky left-0 z-10 border-b border-r ${
@@ -933,12 +976,15 @@ const Table: React.FC<TableProps> = ({
                             <input
                               type="checkbox"
                               checked={isSelected}
-                              className="w-3.5 h-3.5 rounded focus:ring-offset-0 cursor-pointer"
+                              disabled={!selectable}
+                              className={`w-3.5 h-3.5 rounded focus:ring-offset-0 ${selectable ? 'cursor-pointer' : 'cursor-not-allowed opacity-50'}`}
                               style={{ accentColor: primaryColor }}
                               onChange={() => {
+                                if (!selectable) return;
                                 const newKeys = isSelected ? selectedRowKeys.filter(k => k !== rowId) : [...selectedRowKeys, rowId];
                                 setSelectedRowKeys(newKeys);
-                                onSelectionChange?.(newKeys.map(key => paginatedData.find(r => (r.id || r._id) === key)));
+                                const selectedRecords = newKeys.map(key => paginatedData.find(r => (r.id || r._id) === key)).filter(Boolean);
+                                onSelectionChange?.(selectedRecords);
                               }}
                             />
                           </div>
@@ -960,7 +1006,7 @@ const Table: React.FC<TableProps> = ({
                         );
                       })}
                       
-                      {hasActions && (
+                      {hasAnyActions && hasRecordActions && (
                         <td className={`p-3 text-center sticky right-0 z-10 border-b border-l shadow-[-5px_0_10px_-5px_rgba(0,0,0,0.03)] ${
                           darkMode
                             ? 'bg-inherit border-gray-700 shadow-gray-900/10'
@@ -979,6 +1025,13 @@ const Table: React.FC<TableProps> = ({
                           >
                             <MoreVertical size={16} />
                           </button>
+                        </td>
+                      )}
+                      {hasAnyActions && !hasRecordActions && (
+                        <td className={`p-3 text-center sticky right-0 z-10 border-b border-l ${
+                          darkMode ? 'bg-inherit border-gray-700' : 'bg-inherit border-slate-100'
+                        }`}>
+                          <div className="w-8 h-8" />
                         </td>
                       )}
                     </motion.tr>
@@ -1055,75 +1108,79 @@ const Table: React.FC<TableProps> = ({
       {/* Action Menu Portal */}
       {typeof document !== 'undefined' && createPortal(
         <AnimatePresence>
-          {activeMenuId !== null && (
-            <>
-              <div className="fixed inset-0 z-[9998]" onClick={() => setActiveMenuId(null)} />
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                transition={{ type: "spring", damping: 20 }}
-                style={{ position: 'fixed', top: menuPosition.top, left: menuPosition.left, zIndex: 9999 }}
-                className={`w-[200px] rounded-xl shadow-xl border p-1 py-2 ${
-                  darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-slate-100'
-                }`}
-              >
-                {actions?.showEdit && (
-                  <button
-                    onClick={() => { actions.onEdit?.(activeRecord); setActiveMenuId(null); }}
-                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-left transition-colors ${
-                      darkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-slate-700 hover:bg-slate-50'
-                    }`}
-                  >
-                    <Edit3 size={14} className={darkMode ? 'text-gray-500' : 'text-slate-400'} /> Edit lead
-                  </button>
-                )}
-                {actions?.showFollowUp && (
-                  <button
-                    onClick={() => { actions.onFollowUp?.(activeRecord); setActiveMenuId(null); }}
-                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-left transition-colors ${
-                      darkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-slate-700 hover:bg-slate-50'
-                    }`}
-                  >
-                    <Calendar size={14} className={darkMode ? 'text-gray-500' : 'text-slate-400'} /> Add Follow-Up
-                  </button>
-                )}
-                {actions?.showView && (
-                  <button
-                    onClick={() => { actions.onView?.(activeRecord); setActiveMenuId(null); }}
-                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-left transition-colors ${
-                      darkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-slate-700 hover:bg-slate-50'
-                    }`}
-                  >
-                    <Eye size={14} className={darkMode ? 'text-gray-500' : 'text-slate-400'} /> View Lead
-                  </button>
-                )}
-                {(actions?.showConvert || actions?.showDelete) && (
-                  <div className={`my-1 mx-2 border-t ${darkMode ? 'border-gray-700' : 'border-slate-100'}`} />
-                )}
-                {actions?.showConvert && (
-                  <button
-                    onClick={() => { actions.onConvert?.(activeRecord); setActiveMenuId(null); }}
-                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-left transition-colors ${
-                      darkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-slate-800 hover:bg-indigo-50'
-                    }`}
-                  >
-                    <Users size={14} className={darkMode ? 'text-gray-500' : 'text-slate-400'} /> Convert Customer
-                  </button>
-                )}
-                {actions?.showDelete && (
-                  <button
-                    onClick={() => { actions.onDelete?.(activeRecord); setActiveMenuId(null); }}
-                    className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-left transition-colors ${
-                      darkMode ? 'text-red-400 hover:bg-red-900/20' : 'text-rose-600 hover:bg-rose-50'
-                    }`}
-                  >
-                    <Trash2 size={14} className={darkMode ? 'text-red-400' : 'text-rose-400'} /> Delete Lead
-                  </button>
-                )}
-              </motion.div>
-            </>
-          )}
+          {activeMenuId !== null && activeRecord && (() => {
+            const currentActions = getActionButtonsForRecord(activeRecord);
+            
+            return (
+              <>
+                <div className="fixed inset-0 z-[9998]" onClick={() => setActiveMenuId(null)} />
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                  transition={{ type: "spring", damping: 20 }}
+                  style={{ position: 'fixed', top: menuPosition.top, left: menuPosition.left, zIndex: 9999 }}
+                  className={`w-[200px] rounded-xl shadow-xl border p-1 py-2 ${
+                    darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-slate-100'
+                  }`}
+                >
+                  {currentActions?.showEdit && (
+                    <button
+                      onClick={() => { currentActions.onEdit?.(activeRecord); setActiveMenuId(null); }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-left transition-colors ${
+                        darkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <Edit3 size={14} className={darkMode ? 'text-gray-500' : 'text-slate-400'} /> Edit lead
+                    </button>
+                  )}
+                  {currentActions?.showFollowUp && (
+                    <button
+                      onClick={() => { currentActions.onFollowUp?.(activeRecord); setActiveMenuId(null); }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-left transition-colors ${
+                        darkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <Calendar size={14} className={darkMode ? 'text-gray-500' : 'text-slate-400'} /> Add Follow-Up
+                    </button>
+                  )}
+                  {currentActions?.showView && (
+                    <button
+                      onClick={() => { currentActions.onView?.(activeRecord); setActiveMenuId(null); }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-left transition-colors ${
+                        darkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-slate-700 hover:bg-slate-50'
+                      }`}
+                    >
+                      <Eye size={14} className={darkMode ? 'text-gray-500' : 'text-slate-400'} /> View Lead
+                    </button>
+                  )}
+                  {(currentActions?.showConvert || currentActions?.showDelete) && (
+                    <div className={`my-1 mx-2 border-t ${darkMode ? 'border-gray-700' : 'border-slate-100'}`} />
+                  )}
+                  {currentActions?.showConvert && (
+                    <button
+                      onClick={() => { currentActions.onConvert?.(activeRecord); setActiveMenuId(null); }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold text-left transition-colors ${
+                        darkMode ? 'text-gray-300 hover:bg-gray-700' : 'text-slate-800 hover:bg-indigo-50'
+                      }`}
+                    >
+                      <Users size={14} className={darkMode ? 'text-gray-500' : 'text-slate-400'} /> Convert Customer
+                    </button>
+                  )}
+                  {currentActions?.showDelete && (
+                    <button
+                      onClick={() => { currentActions.onDelete?.(activeRecord); setActiveMenuId(null); }}
+                      className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-left transition-colors ${
+                        darkMode ? 'text-red-400 hover:bg-red-900/20' : 'text-rose-600 hover:bg-rose-50'
+                      }`}
+                    >
+                      <Trash2 size={14} className={darkMode ? 'text-red-400' : 'text-rose-400'} /> Delete Lead
+                    </button>
+                  )}
+                </motion.div>
+              </>
+            );
+          })()}
         </AnimatePresence>,
         document.body
       )}

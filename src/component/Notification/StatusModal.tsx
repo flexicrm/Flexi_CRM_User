@@ -45,12 +45,12 @@ const getConfig = (type: StatusType, primaryColor?: string) => {
       };
     case "confirm":
       return { 
-        img: "/confirmationPopup.png", 
-        bgColor: primaryColor ? `bg-gradient-to-br from-[${primaryColor}] to-[${primaryColor}cc]` : "bg-gradient-to-br from-blue-500 to-purple-600",
-        btnColor: primaryColor ? `bg-[${primaryColor}] hover:opacity-90` : "bg-gradient-to-r from-blue-500 to-purple-600",
-        defaultTitle: "Confirm?",
+        img: "/confirmation3.png",
+        bgColor: "bg-gradient-to-br from-red-400 to-red-500",
+        btnColor: "bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700",
+        defaultTitle: "Confirm?", 
         btnText: "Confirm",
-        icon: "❓"
+        icon: "❓",
       };
     default:
       return { 
@@ -200,7 +200,11 @@ const StatusModal: React.FC<StatusModalProps> = ({
                 <img 
                   src={config.img} 
                   alt={type} 
-                  className="absolute bottom-0 left-1/2 transform -translate-x-1/2 h-[160px] object-contain drop-shadow-lg"
+                  className={`absolute left-1/2 transform -translate-x-1/2 object-contain drop-shadow-lg ${
+  config.img === "/confirmation3.png"
+    ? "h-[220px] -bottom-4"
+    : "h-[160px] bottom-0"
+}`}
                   style={{ filter: 'drop-shadow(0 4px 6px rgba(0,0,0,0.1))' }}
                   onError={(e) => { 
                     e.currentTarget.style.display = 'none';
