@@ -398,11 +398,6 @@ const Create_Users: React.FC = () => {
     });
   };
 
-  // Handle permission changes from Overall_Permissions component
-  const handlePermissionsChange = (updatedPermissions: Permission[]) => {
-    setPermissions(updatedPermissions);
-  };
-
   const buildFinalPayload = () => {
     const apiPermissions = convertComponentPermissionsToApiFormat(permissions);
     
@@ -660,7 +655,6 @@ const Create_Users: React.FC = () => {
                 <div className={`rounded-2xl border p-2 sm:p-6 ${getPermissionsBg()} ${getPermissionsBorder()}`}>
                   <Overall_Permissions
                     permissionss={permissions}
-                    // setPermissions={handlePermissionsChange}
                     setPermissions={setPermissions}
                   />
                 </div>
