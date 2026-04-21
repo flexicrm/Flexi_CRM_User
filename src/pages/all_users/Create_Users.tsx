@@ -5,7 +5,6 @@ import {
   Globe,
   IndianRupee,
   Loader2,
-  Lock,
   Mail,
   MapPin,
   Phone,
@@ -65,7 +64,6 @@ interface FormData {
   lastName: string;
   mobile: string;
   email: string;
-  password: string;
   userRole: string;
   userRoleId: string;
   companyId: string;
@@ -101,7 +99,6 @@ interface ValidationErrors {
   lastName?: string;
   email?: string;
   mobile?: string;
-  password?: string;
   userRole?: string;
 }
 
@@ -262,7 +259,6 @@ const Create_Users: React.FC = () => {
     lastName: '',
     mobile: '',
     email: '',
-    password: '',
     userRole: '',
     userRoleId: '',
     companyId: '',
@@ -334,7 +330,6 @@ const Create_Users: React.FC = () => {
         lastName: data.lastname || '',
         mobile: data.mobile || '',
         email: data.email || '',
-        password: '',
         userRole: data.userRole || '',
         userRoleId: data.userRoleId || selectedRole?._id || '',
         companyId: data.company || '',
@@ -356,7 +351,16 @@ const Create_Users: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Handle mobile number validation - only allow numbers and limit to 10 digits
+    if (name === 'mobile') {
+      const numbersOnly = value.replace(/[^0-9]/g, '');
+      if (numbersOnly.length <= 10) {
+        setFormData(prev => ({ ...prev, [name]: numbersOnly }));
+      }
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
     
     if (validationErrors[name as keyof ValidationErrors]) {
       setValidationErrors(prev => ({ ...prev, [name]: '' }));
@@ -394,6 +398,11 @@ const Create_Users: React.FC = () => {
     });
   };
 
+  // Handle permission changes from Overall_Permissions component
+  const handlePermissionsChange = (updatedPermissions: Permission[]) => {
+    setPermissions(updatedPermissions);
+  };
+
   const buildFinalPayload = () => {
     const apiPermissions = convertComponentPermissionsToApiFormat(permissions);
     
@@ -402,7 +411,6 @@ const Create_Users: React.FC = () => {
       lastname: formData.lastName,
       email: formData.email,
       mobile: formData.mobile,
-      password: formData.password || undefined,
       userRole: formData.userRole,
       userRoleId: formData.userRoleId,
       company: formData.companyId || "self",
@@ -440,18 +448,13 @@ const Create_Users: React.FC = () => {
     if (!formData.mobile.trim()) {
       errors.mobile = "Mobile number is required";
     } else {
-      const mobileRegex = /^[0-9+\-\s()]{10,15}$/;
+      const mobileRegex = /^\d{10}$/;
       if (!mobileRegex.test(formData.mobile)) {
-        errors.mobile = "Please enter a valid mobile number";
+        errors.mobile = "Please enter a valid 10-digit mobile number";
       }
     }
     if (!formData.userRole) {
       errors.userRole = "Please select a user role";
-    }
-    if (!edit && !formData.password.trim()) {
-      errors.password = "Password is required for new users";
-    } else if (formData.password && formData.password.length < 6) {
-      errors.password = "Password must be at least 6 characters long";
     }
     
     setValidationErrors(errors);
@@ -580,6 +583,7 @@ const Create_Users: React.FC = () => {
                     icon={<Phone size={18} />} 
                     required 
                     error={validationErrors.mobile}
+                    placeholder="Enter 10-digit mobile number"
                   />
                 </div>
                 <div>
@@ -594,20 +598,6 @@ const Create_Users: React.FC = () => {
                     error={validationErrors.email}
                   />
                 </div>
-                {!edit && (
-                  <div>
-                    <Reusable_Fields 
-                      label="Password" 
-                      name="password" 
-                      type="password" 
-                      value={formData.password} 
-                      onChange={handleChange} 
-                      icon={<Lock size={18} />} 
-                      required 
-                      error={validationErrors.password}
-                    />
-                  </div>
-                )}
               </div>
             </section>
 
@@ -670,6 +660,7 @@ const Create_Users: React.FC = () => {
                 <div className={`rounded-2xl border p-2 sm:p-6 ${getPermissionsBg()} ${getPermissionsBorder()}`}>
                   <Overall_Permissions
                     permissionss={permissions}
+                    // setPermissions={handlePermissionsChange}
                     setPermissions={setPermissions}
                   />
                 </div>
